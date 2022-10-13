@@ -6,8 +6,14 @@ function TextUpdaterNode({ data }) {
     console.log(evt.target.value);
   }, []);
 
+  const componentStyle = {
+    statement: "text-updater-node",
+    given: "given-node",
+    goal: "goal-node",
+  }[data.type];
+
   return (
-    <div className="text-updater-node">
+    <div className={componentStyle}>
       <Handle type="target" position={Position.Top} />
       <div>
         <input onChange={onChange} />

@@ -36,14 +36,34 @@ function Flow() {
 
   return (
     <div>
-    <button onClick={() => {
-      setNodes([...nodes, {
-        id: `${count}`,
-        data: {label: `Node ${count}`, delete: deleteNodeById, id: count},
-        position: { x: 300, y: 0 },
-        type: 'textUpdater',
-      }]);
-      setCount(count + 1)}}>Add Node</button>
+      <div>
+        <button onClick={() => {
+          setNodes([...nodes, {
+            id: `${count}`,
+            data: {label: `Node ${count}`, delete: deleteNodeById, id: count, type: 'statement'},
+            position: { x: 300, y: 0 },
+            type: 'textUpdater',
+          }]);
+          setCount(count + 1)}}>Add Node</button>
+        
+        <button onClick={() => {
+          setNodes([...nodes, {
+            id: `${count}`,
+            data: {label: `Node ${count}`, delete: deleteNodeById, id: count, type: 'given'},
+            position: { x: 300, y: 0 },
+            type: 'textUpdater',
+          }]);
+          setCount(count + 1)}}>Add Given</button>
+        
+        <button onClick={() => {
+          setNodes([...nodes, {
+            id: `${count}`,
+            data: {label: `Node ${count}`, delete: deleteNodeById, id: count, type: 'goal'},
+            position: { x: 300, y: 0 },
+            type: 'textUpdater',
+          }]);
+          setCount(count + 1)}}>Add Goal</button>
+      </div>
     <div  style={{ height: '450px', width: '100%'}}>
       <ReactFlow
         nodes={nodes}
