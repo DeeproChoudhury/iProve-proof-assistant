@@ -30,12 +30,16 @@ function Flow() {
 
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
 
+  const deleteNodeById = (id) => {
+    setNodes(nds => nds.filter(node => node.id !== id));
+  };
+
   return (
     <div>
     <button onClick={() => {
       setNodes([...nodes, {
         id: `${count}`,
-        data: {label: `Node ${count}`},
+        data: {label: `Node ${count}`, delete: deleteNodeById, id: count},
         position: { x: 300, y: 0 },
         type: 'textUpdater',
       }]);
