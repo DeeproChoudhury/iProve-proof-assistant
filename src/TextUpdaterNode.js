@@ -14,12 +14,12 @@ function TextUpdaterNode({ data }) {
 
   return (
     <div className={componentStyle}>
-      <Handle type="target" position={Position.Top} />
+      {componentStyle !== "given-node" && <Handle type="target" position={Position.Top} />}
       <div>
         <input onChange={onChange} />
         <button onClick={() => {data.delete(`${data.id}`)}} style={{marginLeft: '5px'}}>Delete</button>
       </div>
-      <Handle type="source" position={Position.Bottom} id="b" />
+      {componentStyle !== "goal-node" && <Handle type="source" position={Position.Bottom} id="b" />}
     </div>
   );
 }
