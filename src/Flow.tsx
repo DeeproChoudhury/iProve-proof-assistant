@@ -5,14 +5,19 @@ import ReactFlow, {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
+  Node,
+  Edge,
+  NodeChange, 
+  EdgeChange,
+  Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode from './TextUpdaterNode.js';
+import TextUpdaterNode from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
-const initialNodes = [];
+const initialNodes: Node[] = [];
 
-const initialEdges = [];
+const initialEdges: Edge[] = [];
 const nodeTypes = { textUpdater: TextUpdaterNode };
 
 function Flow() {
@@ -20,19 +25,21 @@ function Flow() {
   const [edges, setEdges] = useState(initialEdges);
   const [count, setCount] = useState(0);
   const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
   );
   const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
 
-  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
+  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
 
-  const deleteNodeById = (id) => {
+  const deleteNodeById = (id: string) => {
     setNodes(nds => nds.filter(node => node.id !== id));
   };
+
+  const background = <Background />;
 
   return (
     <div>
@@ -73,7 +80,7 @@ function Flow() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
       >
-        <Background />
+        {background}
         <Controls />
       </ReactFlow>
     </div>

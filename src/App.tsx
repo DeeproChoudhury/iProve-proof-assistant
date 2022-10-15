@@ -1,5 +1,5 @@
 import './App.css';
-import Flow from './Flow.js';
+import Flow from './Flow';
 
 const App = () => {
   return (
