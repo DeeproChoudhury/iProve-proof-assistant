@@ -39,6 +39,21 @@ function Flow() {
     setNodes(nds => nds.filter(node => node.id !== id));
   };
 
+  const distance = (node1: Node, node2: Node): boolean => {
+    const a: number = node1.position.x - node2.position.x;
+    const b: number = node1.position.y - node2.position.y; 
+    console.log(Math.sqrt(a * a + b * b));
+    return Math.sqrt(a * a + b * b) < 100;
+  }
+
+  const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
+    for (var other of nodes) {
+      if (other.id !== node.id && distance(node, other)) {
+        console.log('should have merged');
+      }
+    }
+  }, [nodes]);
+
   const background = <Background />;
 
   return (
@@ -79,6 +94,7 @@ function Flow() {
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStop={onNodeDragStop}
       >
         {background}
         <Controls />
