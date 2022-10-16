@@ -12,6 +12,7 @@ import ReactFlow, {
   Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { getPositionOfLineAndCharacter } from 'typescript';
 import TextUpdaterNode from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
@@ -39,18 +40,25 @@ function Flow() {
     setNodes(nds => nds.filter(node => node.id !== id));
   };
 
-  const distance = (node1: Node, node2: Node): boolean => {
+  const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
     const b: number = node1.position.y - node2.position.y; 
-    console.log(Math.sqrt(a * a + b * b));
     return Math.sqrt(a * a + b * b) < 100;
   }
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
-    for (var other of nodes) {
-      if (other.id !== node.id && distance(node, other)) {
-        console.log('should have merged');
-      }
+    // probably also need to check node type here
+    // I don't think we want to merge givens or goals with anything
+    const other: Node<any> | undefined = nodes.find((other) => other.id !== node.id && collided(node, other));
+    if (other !== undefined) {
+      setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
+      setNodes(nds => [...nds, {
+        id: `${count}`,
+        data: {label: `Node ${count}`, delete: deleteNodeById, id: count, type: 'statement'},
+        position: { x: node.position.x, y: node.position.y },
+        type: 'textUpdater',
+      }]);
+      setCount(count + 1);
     }
   }, [nodes]);
 

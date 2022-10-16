@@ -17,7 +17,7 @@ function TextUpdaterNode({ data }: any) {
     <div className={componentStyle}>
       {componentStyle !== "given-node" && targetHandle}
       <div style={{display: 'flex', flexDirection: 'column'}}>
-        {statements.map((s, index) => <input onChange={e => onChange(e, index)} style={{marginTop: '5px'}}/>)}
+        {statements.map((s, index) => <input onChange={e => onChange(e, index)} style={{marginTop: '5px'}} key={index}/>)}
         <div style={{display: 'flex', justifyContent : 'space-between', marginTop: '5px'}}>
           <button onClick={() => {data.delete(`${data.id}`)}}>Delete</button>
           <button onClick={() => {setStatements([...statements, ''])}}>Add Statement</button>
