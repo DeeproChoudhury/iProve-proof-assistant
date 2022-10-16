@@ -1,15 +1,15 @@
 import './App.css';
 // import Flow from './Flow.js';
-import solver from './Solver';
+import { Z3Solver } from './Solver';
 import { useEffect } from 'react';
 import Flow from './Flow';
 
 const App = () => {
   useEffect(() => {
-    solver();
-    
+    Z3Solver.initZ3();
     return () => {  };
   }, [])
+
   return (
     <div style={{backgroundColor: '#B8CEFF'}}>
       <div className='header'>
@@ -18,6 +18,7 @@ const App = () => {
       <div className='graph'>
         <Flow />
       </div>
+      <Z3Solver.useZ3Button />
     </div>
   );
 }
