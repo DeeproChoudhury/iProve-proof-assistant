@@ -5,14 +5,20 @@ import ReactFlow, {
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
+  Node,
+  Edge,
+  NodeChange, 
+  EdgeChange,
+  Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode from './TextUpdaterNode.js';
+import { getPositionOfLineAndCharacter } from 'typescript';
+import TextUpdaterNode from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
-const initialNodes = [];
+const initialNodes: Node[] = [];
 
-const initialEdges = [];
+const initialEdges: Edge[] = [];
 const nodeTypes = { textUpdater: TextUpdaterNode };
 
 function Flow() {
@@ -20,19 +26,43 @@ function Flow() {
   const [edges, setEdges] = useState(initialEdges);
   const [count, setCount] = useState(0);
   const onNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
   );
   const onEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     []
   );
 
-  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), []);
+  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
 
-  const deleteNodeById = (id) => {
+  const deleteNodeById = (id: string) => {
     setNodes(nds => nds.filter(node => node.id !== id));
   };
+
+  const collided = (node1: Node, node2: Node): boolean => {
+    const a: number = node1.position.x - node2.position.x;
+    const b: number = node1.position.y - node2.position.y; 
+    return Math.sqrt(a * a + b * b) < 100;
+  }
+
+  const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
+    // probably also need to check node type here
+    // I don't think we want to merge givens or goals with anything
+    const other: Node<any> | undefined = nodes.find((other) => other.id !== node.id && collided(node, other));
+    if (other !== undefined) {
+      setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
+      setNodes(nds => [...nds, {
+        id: `${count}`,
+        data: {label: `Node ${count}`, delete: deleteNodeById, id: count, type: 'statement'},
+        position: { x: node.position.x, y: node.position.y },
+        type: 'textUpdater',
+      }]);
+      setCount(count + 1);
+    }
+  }, [nodes]);
+
+  const background = <Background />;
 
   return (
     <div>
@@ -72,8 +102,9 @@ function Flow() {
         edges={edges}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStop={onNodeDragStop}
       >
-        <Background />
+        {background}
         <Controls />
       </ReactFlow>
     </div>

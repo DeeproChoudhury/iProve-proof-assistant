@@ -1,7 +1,7 @@
-.text-updater-node {
+.statement-node {
   border: 1px solid black;
   border-radius: 5px;
-  background: white;
+  background: rgb(209, 238, 255);
   padding: 5px;
 }
 
