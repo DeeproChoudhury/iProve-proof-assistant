@@ -83,7 +83,9 @@ function Flow() {
           delete: deleteNodeById, 
           id: count, 
           type: 'statement', 
-          statements: [...other.data.statements, ...node.data.statements],
+          statements: node.position.y < other.position.y ? 
+            [...node.data.statements, ...other.data.statements]:
+            [...other.data.statements, ...node.data.statements],
           updateStatements: updateStatements,
           addStatement: addStatement,
         },
