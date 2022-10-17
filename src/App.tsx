@@ -1,9 +1,13 @@
 import './App.css';
 import Flow from './Flow';
 
+const rfStyle = {
+  backgroundColor: '#D0C0F7',
+};
+
 const App = () => {
   return (
-    <div style={{backgroundColor: '#B8CEFF'}}>
+    <div className = "graph_header_container">
       <div className='header'>
         iProve
       </div>

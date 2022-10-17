@@ -93,6 +93,10 @@ function Flow() {
     }
   }, [nodes]);
 
+  const rfStyle = {
+    backgroundColor: '#D0C0F7',
+  };
+
   const background = <Background />;
   const addNode = (nodeType: string) => {
     setNodes([...nodes, {
@@ -101,7 +105,7 @@ function Flow() {
         delete: deleteNodeById, 
         id: count, 
         type: nodeType, 
-        statements: [],
+        statements: [''],
         updateStatements: updateStatements,
         addStatement: addStatement, 
       },
@@ -118,7 +122,7 @@ function Flow() {
         <button onClick={() => addNode('given')}>Add Given</button>
         <button onClick={() => addNode('goal')}>Add Goal</button>
       </div>
-    <div  style={{ height: '450px', width: '100%'}}>
+    <div  style={{ height: '90vh', width: '100%'}}>
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
@@ -127,6 +131,7 @@ function Flow() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeDragStop={onNodeDragStop}
+        style={rfStyle}
       >
         {background}
         <Controls />
