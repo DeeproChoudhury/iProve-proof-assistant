@@ -1,6 +1,6 @@
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Heading, Button } from '@chakra-ui/react';
+import { Box, Heading, Button } from '@chakra-ui/react';
 
 
 function TextUpdaterNode({ data }: any) {
@@ -15,7 +15,7 @@ function TextUpdaterNode({ data }: any) {
   const goalTitle : ReactNode = <Heading textAlign={['center' ]} as='h6' size='xs'>Goal</Heading>
 
   return (
-    <div className={componentStyle}>
+    <Box className={componentStyle}>
       {componentStyle !== "given-node" && targetHandle}
       <div style={{display: 'flex', flexDirection: 'column'}}>
         {componentStyle === "given-node" && givenTitle}
@@ -27,7 +27,7 @@ function TextUpdaterNode({ data }: any) {
         </div>
       </div>
       {componentStyle !== "goal-node" && sourceHandle}
-    </div>
+    </Box>
   );
 }
 
