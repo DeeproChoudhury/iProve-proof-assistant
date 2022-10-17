@@ -1,4 +1,4 @@
-import { ContextCtor, init, IntCreation } from 'z3-solver';
+import { Arith, ContextCtor, init, IntCreation } from 'z3-solver';
 
 const solver = async () => {
     const {
@@ -19,9 +19,10 @@ export default solver;
 export namespace Z3Solver {
     
     var HighLevelContext : ContextCtor | undefined;
-    var HighLevelSolver : any | undefined;
-    var Z3Int : IntCreation<"main">
-    var Z3And : any;
+    // var Z3Int : IntCreation<"m">
+    // var Z3And : any;
+    // var Z3Or : any;
+    // var Z3Implies : any;
 
     export async function initZ3() {
         const {
@@ -31,37 +32,76 @@ export namespace Z3Solver {
 
         if (HighLevelContext === undefined) {
             HighLevelContext = Context;
-        
-            const { Solver, Int, And } = HighLevelContext('main');
-            HighLevelSolver = Solver;
-            Z3Int = Int;
-            Z3And = And;
-    
-            const x = Int.const('x');
-        
-            const solver = new HighLevelSolver();
-            solver.add(And(x.ge(0), x.le(9)));
-            console.log(await solver.check());
+            console.log("Z3 INIT COMPLETE")
         }
         
     } 
 
-    export async function useZ3() {
-        if (HighLevelContext !== undefined) {
-            // const { Solver, Int, And } = HighLevelContext('main');
-            const solver = new HighLevelSolver();
+    export class Z3Prover {
+        private Z3Int! : IntCreation<string>;
+        private Z3And! : any;
+        private Z3Or! : any;
+        private Z3Implies! : any;
+        private HighLevelSolver! : any;
+        
+        private solver! : any;
+        private variables : Map<string, Arith<string>>;
 
-            const x = Z3Int.const('x');
-            solver.add(Z3And(x.ge(10), x.le(9)));
+        constructor(context: string) {
+            if (HighLevelContext !== undefined)
+            {
+                const { Solver, Int, And, Or, Implies, Eq } = HighLevelContext(context);
+                this.HighLevelSolver = Solver;
+                this.Z3Int = Int;
+                this.Z3And = And;
+                this.Z3Or = Or
+                this.Z3Implies = Implies;
+
+                this.solver = new this.HighLevelSolver();
             
-            console.log(await solver.check());
-            console.log("OK");
+            // const x = Int.const('x');
+            // const solver = new HighLevelSolver();
+            // solver.add(And(x.ge(0), x.le(9)));
+            // console.log(await solver.check());
+            }
+
+            this.variables = new Map();
+
         }
+
+        public const(x : string) {
+            this.variables.set(x, this.Z3Int.const(x));
+        }
+
+        public addAnd(x : string, y: string) {
+            const x_ = this.variables.get(x);
+            const y_ = this.variables.get(y);
+            if (x_ !== undefined && y_ !== undefined)
+                this.solver.add(this.Z3And(x_.ge(0), y_.le(10)));
+        }
+
+        public async solve() {
+            // console.log("ok");
+            var self = this
+            self.const("x");
+            // console.log("x ok");
+
+            self.addAnd("x","x");
+            // console.log("x and ok");
+            
+            console.log(await self.solver.check());
+        }
+
+    }
+
+    export function prove() {
+        const prover = new Z3Prover("main");
+        prover.solve()
     }
 
     export function useZ3Button() {
         return(
-            <button onClick={useZ3}>
+            <button onClick={prove}>
                 Z3
             </button>
         )
