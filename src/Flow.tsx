@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Button, Stack } from '@chakra-ui/react'
 import ReactFlow, {
   Controls,
   Background,
@@ -118,11 +119,13 @@ function Flow() {
   return (
     <div>
       <div>
-        <button onClick={() => addNode('statement')}>Add Node</button>
-        <button onClick={() => addNode('given')}>Add Given</button>
-        <button onClick={() => addNode('goal')}>Add Goal</button>
+        <Stack style={{ marginLeft: '1em', marginBottom:'1em'}} spacing={4} direction='row' align='center'>
+          <Button colorScheme='purple' size='md'onClick={() => addNode('statement')}>Add Node</Button>
+          <Button colorScheme='purple' size='md'onClick={() => addNode('given')}>Add Given</Button>
+          <Button colorScheme='purple' size='md'onClick={() => addNode('goal')}>Add Goal</Button>
+        </Stack>
       </div>
-    <div  style={{ height: '90vh', width: '100%'}}>
+    <div  style={{ height: '85vh', width: '100%'}}>
       <ReactFlow
         nodes={nodes}
         nodeTypes={nodeTypes}
