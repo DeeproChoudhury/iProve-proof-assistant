@@ -68,7 +68,7 @@ function Flow() {
   const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
     const b: number = node1.position.y - node2.position.y; 
-    return Math.sqrt(a * a + b * b) < 100;
+    return Math.sqrt(a * a + b * b) < 200;
   }
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
@@ -89,7 +89,7 @@ function Flow() {
           updateStatements: updateStatements,
           addStatement: addStatement,
         },
-        position: { x: node.position.x, y: node.position.y },
+        position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
       }]);
       setCount(count + 1);
