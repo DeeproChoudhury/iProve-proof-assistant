@@ -13,14 +13,15 @@ import ReactFlow, {
   Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode from './TextUpdaterNode';
+import TextUpdaterNode, { NodeData, NodeType, Statement } from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
 import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
 import { evaluate } from './fol-parser';
 import { error } from 'console';
-const initialNodes: Node[] = [];
+
+const initialNodes: Node<NodeData>[] = [];
 
 const initialEdges: Edge[] = [];
 const nodeTypes = { textUpdater: TextUpdaterNode };
@@ -124,7 +125,7 @@ function Flow() {
     if (node.data.type !== 'statement') {
       return;
     }
-    const other: Node<any> | undefined =
+    const other: Node<NodeData> | undefined =
       nodes.filter((other) => other.data.type === 'statement')
         .find((other) => other.id !== node.id && collided(node, other));
     if (other !== undefined) {
@@ -157,10 +158,10 @@ function Flow() {
       }]);
       setCount(count + 1);
     }
-  }, [nodes]);
+  }, [nodes, count]);
 
   const background = <Background />;
-  const addNode = (nodeType: string) => {
+  const addNode = (nodeType: NodeType) => {
     setNodes([...nodes, {
       id: `${count}`,
       data: {
