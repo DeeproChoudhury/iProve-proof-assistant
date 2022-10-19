@@ -22,7 +22,7 @@ launch-npm:
   stage: run
   script:
     - npm run build
-    - serve -s build &
+    - serve -c ../serve.json -s build &
   artifacts:
     paths:
       - node_modules/
