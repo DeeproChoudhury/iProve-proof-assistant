@@ -18,6 +18,37 @@ function TextUpdaterNode({ data }: any) {
   const firstProofStep: any = data.statements.findIndex((s: any) => !s.isGiven);
   const lastProofStep: any = data.statements.findLastIndex((s: any) => !s.isGiven);
 
+  if (data.type === "given") {
+    return (
+      <Box className={componentStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
+          {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Delete</Button>
+        </div>
+        {sourceHandle}
+      </Box>
+    )
+  }
+
+  
+  if (data.type === "goal") {
+    return (
+      <Box className={componentStyle}>
+        {targetHandle}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
+          {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Delete</Button>
+        </div>
+      </Box>
+    )
+  }
+
   return (
     <Box className={componentStyle}>
       {componentStyle !== "given-node" && targetHandle}
