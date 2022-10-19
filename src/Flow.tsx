@@ -59,7 +59,7 @@ function Flow() {
       if (node.id === nodeId) {
         node.data = {
           ...node.data,
-          statements: [...node.data.statements, {value: '', isGiven: true}],
+          statements: [...node.data.statements, { value: '', isGiven: true }],
         };
       }
       return node;
@@ -71,7 +71,7 @@ function Flow() {
       if (node.id === nodeId) {
         node.data = {
           ...node.data,
-          statements: [...node.data.statements, {value: '', isGiven: false}],
+          statements: [...node.data.statements, { value: '', isGiven: false }],
         };
       }
       return node;
@@ -87,9 +87,24 @@ function Flow() {
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
     // probably also need to check node type here
     // I don't think we want to merge givens or goals with anything
-    const other: Node<any> | undefined = nodes.find((other) => other.id !== node.id && collided(node, other));
+    if (node.data.type !== 'statement') {
+      return;
+    }
+    const other: Node<any> | undefined =
+      nodes.filter((other) => other.data.type === 'statement')
+        .find((other) => other.id !== node.id && collided(node, other));
     if (other !== undefined) {
       setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
+      let newStatements: any = [];
+      if (node.position.y < other.position.y) {
+        const otherGivens = other.data.statements.filter((s: any) => s.isGiven);
+        const otherProofSteps = other.data.statements.filter((s: any) => !s.isGiven);
+        newStatements = [...node.data.statements, ...otherGivens.map((s: any) => {return {value: s.value, isGiven: false}}), ...otherProofSteps]
+      } else {
+        const nodeGivens = node.data.statements.filter((s: any) => s.isGiven);
+        const nodeProofSteps = node.data.statements.filter((s: any) => !s.isGiven);
+        newStatements = [...other.data.statements, ...nodeGivens.map((s: any) => {return {value: s.value, isGiven: false}}), ...nodeProofSteps]
+      }
       setNodes(nds => [...nds, {
         id: `${count}`,
         data: {
@@ -97,9 +112,7 @@ function Flow() {
           delete: deleteNodeById,
           id: count,
           type: 'statement',
-          statements: node.position.y < other.position.y ?
-            [...node.data.statements, ...other.data.statements] :
-            [...other.data.statements, ...node.data.statements],
+          statements: newStatements,
           updateStatements: updateStatements,
           addProofStep: addProofStep,
           addGiven: addGiven,
@@ -124,7 +137,7 @@ function Flow() {
         delete: deleteNodeById,
         id: count,
         type: nodeType,
-        statements: [{value: '', isGiven: false}],
+        statements: [{ value: '', isGiven: false }],
         updateStatements: updateStatements,
         addProofStep: addProofStep,
         addGiven: addGiven,
