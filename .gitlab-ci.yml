@@ -12,6 +12,7 @@ stages:
 install-dependencies:
   stage: build
   script:
+    - npm install -g yarn
     - yarn install
     - yarn install serve
   artifacts:
