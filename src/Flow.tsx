@@ -8,7 +8,7 @@ import ReactFlow, {
   addEdge,
   Node,
   Edge,
-  NodeChange, 
+  NodeChange,
   EdgeChange,
   Connection,
 } from 'reactflow';
@@ -67,7 +67,7 @@ function Flow() {
 
   const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
-    const b: number = node1.position.y - node2.position.y; 
+    const b: number = node1.position.y - node2.position.y;
     return Math.sqrt(a * a + b * b) < 200;
   }
 
@@ -79,12 +79,13 @@ function Flow() {
       setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
       setNodes(nds => [...nds, {
         id: `${count}`,
-        data: {label: `Node ${count}`, 
-          delete: deleteNodeById, 
-          id: count, 
-          type: 'statement', 
-          statements: node.position.y < other.position.y ? 
-            [...node.data.statements, ...other.data.statements]:
+        data: {
+          label: `Node ${count}`,
+          delete: deleteNodeById,
+          id: count,
+          type: 'statement',
+          statements: node.position.y < other.position.y ?
+            [...node.data.statements, ...other.data.statements] :
             [...other.data.statements, ...node.data.statements],
           updateStatements: updateStatements,
           addStatement: addStatement,
@@ -104,13 +105,14 @@ function Flow() {
   const addNode = (nodeType: string) => {
     setNodes([...nodes, {
       id: `${count}`,
-      data: {label: `Node ${count}`, 
-        delete: deleteNodeById, 
-        id: count, 
-        type: nodeType, 
+      data: {
+        label: `Node ${count}`,
+        delete: deleteNodeById,
+        id: count,
+        type: nodeType,
         statements: [''],
         updateStatements: updateStatements,
-        addStatement: addStatement, 
+        addStatement: addStatement,
       },
       position: { x: 300, y: 0 },
       type: 'textUpdater',
@@ -121,27 +123,27 @@ function Flow() {
   return (
     <div>
       <div>
-        <Stack style={{ marginLeft: '1em', marginBottom:'1em'}} spacing={4} direction='row' align='center'>
-          <Button colorScheme='purple' size='md'onClick={() => addNode('statement')}>Add Node</Button>
-          <Button colorScheme='purple' size='md'onClick={() => addNode('given')}>Add Given</Button>
-          <Button colorScheme='purple' size='md'onClick={() => addNode('goal')}>Add Goal</Button>
+        <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Node</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
         </Stack>
       </div>
-    <div  style={{ height: '85vh', width: '100%'}}>
-      <ReactFlow
-        nodes={nodes}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        edges={edges}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeDragStop={onNodeDragStop}
-        style={rfStyle}
-      >
-        {background}
-        <Controls />
-      </ReactFlow>
-    </div>
+      <div style={{ height: '85vh', width: '100%' }}>
+        <ReactFlow
+          nodes={nodes}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          edges={edges}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeDragStop={onNodeDragStop}
+          style={rfStyle}
+        >
+          {background}
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
