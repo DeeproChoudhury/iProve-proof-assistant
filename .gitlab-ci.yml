@@ -12,8 +12,8 @@ stages:
 install-dependencies:
   stage: build
   script:
-    - npm install
-    - npm install serve
+    - yarn install
+    - yarn install serve
   artifacts:
     paths:
       - node_modules
@@ -21,7 +21,7 @@ install-dependencies:
 launch-npm:
   stage: run
   script:
-    - npm run build
+    - yarn build
     - serve -c ../serve.json -s build &
   artifacts:
     paths:
