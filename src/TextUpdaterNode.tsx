@@ -22,11 +22,15 @@ function TextUpdaterNode({ data }: any) {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {componentStyle === "given-node" && givenTitle}
         {componentStyle === "goal-node" && goalTitle}
-        {!isCollapsed && data.statements.map((s: string, index: number) => <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s} />)}
-        {isCollapsed && [data.statements[0]].map((s: string, index: number) => <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s} />)}
-        {isCollapsed && <Text as='b'>. . .</Text>}
-        {isCollapsed && [data.statements[data.statements.length - 1]].map((s: string, index: number) => <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s} />)}
-
+        {
+          isCollapsed ?
+            <>
+              <input onChange={e => onChange(e, 0)} style={{ marginTop: '5px' }} key={0} value={data.statements[0].value} />
+              <Text as='b'>. . .</Text>
+              <input onChange={e => onChange(e, data.statements.length - 1)} style={{ marginTop: '5px' }} key={data.statements.length - 1} value={data.statements[data.statements.length - 1].value} />
+            </> :
+            data.statements.map((s: any, index: number) => <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)
+        }
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Delete</Button>
           {data.statements.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}

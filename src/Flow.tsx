@@ -44,7 +44,7 @@ function Flow() {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
         const newStatements = node.data.statements;
-        newStatements[statementIndex] = statement;
+        newStatements[statementIndex].value = statement;
         node.data = {
           ...node.data,
           statements: newStatements,
@@ -58,7 +58,7 @@ function Flow() {
       if (node.id === nodeId) {
         node.data = {
           ...node.data,
-          statements: [...node.data.statements, ''],
+          statements: [...node.data.statements, {value: '', isGiven: false}],
         };
       }
       return node;
@@ -68,7 +68,7 @@ function Flow() {
   const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
     const b: number = node1.position.y - node2.position.y;
-    return Math.sqrt(a * a + b * b) < 200;
+    return Math.sqrt(a * a + b * b) < 100;
   }
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
@@ -110,7 +110,7 @@ function Flow() {
         delete: deleteNodeById,
         id: count,
         type: nodeType,
-        statements: [''],
+        statements: [{value: '', isGiven: false}],
         updateStatements: updateStatements,
         addStatement: addStatement,
       },
