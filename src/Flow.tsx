@@ -44,7 +44,7 @@ function Flow() {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
         const newStatements = node.data.statements;
-        newStatements[statementIndex] = statement;
+        newStatements[statementIndex].value = statement;
         node.data = {
           ...node.data,
           statements: newStatements,
@@ -53,12 +53,25 @@ function Flow() {
       return node;
     }));
   };
-  const addStatement = (nodeId: string) => {
+
+  const addGiven = (nodeId: string) => {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
         node.data = {
           ...node.data,
-          statements: [...node.data.statements, ''],
+          statements: [...node.data.statements, {value: '', isGiven: true}],
+        };
+      }
+      return node;
+    }));
+  }
+
+  const addProofStep = (nodeId: string) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        node.data = {
+          ...node.data,
+          statements: [...node.data.statements, {value: '', isGiven: false}],
         };
       }
       return node;
@@ -68,7 +81,7 @@ function Flow() {
   const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
     const b: number = node1.position.y - node2.position.y;
-    return Math.sqrt(a * a + b * b) < 200;
+    return Math.sqrt(a * a + b * b) < 100;
   }
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
@@ -88,7 +101,8 @@ function Flow() {
             [...node.data.statements, ...other.data.statements] :
             [...other.data.statements, ...node.data.statements],
           updateStatements: updateStatements,
-          addStatement: addStatement,
+          addProofStep: addProofStep,
+          addGiven: addGiven,
         },
         position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
@@ -110,9 +124,10 @@ function Flow() {
         delete: deleteNodeById,
         id: count,
         type: nodeType,
-        statements: [''],
+        statements: [{value: '', isGiven: false}],
         updateStatements: updateStatements,
-        addStatement: addStatement,
+        addProofStep: addProofStep,
+        addGiven: addGiven,
       },
       position: { x: 300, y: 0 },
       type: 'textUpdater',
