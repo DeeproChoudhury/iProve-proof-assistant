@@ -3,30 +3,30 @@
 # https://docs.gitlab.com/ee/development/cicd/templates.html
 # This specific template is located at:
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/npm.gitlab-ci.yml
-image: node:latest
+# image: node:latest
 
-stages:
-  - build
-  - run
+# stages:
+#   - build
+#   - run
 
-install-dependencies:
-  stage: build
-  script:
-    # - npm install -g yarn
-    # - yarn install
-    # - yarn install serve
-  artifacts:
-    paths:
-      - node_modules
+# install-dependencies:
+#   stage: build
+#   script:
+#     # - npm install -g yarn
+#     # - yarn install
+#     # - yarn install serve
+#   artifacts:
+#     paths:
+#       - node_modules
 
-launch-npm:
-  stage: run
-  script:
-    # - yarn build
-    # - serve -c ../serve.json -s build &
-  artifacts:
-    paths:
-      - node_modules/
+# launch-npm:
+#   stage: run
+#   script:
+#     # - yarn build
+#     # - serve -c ../serve.json -s build &
+#   artifacts:
+#     paths:
+#       - node_modules/
 
 # publish:
 #   image: node:latest
