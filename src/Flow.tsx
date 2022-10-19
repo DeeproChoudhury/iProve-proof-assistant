@@ -53,7 +53,20 @@ function Flow() {
       return node;
     }));
   };
-  const addStatement = (nodeId: string) => {
+
+  const addGiven = (nodeId: string) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        node.data = {
+          ...node.data,
+          statements: [...node.data.statements, {value: '', isGiven: true}],
+        };
+      }
+      return node;
+    }));
+  }
+
+  const addProofStep = (nodeId: string) => {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
         node.data = {
@@ -88,7 +101,8 @@ function Flow() {
             [...node.data.statements, ...other.data.statements] :
             [...other.data.statements, ...node.data.statements],
           updateStatements: updateStatements,
-          addStatement: addStatement,
+          addProofStep: addProofStep,
+          addGiven: addGiven,
         },
         position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
@@ -112,7 +126,8 @@ function Flow() {
         type: nodeType,
         statements: [{value: '', isGiven: false}],
         updateStatements: updateStatements,
-        addStatement: addStatement,
+        addProofStep: addProofStep,
+        addGiven: addGiven,
       },
       position: { x: 300, y: 0 },
       type: 'textUpdater',
