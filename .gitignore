@@ -11,6 +11,9 @@
 # production
 /build
 
+# build artefacts
+src/*.js
+
 # misc
 .DS_Store
 .env.local
