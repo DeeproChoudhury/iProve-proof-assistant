@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Button, Stack } from '@chakra-ui/react'
+import { Alert, Button, Stack, AlertIcon, AlertTitle, AlertDescription, IconButton } from '@chakra-ui/react'
 import ReactFlow, {
   Controls,
   Background,
@@ -16,6 +16,8 @@ import 'reactflow/dist/style.css';
 import TextUpdaterNode from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
+import './Flow.css';
+import { CloseIcon } from '@chakra-ui/icons';
 const initialNodes: Node[] = [];
 
 const initialEdges: Edge[] = [];
@@ -25,6 +27,7 @@ function Flow() {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [count, setCount] = useState(0);
+  const [syntaxError, setSyntaxError] = useState(false);
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
@@ -72,6 +75,7 @@ function Flow() {
       if (node?.data !== undefined) {
         for (var statement of node.data.statements) {
           console.log(statement);
+          setSyntaxError(Math.random() > 0.5);
         }
       }
       return nds;
@@ -111,11 +115,11 @@ function Flow() {
       if (node.position.y < other.position.y) {
         const otherGivens = other.data.statements.filter((s: any) => s.isGiven);
         const otherProofSteps = other.data.statements.filter((s: any) => !s.isGiven);
-        newStatements = [...node.data.statements, ...otherGivens.map((s: any) => {return {value: s.value, isGiven: false}}), ...otherProofSteps]
+        newStatements = [...node.data.statements, ...otherGivens.map((s: any) => { return { value: s.value, isGiven: false } }), ...otherProofSteps]
       } else {
         const nodeGivens = node.data.statements.filter((s: any) => s.isGiven);
         const nodeProofSteps = node.data.statements.filter((s: any) => !s.isGiven);
-        newStatements = [...other.data.statements, ...nodeGivens.map((s: any) => {return {value: s.value, isGiven: false}}), ...nodeProofSteps]
+        newStatements = [...other.data.statements, ...nodeGivens.map((s: any) => { return { value: s.value, isGiven: false } }), ...nodeProofSteps]
       }
       setNodes(nds => [...nds, {
         id: `${count}`,
@@ -159,7 +163,21 @@ function Flow() {
   };
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
+      <div className="syntax-error-container">
+        {syntaxError && <Alert status='error' className="syntax-error">
+          <AlertIcon />
+          <AlertTitle>Error!</AlertTitle>
+          <AlertDescription>Parsing for the last node failed. Check your syntax!</AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setSyntaxError(false) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
           <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Node</Button>

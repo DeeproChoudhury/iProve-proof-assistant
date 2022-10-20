@@ -1,0 +1,16 @@
+.syntax-error-container {
+  width: 40%;
+  z-index: 1000;
+  top: 10%;
+  transform: translate(-50%, -50%);
+  left: 50%;
+  position: absolute;
+}
+
+.syntax-error {
+  display: flex;
+  flex-direction: row; 
+  justify-content: space-between;
+  border: 2px transparent;
+  border-radius: 5px;
+}
