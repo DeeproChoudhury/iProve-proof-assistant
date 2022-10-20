@@ -10,9 +10,10 @@ enum TokenKind {
     Symbol,
     InfixSymbol,
     NegToken,
-    BinToken,
-    ImpToken,
+    PropOperator,
+    ImpOperator,
     QntToken,
+    Misc,
     Space,
 }
 
@@ -21,10 +22,11 @@ const lexer = buildLexer([
     [true, /^\w+/g, TokenKind.Symbol],
     [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!)+/g, TokenKind.InfixSymbol],
     [true, /^\~/g, TokenKind.NegToken],
-    [true, /^(\&|\|)/g, TokenKind.BinToken],
-    [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpToken],
+    [true, /^(\&|\|)/g, TokenKind.PropOperator],
+    [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
     [true, /^(FA|EX)/g, TokenKind.QntToken],
-    [false, /^\s/g, TokenKind.Space]
+    [true, /^\S/g, TokenKind.Misc],
+    [false, /^\s+/g, TokenKind.Space]
 ]);
 
 enum SymbolType {
@@ -39,59 +41,6 @@ interface Symbol {
     idx: number,
     ident: string,
     type: SymbolType
-}
-
-var symbolTable = new Map<string, Symbol>() ;
-var currentSymbol = 0;
-
-function registerSymbol(symbol: string, type: SymbolType): boolean {
-    let current = symbolTable.get(symbol);
-    if (current) {
-        if (current.type != type) {
-            throw new Error("Invalid type");
-        }
-        return true;
-    } else {
-        symbolTable.set(symbol, {idx: currentSymbol, ident: symbol, type: type})
-        currentSymbol++;
-    }
-    return true;
-}
-
-function assignInfixSymbol(value: Token<TokenKind.InfixSymbol>): AST.InfixSymbol {
-    let id = value.text;
-    console.log("ASSIGNING " + value.text + " TO INFIX")
-    registerSymbol(id, SymbolType.Infix);
-    return { isInfixSymbol: true, isInfixOperator: true, ident: id };
-}
-
-function assignFn(value: Token<TokenKind.Symbol>): AST.FunctionSymbol {
-    let id = value.text;
-    console.log("ASSIGNING " + value.text + " TO FUNCTION")
-    registerSymbol(id, SymbolType.Function);
-    return { isSymbol: true, isInfixOperator: true, isFunctionSymbol: true, ident: id };
-}
-
-function assignVar(value: Token<TokenKind.Symbol>): AST.Variable {
-    let id = value.text;
-    console.log("ASSIGNING " + value.text + " TO VARIABLE")
-    registerSymbol(id, SymbolType.Variable);
-    return { isSymbol: true, isAtom: true, isVariable: true,
-             ident: id };
-}
-
-function assignPredicate(value: Token<TokenKind.Symbol>): AST.PredicateSymbol {
-    let id = value.text;
-    console.log("ASSIGNING " + value.text + " TO PREDICATE")
-    registerSymbol(id, SymbolType.Predicate);
-    return { isSymbol: true, isPredicateSymbol: true, ident: id };
-}
-
-function assignType(value: Token<TokenKind.Symbol>): AST.Type {
-    let id = value.text;
-    console.log("ASSIGNING " + value.text + " TO TYPE")
-    registerSymbol(id, SymbolType.Type);
-    return { isSymbol: true, isType: true, ident: id };
 }
 
 function applyIntLiteral(value: [Token<TokenKind> | undefined, Token<TokenKind.NumberLiteral>]): AST.IntLiteral {
@@ -160,12 +109,27 @@ const INFIX_SYM = rule<TokenKind, AST.InfixSymbol>();
 const VAR_TYPE = rule<TokenKind, AST.Type>();
 const INT_LITERAL = rule<TokenKind, AST.IntLiteral>();
 
-VAR_SYM.setPattern(apply(tok(TokenKind.Symbol), assignVar));
-FN_SYM.setPattern(apply(tok(TokenKind.Symbol), assignFn));
-PREDICATE_SYM.setPattern(apply(tok(TokenKind.Symbol), assignPredicate));
-VAR_TYPE.setPattern(apply(tok(TokenKind.Symbol), assignType));
-
-INFIX_SYM.setPattern(apply(tok(TokenKind.InfixSymbol), assignInfixSymbol));
+VAR_SYM.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
+    return { isSymbol: true, isAtom: true, isVariable: true, ident: s.text }
+}));
+FN_SYM.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.FunctionSymbol => {
+    return { isSymbol: true, isFunctionSymbol: true, isInfixOperator: true, ident: s.text }
+}));
+PREDICATE_SYM.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.PredicateSymbol => {
+    return { isSymbol: true, isPredicateSymbol: true, ident: s.text }
+}));
+VAR_TYPE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Type => {
+    return { isSymbol: true, isType: true, ident: s.text }
+}));
+INFIX_SYM.setPattern(apply(tok(TokenKind.InfixSymbol), (s: Token<TokenKind.InfixSymbol>): AST.InfixSymbol => {
+    return { isInfixOperator: true, isInfixSymbol: true, ident: s.text }
+}));
+PROP_OPERATOR.setPattern(apply(tok(TokenKind.PropOperator), (s: Token<TokenKind.PropOperator>): AST.PropOperator => {
+    return { isPropOperator: true, op: s.text }
+}));
+IMP_OPERATOR.setPattern(apply(tok(TokenKind.ImpOperator), (s: Token<TokenKind.ImpOperator>): AST.ImpOperator => {
+    return { isImpOperator: true, op: s.text }
+}));
 
 INT_LITERAL.setPattern(
     apply(seq(opt(str('-')), tok(TokenKind.NumberLiteral)), applyIntLiteral)
@@ -434,4 +398,6 @@ function evaluate(line: string): AST.ASTNode {
     return expectSingleResult(expectEOF(PROOF_LINE.parse(lexer.parse(line))));
 }
 
-console.log(evaluate("P"))
+const util = require('util');
+let east = evaluate('P(x + 1)');
+console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));
