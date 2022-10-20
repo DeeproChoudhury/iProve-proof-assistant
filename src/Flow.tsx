@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Button, Stack } from '@chakra-ui/react'
 import ReactFlow, {
   Controls,
@@ -66,6 +66,18 @@ function Flow() {
     }));
   }
 
+  const checkSyntax = (nodeId: string) => {
+    setNodes(nds => {
+      const node = nds.find((n) => n.id === nodeId);
+      if (node?.data !== undefined) {
+        for (var statement of node.data.statements) {
+          console.log(statement);
+        }
+      }
+      return nds;
+    })
+  }
+
   const addProofStep = (nodeId: string) => {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
@@ -116,6 +128,7 @@ function Flow() {
           updateStatements: updateStatements,
           addProofStep: addProofStep,
           addGiven: addGiven,
+          checkSyntax: checkSyntax,
         },
         position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
@@ -123,10 +136,6 @@ function Flow() {
       setCount(count + 1);
     }
   }, [nodes]);
-
-  const rfStyle = {
-    backgroundColor: '#D0C0F7',
-  };
 
   const background = <Background />;
   const addNode = (nodeType: string) => {
@@ -141,6 +150,7 @@ function Flow() {
         updateStatements: updateStatements,
         addProofStep: addProofStep,
         addGiven: addGiven,
+        checkSyntax: checkSyntax,
       },
       position: { x: 300, y: 0 },
       type: 'textUpdater',
@@ -166,7 +176,6 @@ function Flow() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
-          style={rfStyle}
         >
           {background}
           <Controls />
