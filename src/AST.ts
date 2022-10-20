@@ -1,16 +1,18 @@
+import { As } from "@chakra-ui/react"
+
 export type ASTNode = { }
 
 export type Symbol = ASTNode & {
     isSymbol: true,
     ident: String
 }
-export type Variable = Symbol & Term & { 
-    isVariable: true
+export type Variable = Symbol & Atom & { 
+    isVariable: true,
  }
 export type Type = Symbol & { 
     isType: true
  }
-export type FunctionSymbol = Symbol & { 
+export type FunctionSymbol = Symbol & InfixOperator & { 
     isFunctionSymbol: true
  }
 export type PredicateSymbol = Symbol & { 
@@ -19,11 +21,8 @@ export type PredicateSymbol = Symbol & {
 export type RawSymbol = Variable & Type & FunctionSymbol & PredicateSymbol & { 
     isRawSymbol: true
  }
-export type InfixFnSymbol = FunctionSymbol & {
-    isInfixFnSymbol: true,
-    infix: InfixSymbol
-}
-export type InfixSymbol = ASTNode & {
+
+export type InfixSymbol = ASTNode & InfixOperator & {
     isInfixSymbol: true,
     ident: String
 }
@@ -56,99 +55,35 @@ export type VariableDeclaration = Declaration & {
     type: Type
 }
 
-export type Formula = Line & { 
-    isFormula: true
-}
-export type PropLiteral = Formula & {
-    isPropLiteral: true,
-    truth: boolean,
- }
-
-export type Neg = Formula & {
-    isNeg: true,
-    A: Formula
-}
-export type Bin = Formula & {
-    isBin: true,
-    A: Formula,
-    B: Formula
-}
-export type And = Bin & {
-    isAnd: true
-}
-export type Or = Bin & { 
-    isOr: true
- }
-
 export type VLElem = ASTNode & {
     isVLElem: true,
     v: Variable,
     T?: Type
 }
 
-export type Quantifier = Formula & {
-    isQuantifier: true,
-    vars: Array<VLElem>,
-    A: Formula
-}
-export type UnivQuantifier = Quantifier & {
-    isUnivQuantifier: true
- }
-export type ExisQuantifier = Quantifier & {
-    isExisQuantifier: true
- }
-
-export type Imp = Formula & {
-    isImp: true,
-    A: Formula,
-    B: Formula
-}
-export type Implies = Imp & {
-    isImplies: true
- }
-export type Iff = Imp & {
-    isIff: true
-}
-
-export type Comparison = Formula & {
-    isComparison: true,
-    op: InfixSymbol,
-    x: Term,
-    y: Term,
-}
-
-export type Predicate = Formula & {
-    isPredicate: true,
-    pred: PredicateSymbol,
-    terms: Array<Term>
-}
-
 export type Term = ASTNode & {
-    isTerm: true
- }
-export type Function = Term & {
+    isTerm: true,
+    atoms: Array<Atom>,
+    operators: Array<InfixOperator>
+}
+
+export type Atom = ASTNode & {
+    isAtom: true,
+}
+
+export type Function = Atom & {
     isFunction: true,
     fn: FunctionSymbol,
     terms: Array<Term>
 }
-export type IntLiteral = Term & {
+export type IntLiteral = Atom & {
     isIntLiteral: true,
-    x: number
+    n: number
 }
-export type Infix = Term & {
-    isInfix: true,
-    x: Term,
-    y: Term
+export type InfixOperator = {
+    isInfixOperator: true,
 }
-export type InfixApplication = Infix & {
-    isInfixApplication: true,
-    fn: InfixSymbol
-}
-export type InfixFnApplication = Infix & {
-    isInfixFnApplication: true,
-    fn: FunctionSymbol
-}
-export type ArraySlice = Term & { 
+export type ArraySlice = Atom & { 
     isArraySlice: true,
     ident: Variable
 }
@@ -161,3 +96,84 @@ export type ArrayRange = ArraySlice & {
     begin: Term,
     end: Term
 }
+
+export type ParenTerm = Atom & { 
+    isParenTerm: true,
+    x: Term
+}
+
+
+
+
+
+
+
+export type PropAtom = ASTNode & {
+    isPropAtom: true
+ }
+
+ export type Neg = PropAtom & {
+    isNeg: true,
+    A: Formula
+}
+
+ export type PropLiteral = PropAtom & {
+    isPropLiteral: true,
+    truth: boolean,
+ }
+
+ export type Comparison = PropAtom & {
+    isComparison: true,
+    op: InfixSymbol,
+    x: Term,
+    y: Term,
+}
+
+export type Predicate = PropAtom & {
+    isPredicate: true,
+    pred: PredicateSymbol,
+    terms: Array<Term>
+}
+
+export enum Quantifier {
+    E,
+    A
+}
+
+export type PropOperator = ASTNode & {
+    isPropOperator: true,
+    op: string
+}
+
+export type Clause = ASTNode & {
+    isClause: true,
+}
+
+export type QFClause = Clause & {
+    isQFClause: true,
+    atoms: Array<PropAtom>
+    operators: Array<PropOperator>
+}
+
+export type QuantifiedFormula = Clause & {
+    isQuantifiedFormula: true,
+    quantifier: Quantifier,
+    vars: Array<VLElem>,
+    A: Clause
+ }
+
+ export type ImpOperator = ASTNode & {
+    isImpOperator: true,
+    op: string
+}
+
+export type Formula = ASTNode & {
+    isFormula: true,
+    clauses: Array<Clause>,
+    operators: Array<ImpOperator>
+}
+
+export type ParenFormula = PropAtom & {
+    isParenFormula: true,
+    A: Formula
+ }
