@@ -13,12 +13,14 @@ enum TokenKind {
     PropOperator,
     ImpOperator,
     QntToken,
+    RangeToken,
     Misc,
     Space,
 }
 
 const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
+    [true, /^(\.\.)/g, TokenKind.RangeToken],
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
     [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
@@ -147,7 +149,7 @@ TYPE_DEC.setPattern(
 )
 
 TYPE_EXT.setPattern(
-    apply(seq(VAR_TYPE, kright(str('\subset'), VAR_TYPE)), applyTypeExt)
+    apply(seq(VAR_TYPE, kright(str('\\subset'), VAR_TYPE)), applyTypeExt)
 )
 
 function applyFunctionType(value: [AST.Type, AST.Type]): AST.FunctionType {
@@ -159,7 +161,7 @@ function applyFunctionType(value: [AST.Type, AST.Type]): AST.FunctionType {
 }
 
 FN_TYPE.setPattern(
-    apply(seq(VAR_TYPE, kright(alt(str('->'), str('\rightarrow')), VAR_TYPE)),
+    apply(seq(VAR_TYPE, kright(alt(str('->'), str('\\implies')), VAR_TYPE)),
         applyFunctionType)
 )
 
@@ -182,12 +184,12 @@ PROP_ATOM.setPattern(
 function applyPropSym(value: Token<TokenKind>): AST.PropLiteral {
     return {
         isPropLiteral: true, isPropAtom: true,
-        truth: value.text == '\top',
+        truth: value.text == '\\top',
     }
 }
 
 PROPOSITIONAL_SYMBOL.setPattern(
-    apply(alt(str('\top'), str('\bot')), applyPropSym)
+    apply(alt(str('\\top'), str('\\bot')), applyPropSym)
 )
 
 function applyNegation(value: AST.Formula): AST.Neg {
@@ -198,7 +200,7 @@ function applyNegation(value: AST.Formula): AST.Neg {
 }
 
 NEG_FORMULA.setPattern(
-    apply(kright(alt(str('\neg'), str('\~')), FORMULA), applyNegation)
+    apply(kright(alt(str('\\neg'), str('\~')), FORMULA), applyNegation)
 )
 
 function applyComparison(value: [AST.Term, AST.InfixSymbol, AST.Term]): AST.Comparison {
@@ -245,14 +247,17 @@ function applyAtomicClause(x: AST.PropAtom): AST.QFClause {
 }
 
 CLAUSE.setPattern(
-    lrec_sc(apply(PROP_ATOM, applyAtomicClause), seq(PROP_OPERATOR, PROP_ATOM), applyClause)
+    alt(
+        QUANTIFIED_FORMULA,
+        lrec_sc(apply(PROP_ATOM, applyAtomicClause), seq(PROP_OPERATOR, PROP_ATOM), applyClause)
+    )
 )
 
 function applyQuantifiedFormula(value: [Token<TokenKind.QntToken>, Array<AST.VLElem>, AST.Clause]): AST.QuantifiedFormula {
     return {
         isClause: true, isQuantifiedFormula: true,
         vars: value[1],
-        quantifier: (value[0].text == "\forall") ? AST.Quantifier.A : AST.Quantifier.E,
+        quantifier: (value[0].text == "FA") ? AST.Quantifier.A : AST.Quantifier.E,
         A: value[2],
     }
 }
@@ -399,5 +404,5 @@ function evaluate(line: string): AST.ASTNode {
 }
 
 const util = require('util');
-let east = evaluate('P(x + 1)');
+let east = evaluate('FA x.[P(x) -> Q(x)]');
 console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));
