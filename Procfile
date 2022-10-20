@@ -1,0 +1,1 @@
+web: serve -c ../serve.json -s build
