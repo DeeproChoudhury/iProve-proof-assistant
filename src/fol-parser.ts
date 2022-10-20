@@ -1,5 +1,6 @@
 import { As } from '@chakra-ui/react';
 import * as assert from 'assert';
+import { TypePredicateKind } from 'typescript';
 import { Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list } from 'typescript-parsec';
@@ -61,48 +62,51 @@ function registerSymbol(symbol: string, type: SymbolType): boolean {
 function assignInfixSymbol(value: Token<TokenKind.InfixSymbol>): AST.InfixSymbol {
     let id = value.text;
     registerSymbol(id, SymbolType.Infix);
-    return { ident: id };
+    return { isInfixSymbol: true, ident: id };
 }
 
 function assignFn(value: Token<TokenKind.Symbol>): AST.FunctionSymbol {
     let id = value.text;
     registerSymbol(id, SymbolType.Function);
-    return { ident: id };
+    return { isSymbol: true, isFunctionSymbol: true, ident: id };
 }
 
 function assignVar(value: Token<TokenKind.Symbol>): AST.Variable {
     let id = value.text;
     registerSymbol(id, SymbolType.Variable);
-    return { ident: id };
+    return { isSymbol: true, isTerm: true, isVariable: true, ident: id };
 }
 
 function assignPredicate(value: Token<TokenKind.Symbol>): AST.PredicateSymbol {
     let id = value.text;
     registerSymbol(id, SymbolType.Predicate);
-    return { ident: id };
+    return { isSymbol: true, isPredicateSymbol: true, ident: id };
 }
 
 function assignType(value: Token<TokenKind.Symbol>): AST.Type {
     let id = value.text;
     registerSymbol(id, SymbolType.Type);
-    return { ident: id };
+    return { isSymbol: true, isType: true, ident: id };
 }
 
 function applyIntLiteral(value: [Token<TokenKind> | undefined, Token<TokenKind.NumberLiteral>]): AST.IntLiteral {
     return {
+        isIntLiteral: true, isTerm: true,
         x: parseInt(value[1].text) * (value[0] ? -1 : 1)
     }
 }
 
 function applyFnDeclaration(value: [AST.FunctionSymbol, AST.FunctionType]): AST.FunctionDeclaration {
     return {
+        isDeclaration: true, isFunctionDeclaration: true,
         symbol: value[0],
         type: value[1]
     }
 }
 
-function applyVarDeclaration(value: [AST.Symbol, AST.Type]): AST.VariableDeclaration {
+function applyVarDeclaration(value: [AST.Variable, AST.Type]): AST.VariableDeclaration {
     return {
+        isDeclaration: true, isVariableDeclaration: true,
         symbol: value[0],
         type: value[1]
     }
@@ -110,6 +114,7 @@ function applyVarDeclaration(value: [AST.Symbol, AST.Type]): AST.VariableDeclara
 
 function applyTypeExt(value: [AST.Type, AST.Type]): AST.TypeExt {
     return {
+        isTypeExt: true,
         A: value[0],
         B: value[1]
     }
@@ -172,6 +177,7 @@ TYPE_EXT.setPattern(
 
 function applyFunctionType(value: [AST.Type, AST.Type]): AST.FunctionType {
     return {
+        isFunctionType: true,
         A: value[0],
         B: value[1]
     }
@@ -197,6 +203,7 @@ FORMULA.setPattern(
 
 function applyPropSym(value: Token<TokenKind>): AST.PropLiteral {
     return {
+        isFormula: true, isPropLiteral: true,
         truth: value.text == '\top',
     }
 }
@@ -207,6 +214,7 @@ PROPOSITIONAL_SYMBOL.setPattern(
 
 function applyNegation(value: AST.Formula): AST.Neg {
     return {
+        isFormula: true, isNeg: true,
         A: value
     }
 }
@@ -217,6 +225,7 @@ NEG_FORMULA.setPattern(
 
 function applyBinaryFormula(value: [AST.Formula, Token<TokenKind.BinToken>, AST.Formula]): AST.Bin {
     return {
+        isBin: true, isFormula: true,
         A: value[0],
         B: value[2],
     }
@@ -228,6 +237,7 @@ BINARY_FORMULA.setPattern(
 
 function applyQuantifiedFormula(value: [Token<TokenKind.QntToken>, Array<AST.VLElem>, AST.Formula]): AST.Quantifier {
     return {
+        isFormula: true, isQuantifier: true,
         vars: value[1],
         A: value[2],
     }
@@ -239,6 +249,7 @@ QUANTIFIED_FORMULA.setPattern(
 
 function applyImplication(value: [AST.Formula, Token<TokenKind.ImpToken>, AST.Formula]): AST.Imp {
     return {
+        isFormula: true, isImp: true,
         A: value[0],
         B: value[2],
     }
@@ -250,6 +261,7 @@ IMPLICATION.setPattern(
 
 function applyComparison(value: [AST.Term, AST.InfixSymbol, AST.Term]): AST.Comparison {
     return {
+        isComparison: true, isFormula: true,
         x: value[0],
         y: value[2],
         op: value[1]
@@ -262,6 +274,7 @@ COMPARISON.setPattern(
 
 function applyPredicateFormula(value: [AST.PredicateSymbol, Array<AST.Term>]): AST.Predicate {
     return {
+        isFormula: true, isPredicate: true,
         pred: value[0],
         terms: value[1],
     }
@@ -288,13 +301,15 @@ TERM_LIST.setPattern(
     list(TERM, str(','))
 )
 
-function applyVLElem(value: [AST.Symbol, AST.Type] | AST.Symbol): AST.VLElem {
+function applyVLElem(value: [AST.Variable, AST.Type] | AST.Variable): AST.VLElem {
     return (Array.isArray(value)) ?
     {
+        isVLElem: true,
         v: value[0],
         T: value[1],
     } :
     {
+        isVLElem: true,
         v: value
     }
 }
@@ -312,6 +327,7 @@ VAR_LIST.setPattern(
 
 function applyFnApplication(value: [AST.FunctionSymbol, Array<AST.Term>]): AST.Function {
     return {
+        isFunction: true, isTerm: true,
         fn: value[0],
         terms: value[1]
     }
@@ -323,6 +339,7 @@ FUNCTION_APPLICATION.setPattern(
 
 function applyInfixApplication(value: [AST.Term, AST.InfixSymbol, AST.Term]): AST.InfixApplication {
     return {
+        isInfix: true, isInfixApplication: true, isTerm: true,
         x: value[0],
         y: value[2],
         fn: value[1]
@@ -335,6 +352,7 @@ INFIX_APPLICATION.setPattern(
 
 function applyInfixFnApplication(value: [AST.Term, AST.FunctionSymbol, AST.Term]): AST.InfixFnApplication {
     return {
+        isInfix: true, isInfixFnApplication: true, isTerm: true,
         x: value[0],
         y: value[2],
         fn: value[1]
@@ -347,6 +365,7 @@ INFIX_FN_APPLICATION.setPattern(
 
 function applyArrayRange(value: [AST.Variable, [AST.Term, AST.Term]]): AST.ArrayRange {
     return {
+        isArrayRange: true, isArraySlice: true, isTerm: true,
         ident: value[0],
         begin: value[1][0],
         end: value[1][1],
@@ -360,6 +379,7 @@ ARRAY_RANGE.setPattern(
 
 function applyArrayElem(value: [AST.Variable, AST.Term]): AST.ArrayElem {
     return {
+        isArrayElem: true, isArraySlice: true, isTerm: true,
         ident: value[0],
         idx: value[1],
         
