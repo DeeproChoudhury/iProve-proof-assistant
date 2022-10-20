@@ -1,9 +1,9 @@
-Error.stackTraceLimit = Infinity;
-
 import { Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, lrec_sc } from 'typescript-parsec';
 import * as AST from './AST'
+Error.stackTraceLimit = Infinity;
+
 
 enum TokenKind {
     NumberLiteral,
@@ -20,10 +20,10 @@ enum TokenKind {
 const lexer = buildLexer([
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
+    [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
     [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!)+/g, TokenKind.InfixSymbol],
     [true, /^\~/g, TokenKind.NegToken],
     [true, /^(\&|\|)/g, TokenKind.PropOperator],
-    [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
     [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
@@ -394,10 +394,10 @@ ARRAY_ELEM.setPattern(
 )
 
 
-function evaluate(line: string): AST.ASTNode {
+export function evaluate(line: string): AST.ASTNode {
     return expectSingleResult(expectEOF(PROOF_LINE.parse(lexer.parse(line))));
 }
 
-const util = require('util');
+// const util = require('util');
 let east = evaluate('P(x + 1)');
-console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));
+// console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));

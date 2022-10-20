@@ -18,6 +18,7 @@ import TextUpdaterNode from './TextUpdaterNode';
 import './TextUpdaterNode.css';
 import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
+import { evaluate } from './fol-parser';
 const initialNodes: Node[] = [];
 
 const initialEdges: Edge[] = [];
@@ -74,8 +75,13 @@ function Flow() {
       const node = nds.find((n) => n.id === nodeId);
       if (node?.data !== undefined) {
         for (var statement of node.data.statements) {
-          console.log(statement);
-          setSyntaxError(Math.random() > 0.5);
+          try {
+            console.log(evaluate(statement.value));
+          } catch(e) {
+            if (e instanceof Error) {
+              setSyntaxError(true);
+            }
+          }
         }
       }
       return nds;
