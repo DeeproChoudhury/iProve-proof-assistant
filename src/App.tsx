@@ -1,9 +1,8 @@
 import './App.css';
-// import Flow from './Flow.js';
 import Z3Solver from './Solver';
 import { useEffect, useState } from 'react';
 import Flow from './Flow';
-import { ChakraProvider, Heading, Spinner } from '@chakra-ui/react'
+import { ChakraProvider, Spinner } from '@chakra-ui/react'
 
 const App = () => {
   const [loading, setLoading] = useState(true);
