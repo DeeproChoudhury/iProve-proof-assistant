@@ -18,13 +18,13 @@ enum TokenKind {
 }
 
 const lexer = buildLexer([
+    [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
+    [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
     [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!)+/g, TokenKind.InfixSymbol],
     [true, /^\~/g, TokenKind.NegToken],
     [true, /^(\&|\|)/g, TokenKind.PropOperator],
-    [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
-    [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
 ]);
