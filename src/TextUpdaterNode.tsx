@@ -1,6 +1,17 @@
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Box, Heading, Button, Text, IconButton } from '@chakra-ui/react';
+import { Box, Heading, Button, Text, IconButton, useDisclosure } from '@chakra-ui/react';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverFooter,
+  PopoverArrow,
+  PopoverCloseButton,
+  PopoverAnchor,
+} from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
 
 function TextUpdaterNode({ data }: any) {
@@ -9,6 +20,7 @@ function TextUpdaterNode({ data }: any) {
   }, [data]);
 
   const [isCollapsed, setCollapsed] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const componentStyle = data.type + "-node";
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
@@ -18,6 +30,21 @@ function TextUpdaterNode({ data }: any) {
   const firstProofStep: any = data.statements.findIndex((s: any) => !s.isGiven);
   const lastProofStep: any = data.statements.findLastIndex((s: any) => !s.isGiven);
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
+  const deletePopover = 
+    <Popover isOpen={isOpen} onClose={onClose}>
+      <PopoverTrigger>
+        <Button size='xs' colorScheme='blackAlpha' onClick={onOpen}>Delete</Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <PopoverArrow />
+        <PopoverCloseButton />
+        <PopoverHeader>Are you sure you want to delete?</PopoverHeader>
+        <PopoverBody style={{display: 'flex', justifyContent: 'space-between'}}>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Yes, I'm sure!</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
+        </PopoverBody>
+      </PopoverContent>
+    </Popover>
 
   if (data.type === "given") {
     return (
@@ -27,7 +54,7 @@ function TextUpdaterNode({ data }: any) {
           {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Delete</Button>
+          {deletePopover}
           {checkSyntaxButton}
         </div>
         {sourceHandle}
@@ -45,7 +72,7 @@ function TextUpdaterNode({ data }: any) {
           {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Delete</Button>
+          {deletePopover}
           {checkSyntaxButton}
         </div>
       </Box>
@@ -91,7 +118,7 @@ function TextUpdaterNode({ data }: any) {
             data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)
         }
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Delete</Button>
+          {deletePopover}
           {data.statements.filter((s: any) => !s.isGiven).length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
           {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {checkSyntaxButton}

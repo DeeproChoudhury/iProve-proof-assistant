@@ -180,7 +180,7 @@ function Flow() {
       </div>
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Node</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
         </Stack>
