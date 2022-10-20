@@ -13,14 +13,16 @@ enum TokenKind {
     PropOperator,
     ImpOperator,
     QntToken,
-    RangeToken,
+    DoubleDot,
+    DoubleColon,
     Misc,
     Space,
 }
 
 const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
-    [true, /^(\.\.)/g, TokenKind.RangeToken],
+    [true, /^(\.\.)/g, TokenKind.DoubleDot],
+    [true, /^(\:\:)/g, TokenKind.DoubleColon],
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
     [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
@@ -404,5 +406,5 @@ function evaluate(line: string): AST.ASTNode {
 }
 
 const util = require('util');
-let east = evaluate('FA x.[P(x) -> Q(x)]');
+let east = evaluate('F :: A -> B');
 console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));
