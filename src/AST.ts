@@ -52,7 +52,7 @@ export type FunctionDeclaration = Declaration & {
 export type VariableDeclaration = Declaration & {
     isVariableDeclaration: true,
     symbol: Variable,
-    type: Type
+    type?: Type
 }
 
 export type VLElem = ASTNode & {
@@ -155,7 +155,7 @@ export type QFClause = Clause & {
     operators: Array<PropOperator>
 }
 
-export type QuantifiedFormula = Clause & {
+export type QuantifiedFormula = PropAtom & {
     isQuantifiedFormula: true,
     quantifier: Quantifier,
     vars: Array<VLElem>,

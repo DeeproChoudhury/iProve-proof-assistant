@@ -13,18 +13,24 @@ enum TokenKind {
     PropOperator,
     ImpOperator,
     QntToken,
+    DoubleDot,
+    DoubleColon,
+    VarToken,
     Misc,
     Space,
 }
 
 const lexer = buildLexer([
+    [true, /^(FA|EX)/g, TokenKind.QntToken],
+    [true, /^(\.\.)/g, TokenKind.DoubleDot],
+    [true, /^(\:\:)/g, TokenKind.DoubleColon],
+    [true, /^(var)/g, TokenKind.VarToken],
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
     [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
     [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!)+/g, TokenKind.InfixSymbol],
     [true, /^\~/g, TokenKind.NegToken],
     [true, /^(\&|\|)/g, TokenKind.PropOperator],
-    [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
 ]);
@@ -58,7 +64,7 @@ function applyFnDeclaration(value: [AST.FunctionSymbol, AST.FunctionType]): AST.
     }
 }
 
-function applyVarDeclaration(value: [AST.Variable, AST.Type]): AST.VariableDeclaration {
+function applyVarDeclaration(value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration {
     return {
         isDeclaration: true, isVariableDeclaration: true,
         symbol: value[0],
@@ -142,12 +148,12 @@ PROOF_LINE.setPattern(
 TYPE_DEC.setPattern(
     alt(
         apply(seq(kleft(FN_SYM, str('::')), FN_TYPE), applyFnDeclaration),
-        apply(seq(kleft(VAR_SYM, str(':')), VAR_TYPE), applyVarDeclaration),
+        apply(seq(kright(opt(tok(TokenKind.VarToken)), VAR_SYM), opt(kright(str(':'), VAR_TYPE))), applyVarDeclaration),
     )
 )
 
 TYPE_EXT.setPattern(
-    apply(seq(VAR_TYPE, kright(str('\subset'), VAR_TYPE)), applyTypeExt)
+    apply(seq(VAR_TYPE, kright(str('\\subset'), VAR_TYPE)), applyTypeExt)
 )
 
 function applyFunctionType(value: [AST.Type, AST.Type]): AST.FunctionType {
@@ -159,7 +165,7 @@ function applyFunctionType(value: [AST.Type, AST.Type]): AST.FunctionType {
 }
 
 FN_TYPE.setPattern(
-    apply(seq(VAR_TYPE, kright(alt(str('->'), str('\rightarrow')), VAR_TYPE)),
+    apply(seq(VAR_TYPE, kright(alt(str('->'), str('\\implies')), VAR_TYPE)),
         applyFunctionType)
 )
 
@@ -173,6 +179,7 @@ function applyParenFormula(x: AST.Formula): AST.ParenFormula {
 PROP_ATOM.setPattern(
     alt(
         apply(kmid(str('['), FORMULA, str(']')), applyParenFormula),
+        QUANTIFIED_FORMULA,
         PROPOSITIONAL_SYMBOL,
         PREDICATE_FORMULA,
         COMPARISON
@@ -182,12 +189,12 @@ PROP_ATOM.setPattern(
 function applyPropSym(value: Token<TokenKind>): AST.PropLiteral {
     return {
         isPropLiteral: true, isPropAtom: true,
-        truth: value.text == '\top',
+        truth: value.text == '\\top',
     }
 }
 
 PROPOSITIONAL_SYMBOL.setPattern(
-    apply(alt(str('\top'), str('\bot')), applyPropSym)
+    apply(alt(str('\\top'), str('\\bot')), applyPropSym)
 )
 
 function applyNegation(value: AST.Formula): AST.Neg {
@@ -198,7 +205,7 @@ function applyNegation(value: AST.Formula): AST.Neg {
 }
 
 NEG_FORMULA.setPattern(
-    apply(kright(alt(str('\neg'), str('\~')), FORMULA), applyNegation)
+    apply(kright(alt(str('\\neg'), str('\~')), FORMULA), applyNegation)
 )
 
 function applyComparison(value: [AST.Term, AST.InfixSymbol, AST.Term]): AST.Comparison {
@@ -250,9 +257,9 @@ CLAUSE.setPattern(
 
 function applyQuantifiedFormula(value: [Token<TokenKind.QntToken>, Array<AST.VLElem>, AST.Clause]): AST.QuantifiedFormula {
     return {
-        isClause: true, isQuantifiedFormula: true,
+        isPropAtom: true, isQuantifiedFormula: true,
         vars: value[1],
-        quantifier: (value[0].text == "\forall") ? AST.Quantifier.A : AST.Quantifier.E,
+        quantifier: (value[0].text == "FA") ? AST.Quantifier.A : AST.Quantifier.E,
         A: value[2],
     }
 }
@@ -398,6 +405,4 @@ export function evaluate(line: string): AST.ASTNode {
     return expectSingleResult(expectEOF(PROOF_LINE.parse(lexer.parse(line))));
 }
 
-// const util = require('util');
-let east = evaluate('P(x + 1)');
-// console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));
+export default evaluate;
