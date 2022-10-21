@@ -1,4 +1,4 @@
-.syntax-error-container {
+.alert-container {
   width: 40%;
   z-index: 1000;
   top: 10%;
@@ -7,7 +7,7 @@
   position: absolute;
 }
 
-.syntax-error {
+.alert {
   display: flex;
   flex-direction: row; 
   justify-content: space-between;

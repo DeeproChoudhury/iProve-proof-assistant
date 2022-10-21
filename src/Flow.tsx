@@ -18,6 +18,8 @@ import TextUpdaterNode from './TextUpdaterNode';
 import './TextUpdaterNode.css';
 import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
+import { evaluate } from './fol-parser';
+import { error } from 'console';
 const initialNodes: Node[] = [];
 
 const initialEdges: Edge[] = [];
@@ -28,6 +30,9 @@ function Flow() {
   const [edges, setEdges] = useState(initialEdges);
   const [count, setCount] = useState(0);
   const [syntaxError, setSyntaxError] = useState(false);
+  const [parseSuccessful, setParseSuccessful] = useState(false);
+  const [errorPosition, setErrorPosition] = useState<any>(undefined);
+
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
     []
@@ -72,10 +77,23 @@ function Flow() {
   const checkSyntax = (nodeId: string) => {
     setNodes(nds => {
       const node = nds.find((n) => n.id === nodeId);
+      let errorDetected = false;
       if (node?.data !== undefined) {
         for (var statement of node.data.statements) {
-          console.log(statement);
-          setSyntaxError(Math.random() > 0.5);
+          try {
+            console.log(evaluate(statement.value));
+          } catch (e: any) {
+            errorDetected = true;
+            setErrorPosition(e.pos === undefined ? undefined : {columnBegin: e.pos.columnBegin, statement: statement.value});
+            if (e instanceof Error) {
+              setSyntaxError(true);
+              setParseSuccessful(false);
+            }
+          }
+        }
+        if (!errorDetected) {
+          setSyntaxError(false);
+          setParseSuccessful(true);
         }
       }
       return nds;
@@ -164,16 +182,34 @@ function Flow() {
 
   return (
     <div style={{ position: 'relative' }}>
-      <div className="syntax-error-container">
-        {syntaxError && <Alert status='error' className="syntax-error">
+      <div className="alert-container">
+        {syntaxError && <Alert status='error' className="alert">
           <AlertIcon />
           <AlertTitle>Error!</AlertTitle>
-          <AlertDescription>Parsing for the last node failed. Check your syntax!</AlertDescription>
+          <AlertDescription>
+            {errorPosition === undefined ?
+              "Parsing for the last node failed. Check your syntax!" :
+              `Parsing for the last node failed. Error begins at column ${errorPosition.columnBegin}, from \"${errorPosition.statement}\"`}
+          </AlertDescription>
           <IconButton
             variant='outline'
             aria-label='Add given'
             size='xs'
             onClick={() => { setSyntaxError(false) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+        {!syntaxError && parseSuccessful && <Alert status='success' className="alert">
+          <AlertIcon />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            Parsing for current node was successful!
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setParseSuccessful(false) }}
             icon={<CloseIcon />}
           />
         </Alert>}

@@ -2,6 +2,8 @@ import { Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, lrec_sc } from 'typescript-parsec';
 import * as AST from './AST'
+Error.stackTraceLimit = Infinity;
+
 
 enum TokenKind {
     NumberLiteral,
@@ -399,7 +401,7 @@ ARRAY_ELEM.setPattern(
 )
 
 
-function evaluate(line: string): AST.ASTNode {
+export function evaluate(line: string): AST.ASTNode {
     return expectSingleResult(expectEOF(PROOF_LINE.parse(lexer.parse(line))));
 }
 
