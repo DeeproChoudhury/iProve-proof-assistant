@@ -21,3 +21,8 @@
   padding: 5px;
   width: 300px;
 }
+
+input {
+  font-family: monospace !important;
+  padding: 0 10px 0 10px !important;
+}
