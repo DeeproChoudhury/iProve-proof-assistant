@@ -1,5 +1,3 @@
-Error.stackTraceLimit = Infinity;
-
 import { Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, lrec_sc } from 'typescript-parsec';
@@ -15,6 +13,7 @@ enum TokenKind {
     QntToken,
     DoubleDot,
     DoubleColon,
+    VarToken,
     Misc,
     Space,
 }
@@ -23,6 +22,7 @@ const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(\:\:)/g, TokenKind.DoubleColon],
+    [true, /^(var)/g, TokenKind.VarToken],
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
     [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
@@ -62,7 +62,7 @@ function applyFnDeclaration(value: [AST.FunctionSymbol, AST.FunctionType]): AST.
     }
 }
 
-function applyVarDeclaration(value: [AST.Variable, AST.Type]): AST.VariableDeclaration {
+function applyVarDeclaration(value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration {
     return {
         isDeclaration: true, isVariableDeclaration: true,
         symbol: value[0],
@@ -146,7 +146,7 @@ PROOF_LINE.setPattern(
 TYPE_DEC.setPattern(
     alt(
         apply(seq(kleft(FN_SYM, str('::')), FN_TYPE), applyFnDeclaration),
-        apply(seq(kleft(VAR_SYM, str(':')), VAR_TYPE), applyVarDeclaration),
+        apply(seq(kright(opt(tok(TokenKind.VarToken)), VAR_SYM), opt(kright(str(':'), VAR_TYPE))), applyVarDeclaration),
     )
 )
 
@@ -177,6 +177,7 @@ function applyParenFormula(x: AST.Formula): AST.ParenFormula {
 PROP_ATOM.setPattern(
     alt(
         apply(kmid(str('['), FORMULA, str(']')), applyParenFormula),
+        QUANTIFIED_FORMULA,
         PROPOSITIONAL_SYMBOL,
         PREDICATE_FORMULA,
         COMPARISON
@@ -249,15 +250,12 @@ function applyAtomicClause(x: AST.PropAtom): AST.QFClause {
 }
 
 CLAUSE.setPattern(
-    alt(
-        QUANTIFIED_FORMULA,
-        lrec_sc(apply(PROP_ATOM, applyAtomicClause), seq(PROP_OPERATOR, PROP_ATOM), applyClause)
-    )
+    lrec_sc(apply(PROP_ATOM, applyAtomicClause), seq(PROP_OPERATOR, PROP_ATOM), applyClause)
 )
 
 function applyQuantifiedFormula(value: [Token<TokenKind.QntToken>, Array<AST.VLElem>, AST.Clause]): AST.QuantifiedFormula {
     return {
-        isClause: true, isQuantifiedFormula: true,
+        isPropAtom: true, isQuantifiedFormula: true,
         vars: value[1],
         quantifier: (value[0].text == "FA") ? AST.Quantifier.A : AST.Quantifier.E,
         A: value[2],
@@ -405,6 +403,8 @@ function evaluate(line: string): AST.ASTNode {
     return expectSingleResult(expectEOF(PROOF_LINE.parse(lexer.parse(line))));
 }
 
+export default evaluate;
+
 const util = require('util');
-let east = evaluate('F :: A -> B');
+let east = evaluate("var Gru");
 console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));
