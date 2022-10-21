@@ -406,7 +406,3 @@ export function evaluate(line: string): AST.ASTNode {
 }
 
 export default evaluate;
-
-const util = require('util');
-let east = evaluate("var Gru");
-console.log(util.inspect(east, {showHidden: false, depth: null, colors: true}));
