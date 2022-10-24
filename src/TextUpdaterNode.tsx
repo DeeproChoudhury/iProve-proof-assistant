@@ -13,12 +13,15 @@ import {
   PopoverAnchor,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
+import { ASTNode } from './AST';
+import StatementInput from './StatementInput';
 
 export type NodeType = "statement" | "given" | "goal";
 
 export type Statement = {
   value: string;
   isGiven: boolean;
+  parsed?: ASTNode;
 };
 
 export type NodeData = Readonly<{
@@ -46,8 +49,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
-  const firstProofStep: any = data.statements.findIndex((s: any) => !s.isGiven);
-  const lastProofStep: any = data.statements.length - data.statements.reverse().findIndex((s: any) => !s.isGiven) - 1;
+  const firstProofStep: number = data.statements.findIndex((s: Statement) => !s.isGiven);
+  const lastProofStep: number = data.statements.length - data.statements.reverse().findIndex((s: Statement) => !s.isGiven) - 1;
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
   const deletePopover = 
     <Popover isOpen={isOpen} onClose={onClose}>
@@ -70,7 +73,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       <Box className={componentStyle}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
-          {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+          {data.statements.map((s: Statement, index: number) => !s.isGiven && <StatementInput index={index} statement={s} onChange={onChange} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -88,7 +91,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {targetHandle}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
-          {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+          {data.statements.map((s: Statement, index: number) => !s.isGiven && <StatementInput index={index} statement={s} onChange={onChange} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -112,7 +115,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {data.statements.map((s: any, index: number) => s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+        {data.statements.map((s: Statement, index: number) => s.isGiven && <StatementInput index={index} statement={s} onChange={onChange} />)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -130,15 +133,15 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {
           isCollapsed ?
             <>
-              <input onChange={e => onChange(e, firstProofStep)} style={{ marginTop: '5px' }} key={firstProofStep} value={data.statements[firstProofStep].value} />
+              <StatementInput index={firstProofStep} statement={data.statements[firstProofStep]} onChange={onChange} />
               <Text as='b'>. . .</Text>
-              <input onChange={e => onChange(e, lastProofStep)} style={{ marginTop: '5px' }} key={lastProofStep} value={data.statements[lastProofStep].value} />
+              <StatementInput index={lastProofStep} statement={data.statements[lastProofStep]} onChange={onChange} />
             </> :
-            data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)
+            data.statements.map((s: Statement, index: number) => !s.isGiven && <StatementInput index={index} statement={s} onChange={onChange} />)
         }
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
-          {data.statements.filter((s: any) => !s.isGiven).length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
+          {data.statements.filter((s: Statement) => !s.isGiven).length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
           {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {checkSyntaxButton}
         </div>

@@ -19,7 +19,11 @@ import './TextUpdaterNode.css';
 import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
 import { evaluate } from './fol-parser';
-import { error } from 'console';
+
+type ErrorPosition = {
+    columnBegin: number;
+    statement: Statement
+}
 
 const initialNodes: Node<NodeData>[] = [];
 
@@ -32,7 +36,7 @@ function Flow() {
   const [count, setCount] = useState(0);
   const [syntaxError, setSyntaxError] = useState(false);
   const [parseSuccessful, setParseSuccessful] = useState(false);
-  const [errorPosition, setErrorPosition] = useState<any>(undefined);
+  const [errorPosition, setErrorPosition] = useState<ErrorPosition | undefined>(undefined);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -82,10 +86,12 @@ function Flow() {
       if (node?.data !== undefined) {
         for (var statement of node.data.statements) {
           try {
-            console.log(evaluate(statement.value));
+            const parsed = evaluate(statement.value);
+            console.log(parsed);
+            statement.parsed = parsed;
           } catch (e: any) {
             errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : {columnBegin: e.pos.columnBegin, statement: statement.value});
+            setErrorPosition(e.pos === undefined ? undefined : {columnBegin: e.pos.columnBegin, statement});
             if (e instanceof Error) {
               setSyntaxError(true);
               setParseSuccessful(false);
@@ -130,15 +136,15 @@ function Flow() {
         .find((other) => other.id !== node.id && collided(node, other));
     if (other !== undefined) {
       setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
-      let newStatements: any = [];
+      let newStatements: Statement[] = [];
       if (node.position.y < other.position.y) {
-        const otherGivens = other.data.statements.filter((s: any) => s.isGiven);
-        const otherProofSteps = other.data.statements.filter((s: any) => !s.isGiven);
-        newStatements = [...node.data.statements, ...otherGivens.map((s: any) => { return { value: s.value, isGiven: false } }), ...otherProofSteps]
+        const otherGivens = other.data.statements.filter((s: Statement) => s.isGiven);
+        const otherProofSteps = other.data.statements.filter((s: Statement) => !s.isGiven);
+        newStatements = [...node.data.statements, ...otherGivens.map((s: Statement) => { return { value: s.value, isGiven: false } }), ...otherProofSteps]
       } else {
-        const nodeGivens = node.data.statements.filter((s: any) => s.isGiven);
-        const nodeProofSteps = node.data.statements.filter((s: any) => !s.isGiven);
-        newStatements = [...other.data.statements, ...nodeGivens.map((s: any) => { return { value: s.value, isGiven: false } }), ...nodeProofSteps]
+        const nodeGivens = node.data.statements.filter((s: Statement) => s.isGiven);
+        const nodeProofSteps = node.data.statements.filter((s: Statement) => !s.isGiven);
+        newStatements = [...other.data.statements, ...nodeGivens.map((s: Statement) => { return { value: s.value, isGiven: false } }), ...nodeProofSteps]
       }
       setNodes(nds => [...nds, {
         id: `${count}`,
@@ -190,7 +196,7 @@ function Flow() {
           <AlertDescription>
             {errorPosition === undefined ?
               "Parsing for the last node failed. Check your syntax!" :
-              `Parsing for the last node failed. Error begins at column ${errorPosition.columnBegin}, from \"${errorPosition.statement}\"`}
+              `Parsing for the last node failed. Error begins at column ${errorPosition.columnBegin}, from "${errorPosition.statement.value}"`}
           </AlertDescription>
           <IconButton
             variant='outline'
