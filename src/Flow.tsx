@@ -49,14 +49,28 @@ function Flow() {
     setNodes(nds => nds.filter(node => node.id !== id));
   };
 
-  const updateStatements = (nodeId: string, statementIndex: number, statement: string) => {
+  const updateGivens = (nodeId: string, statementIndex: number, statement: string) => {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
-        const newStatements = node.data.statements;
+        const newStatements = node.data.givens;
         newStatements[statementIndex].value = statement;
         node.data = {
           ...node.data,
-          statements: newStatements,
+          givens: newStatements,
+        };
+      }
+      return node;
+    }));
+  };
+
+  const updateProofSteps = (nodeId: string, statementIndex: number, statement: string) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        const newStatements = node.data.proofSteps;
+        newStatements[statementIndex].value = statement;
+        node.data = {
+          ...node.data,
+          proofSteps: newStatements,
         };
       }
       return node;
@@ -68,7 +82,7 @@ function Flow() {
       if (node.id === nodeId) {
         node.data = {
           ...node.data,
-          statements: [...node.data.statements, { value: '', isGiven: true }],
+          givens: [...node.data.givens, { value: ''} ],
         };
       }
       return node;
@@ -80,7 +94,7 @@ function Flow() {
       const node = nds.find((n) => n.id === nodeId);
       let errorDetected = false;
       if (node?.data !== undefined) {
-        for (var statement of node.data.statements) {
+        for (var statement of [...node.data.givens, ...node.data.proofSteps]) {
           try {
             console.log(evaluate(statement.value));
           } catch (e: any) {
@@ -106,7 +120,7 @@ function Flow() {
       if (node.id === nodeId) {
         node.data = {
           ...node.data,
-          statements: [...node.data.statements, { value: '', isGiven: false }],
+          proofSteps: [...node.data.proofSteps, { value: '' }],
         };
       }
       return node;
@@ -130,15 +144,14 @@ function Flow() {
         .find((other) => other.id !== node.id && collided(node, other));
     if (other !== undefined) {
       setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
-      let newStatements: any = [];
+      let givens: Statement[] = [];
+      let proofSteps: Statement[] = [];
       if (node.position.y < other.position.y) {
-        const otherGivens = other.data.statements.filter((s: any) => s.isGiven);
-        const otherProofSteps = other.data.statements.filter((s: any) => !s.isGiven);
-        newStatements = [...node.data.statements, ...otherGivens.map((s: any) => { return { value: s.value, isGiven: false } }), ...otherProofSteps]
+        givens = node.data.givens;
+        proofSteps = [...node.data.proofSteps, ...other.data.givens, ...other.data.proofSteps];
       } else {
-        const nodeGivens = node.data.statements.filter((s: any) => s.isGiven);
-        const nodeProofSteps = node.data.statements.filter((s: any) => !s.isGiven);
-        newStatements = [...other.data.statements, ...nodeGivens.map((s: any) => { return { value: s.value, isGiven: false } }), ...nodeProofSteps]
+        givens = other.data.givens;
+        proofSteps = [...other.data.proofSteps, ...node.data.givens, ...node.data.proofSteps];
       }
       setNodes(nds => [...nds, {
         id: `${count}`,
@@ -147,8 +160,10 @@ function Flow() {
           delete: deleteNodeById,
           id: count,
           type: 'statement',
-          statements: newStatements,
-          updateStatements: updateStatements,
+          givens: givens,
+          proofSteps: proofSteps,
+          updateGivens: updateGivens,
+          updateProofSteps: updateProofSteps,
           addProofStep: addProofStep,
           addGiven: addGiven,
           checkSyntax: checkSyntax,
@@ -169,8 +184,10 @@ function Flow() {
         delete: deleteNodeById,
         id: count,
         type: nodeType,
-        statements: [{ value: '', isGiven: false }],
-        updateStatements: updateStatements,
+        givens: [],
+        proofSteps: [{ value: '' }],
+        updateGivens: updateGivens,
+        updateProofSteps: updateProofSteps,
         addProofStep: addProofStep,
         addGiven: addGiven,
         checkSyntax: checkSyntax,

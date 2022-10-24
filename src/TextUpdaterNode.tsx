@@ -18,7 +18,6 @@ export type NodeType = "statement" | "given" | "goal";
 
 export type Statement = {
   value: string;
-  isGiven: boolean;
 };
 
 export type NodeData = Readonly<{
@@ -26,16 +25,22 @@ export type NodeData = Readonly<{
   delete: (id: string) => void;
   id: number;
   type: NodeType;
-  statements: Statement[];
-  updateStatements: (nodeId: string, statementIndex: number, statement: string) => void;
+  givens: Statement[];
+  proofSteps: Statement[];
+  updateGivens: (nodeId: string, statementIndex: number, statement: string) => void;
+  updateProofSteps: (nodeId: string, statementIndex: number, statement: string) => void;
   addGiven: (nodeId: string) => void;
   addProofStep: (nodeId: string) => void;
   checkSyntax: (nodeId: string) => void;
 }>;
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
-  const onChange = useCallback((evt: any, updated: number) => {
-    data.updateStatements(`${data.id}`, updated, evt.target.value);
+  const onChange = useCallback((evt: any, updated: number, isGiven: boolean) => {
+    if (isGiven) {
+      data.updateGivens(`${data.id}`, updated, evt.target.value);
+    } else {
+      data.updateProofSteps(`${data.id}`, updated, evt.target.value);
+    }
   }, [data]);
 
   const [isCollapsed, setCollapsed] = useState(false);
@@ -46,8 +51,6 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
-  const firstProofStep: any = data.statements.findIndex((s: any) => !s.isGiven);
-  const lastProofStep: any = data.statements.length - data.statements.reverse().findIndex((s: any) => !s.isGiven) - 1;
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
   const deletePopover = 
     <Popover isOpen={isOpen} onClose={onClose}>
@@ -70,7 +73,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       <Box className={componentStyle}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
-          {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+          {data.givens.map((s: any, index: number) => <input onChange={e => onChange(e, index, true)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -88,7 +91,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {targetHandle}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
-          {data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+          {data.givens.map((s: any, index: number) => <input onChange={e => onChange(e, index, true)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -112,7 +115,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {data.statements.map((s: any, index: number) => s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+        {data.givens.map((s: any, index: number) => <input onChange={e => onChange(e, index, true)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -130,15 +133,15 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {
           isCollapsed ?
             <>
-              <input onChange={e => onChange(e, firstProofStep)} style={{ marginTop: '5px' }} key={firstProofStep} value={data.statements[firstProofStep].value} />
+              <input onChange={e => onChange(e, 0, false)} style={{ marginTop: '5px' }} value={data.proofSteps[0].value} />
               <Text as='b'>. . .</Text>
-              <input onChange={e => onChange(e, lastProofStep)} style={{ marginTop: '5px' }} key={lastProofStep} value={data.statements[lastProofStep].value} />
+              <input onChange={e => onChange(e, data.proofSteps.length - 1, false)} style={{ marginTop: '5px' }} value={data.proofSteps[data.proofSteps.length - 1].value} />
             </> :
-            data.statements.map((s: any, index: number) => !s.isGiven && <input onChange={e => onChange(e, index)} style={{ marginTop: '5px' }} key={index} value={s.value} />)
+            data.proofSteps.map((s: any, index: number) => <input onChange={e => onChange(e, index, false)} style={{ marginTop: '5px' }} key={index} value={s.value} />)
         }
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
-          {data.statements.filter((s: any) => !s.isGiven).length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
+          {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
           {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {checkSyntaxButton}
         </div>
