@@ -82,7 +82,7 @@ function Flow() {
       if (node.id === nodeId) {
         node.data = {
           ...node.data,
-          givens: [...node.data.givens, { value: ''} ],
+          givens: [...node.data.givens, { value: '' }],
         };
       }
       return node;
@@ -99,7 +99,7 @@ function Flow() {
             console.log(evaluate(statement.value));
           } catch (e: any) {
             errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : {columnBegin: e.pos.columnBegin, statement: statement.value});
+            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
             if (e instanceof Error) {
               setSyntaxError(true);
               setParseSuccessful(false);
@@ -177,24 +177,28 @@ function Flow() {
 
   const background = <Background />;
   const addNode = (nodeType: NodeType) => {
-    setNodes([...nodes, {
-      id: `${count}`,
-      data: {
-        label: `Node ${count}`,
-        delete: deleteNodeById,
-        id: count,
-        type: nodeType,
-        givens: [],
-        proofSteps: [{ value: '' }],
-        updateGivens: updateGivens,
-        updateProofSteps: updateProofSteps,
-        addProofStep: addProofStep,
-        addGiven: addGiven,
-        checkSyntax: checkSyntax,
-      },
-      position: { x: 300, y: 0 },
-      type: 'textUpdater',
-    }]);
+    setNodes(nds => {
+      const givens = nodeType === 'statement' ? [] : [{ value: '' }];
+      const proofSteps = nodeType === 'statement' ? [{ value: '' }] : [];
+      return [...nds, {
+        id: `${count}`,
+        data: {
+          label: `Node ${count}`,
+          delete: deleteNodeById,
+          id: count,
+          type: nodeType,
+          givens: givens,
+          proofSteps: proofSteps,
+          updateGivens: updateGivens,
+          updateProofSteps: updateProofSteps,
+          addProofStep: addProofStep,
+          addGiven: addGiven,
+          checkSyntax: checkSyntax,
+        },
+        position: { x: 300, y: 0 },
+        type: 'textUpdater',
+      }]
+    });
     setCount(count + 1);
   };
 
