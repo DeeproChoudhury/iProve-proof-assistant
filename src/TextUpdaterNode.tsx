@@ -14,7 +14,26 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
 
-function TextUpdaterNode({ data }: any) {
+export type NodeType = "statement" | "given" | "goal";
+
+export type Statement = {
+  value: string;
+  isGiven: boolean;
+};
+
+export type NodeData = Readonly<{
+  label: string;
+  delete: (id: string) => void;
+  id: number;
+  type: NodeType;
+  statements: Statement[];
+  updateStatements: (nodeId: string, statementIndex: number, statement: string) => void
+  addGiven: (nodeId: string) => void;
+  addProofStep: (nodeId: string) => void;
+  checkSyntax: (nodeId: string) => void;
+}>;
+
+function TextUpdaterNode({ data }: { data: NodeData }) {
   const onChange = useCallback((evt: any, updated: number) => {
     data.updateStatements(`${data.id}`, updated, evt.target.value);
   }, [data]);
