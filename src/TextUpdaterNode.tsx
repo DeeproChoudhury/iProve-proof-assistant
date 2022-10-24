@@ -27,7 +27,7 @@ export type NodeData = Readonly<{
   id: number;
   type: NodeType;
   statements: Statement[];
-  updateStatements: (nodeId: string, statementIndex: number, statement: string) => void
+  updateStatements: (nodeId: string, statementIndex: number, statement: string) => void;
   addGiven: (nodeId: string) => void;
   addProofStep: (nodeId: string) => void;
   checkSyntax: (nodeId: string) => void;
@@ -47,7 +47,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
   const firstProofStep: any = data.statements.findIndex((s: any) => !s.isGiven);
-  const lastProofStep: any = data.statements.findLastIndex((s: any) => !s.isGiven);
+  const lastProofStep: any = data.statements.length - data.statements.reverse().findIndex((s: any) => !s.isGiven) - 1;
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
   const deletePopover = 
     <Popover isOpen={isOpen} onClose={onClose}>
