@@ -18,10 +18,13 @@ export type StatementPropsType = {
   statement: StatementType;
   index?: number;
   onChange: (e: any) => void;
+  proofNode?: boolean;
+  addAbove?: () => void;
+  addBelow?: () => void;
 }
 
 const Statement = (props: StatementPropsType) => {
-  const {statement, index = 0, onChange} = props;
+  const {statement, index = 0, onChange, addAbove = () => {}, addBelow = () => {}, proofNode = false} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const moreOptions = 
@@ -41,8 +44,9 @@ const Statement = (props: StatementPropsType) => {
         <PopoverCloseButton />
         {/* <PopoverHeader>More options</PopoverHeader> */}
         <PopoverBody style={{display: 'flex', flexDirection: 'column', margin: '10px 0 0 0'}}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { }} style={{margin: '5px'}}>Add row above</Button>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { }} style={{margin: '5px'}}>Add row below</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addAbove(); onClose();}} style={{margin: '5px'}}>Add row above</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addBelow(); onClose();}} style={{margin: '5px'}}>Add row below</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => { }} style={{margin: '5px'}}>Delete this row</Button>
         </PopoverBody>
       </PopoverContent>
     </Popover>
@@ -50,7 +54,7 @@ const Statement = (props: StatementPropsType) => {
   return (
     <div style={{display: 'flex'}}>
       <input onChange={e => onChange(e)} style={{ marginTop: '5px', flex: '1'}} key={index} value={statement.value} />
-      {moreOptions}
+      {proofNode && moreOptions}
     </div>
   )
 }

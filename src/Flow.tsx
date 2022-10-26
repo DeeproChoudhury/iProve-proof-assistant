@@ -127,6 +127,27 @@ function Flow() {
     }));
   }
 
+  const addStatementAtIndex = (nodeId: string, index: number, isGiven: boolean) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        const newStatements = isGiven ? node.data.givens : node.data.proofSteps;
+        newStatements.splice(index, 0, { value: '' });
+        if (isGiven) {
+          node.data = {
+            ...node.data,
+            givens: newStatements,
+          };
+        } else {
+          node.data = {
+            ...node.data,
+            proofSteps: newStatements,
+          };
+        }
+      }
+      return node;
+    }));
+  }
+
   const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
     const b: number = node1.position.y - node2.position.y;
@@ -166,6 +187,7 @@ function Flow() {
           updateProofSteps: updateProofSteps,
           addProofStep: addProofStep,
           addGiven: addGiven,
+          addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
         },
         position: { x: other.position.x, y: other.position.y },
@@ -193,6 +215,7 @@ function Flow() {
           updateProofSteps: updateProofSteps,
           addProofStep: addProofStep,
           addGiven: addGiven,
+          addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
         },
         position: { x: 300, y: 0 },
