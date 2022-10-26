@@ -13,7 +13,7 @@ import ReactFlow, {
   Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode, { NodeData, NodeType, Statement } from './TextUpdaterNode';
+import TextUpdaterNode, { NodeData, NodeType, StatementType } from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
 import './Flow.css';
@@ -144,8 +144,8 @@ function Flow() {
         .find((other) => other.id !== node.id && collided(node, other));
     if (other !== undefined) {
       setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
-      let givens: Statement[] = [];
-      let proofSteps: Statement[] = [];
+      let givens: StatementType[] = [];
+      let proofSteps: StatementType[] = [];
       if (node.position.y < other.position.y) {
         givens = node.data.givens;
         proofSteps = [...node.data.proofSteps, ...other.data.givens, ...other.data.proofSteps];
