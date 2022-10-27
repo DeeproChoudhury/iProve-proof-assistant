@@ -1,15 +1,13 @@
 import { StatementType } from "./TextUpdaterNode";
-import { Box, Heading, Button, Text, IconButton, useDisclosure } from '@chakra-ui/react';
+import { background, Button, IconButton, useDisclosure } from '@chakra-ui/react';
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
   PopoverHeader,
   PopoverBody,
-  PopoverFooter,
   PopoverArrow,
   PopoverCloseButton,
-  PopoverAnchor,
 } from '@chakra-ui/react';
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import './Statement.css';
@@ -52,9 +50,11 @@ const Statement = (props: StatementPropsType) => {
       </PopoverContent>
     </Popover>
 
+  const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
+
   return (
     <div style={{display: 'flex'}}>
-      <input onChange={e => onChange(e)} style={{ marginTop: '5px', flex: '1'}} key={index} value={statement.value} />
+      <input onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={statement.value} />
       {proofNode && moreOptions}
     </div>
   )

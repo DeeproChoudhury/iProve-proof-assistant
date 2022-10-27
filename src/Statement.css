@@ -1,4 +1,8 @@
-input {
+.statement-input {
   font-family: monospace !important;
   padding: 0 10px 0 10px !important;
+}
+
+.syntax-error {
+  background-color: rgb(255, 143, 143);
 }

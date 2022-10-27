@@ -14,11 +14,14 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
 import Statement from './Statement';
+import { ASTNode } from './AST';
 
 export type NodeType = "statement" | "given" | "goal";
 
 export type StatementType = {
   value: string;
+  syntaxCorrect?: boolean;
+  parsed?: ASTNode;
 };
 
 export type NodeData = Readonly<{

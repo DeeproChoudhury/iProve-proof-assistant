@@ -90,14 +90,15 @@ function Flow() {
   }
 
   const checkSyntax = (nodeId: string) => {
-    setNodes(nds => {
-      const node = nds.find((n) => n.id === nodeId);
+    setNodes(nds => nds.map((node) => {
       let errorDetected = false;
-      if (node?.data !== undefined) {
-        for (var statement of [...node.data.givens, ...node.data.proofSteps]) {
+      if (node.id === nodeId && node?.data !== undefined) {
+        const newGivens: StatementType[] = node.data.givens.map((statement: StatementType, index: number) => {
           try {
             console.log(evaluate(statement.value));
+            statement.syntaxCorrect = true;
           } catch (e: any) {
+            statement.syntaxCorrect = false;
             errorDetected = true;
             setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
             if (e instanceof Error) {
@@ -105,14 +106,36 @@ function Flow() {
               setParseSuccessful(false);
             }
           }
+          return statement;
+        })
+        const newProofSteps: StatementType[] = node.data.proofSteps.map((statement: StatementType, index: number) => {
+          try {
+            console.log(evaluate(statement.value));
+            statement.syntaxCorrect = true;
+          } catch (e: any) {
+            statement.syntaxCorrect = false;
+            errorDetected = true;
+            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
+            if (e instanceof Error) {
+              setSyntaxError(true);
+              setParseSuccessful(false);
+            }
+          }
+          return statement;
+        })
+        node.data = {
+          ...node.data,
+          givens: newGivens,
+          proofSteps: newProofSteps,
         }
+        
         if (!errorDetected) {
           setSyntaxError(false);
           setParseSuccessful(true);
         }
       }
-      return nds;
-    })
+      return node;
+    }));
   }
 
   const addProofStep = (nodeId: string) => {
