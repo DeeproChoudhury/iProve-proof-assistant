@@ -34,6 +34,7 @@ export type NodeData = Readonly<{
   addProofStep: (nodeId: string) => void;
   addStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
   checkSyntax: (nodeId: string) => void;
+  deleteStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
 }>;
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
@@ -126,7 +127,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             index={index}
             proofNode={true}
             addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, true) }}
-            addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, true) }} />)}
+            addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, true) }} 
+            deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, index, true)}}/>)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -150,7 +152,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 index={0}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, 0, false) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, false) }} />
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, false) }}
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, 0, false) }} />
               <Text as='b'>. . .</Text>
               <Statement
                 onChange={e => onChange(e, data.proofSteps.length - 1, false)}
@@ -158,7 +161,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 index={data.proofSteps.length - 1}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, false) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, false) }} />
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, false) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, false) }}/>
             </> :
             data.proofSteps.map((s: StatementType, index: number) =>
               <Statement
@@ -167,7 +171,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 index={index}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, false) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, false) }} />)
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, false) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, index, false) }} />)
         }
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}

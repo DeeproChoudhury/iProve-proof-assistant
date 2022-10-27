@@ -148,6 +148,27 @@ function Flow() {
     }));
   }
 
+  const deleteStatementAtIndex = (nodeId: string, index: number, isGiven: boolean) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        const newStatements = isGiven ? node.data.givens : node.data.proofSteps;
+        newStatements.splice(index, 1);
+        if (isGiven) {
+          node.data = {
+            ...node.data,
+            givens: newStatements,
+          };
+        } else {
+          node.data = {
+            ...node.data,
+            proofSteps: newStatements,
+          };
+        }
+      }
+      return node;
+    }));
+  }
+
   const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
     const b: number = node1.position.y - node2.position.y;
@@ -189,6 +210,7 @@ function Flow() {
           addGiven: addGiven,
           addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
+          deleteStatementAtIndex: deleteStatementAtIndex,
         },
         position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
@@ -217,6 +239,7 @@ function Flow() {
           addGiven: addGiven,
           addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
+          deleteStatementAtIndex: deleteStatementAtIndex,
         },
         position: { x: 300, y: 0 },
         type: 'textUpdater',
