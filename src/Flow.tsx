@@ -13,7 +13,7 @@ import ReactFlow, {
   Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode, { NodeData, NodeType, Statement } from './TextUpdaterNode';
+import TextUpdaterNode, { NodeData, NodeType, StatementType } from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
 import './Flow.css';
@@ -90,14 +90,15 @@ function Flow() {
   }
 
   const checkSyntax = (nodeId: string) => {
-    setNodes(nds => {
-      const node = nds.find((n) => n.id === nodeId);
+    setNodes(nds => nds.map((node) => {
       let errorDetected = false;
-      if (node?.data !== undefined) {
-        for (var statement of [...node.data.givens, ...node.data.proofSteps]) {
+      if (node.id === nodeId && node?.data !== undefined) {
+        const newGivens: StatementType[] = node.data.givens.map((statement: StatementType, index: number) => {
           try {
             console.log(evaluate(statement.value));
+            statement.syntaxCorrect = true;
           } catch (e: any) {
+            statement.syntaxCorrect = false;
             errorDetected = true;
             setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
             if (e instanceof Error) {
@@ -105,14 +106,36 @@ function Flow() {
               setParseSuccessful(false);
             }
           }
+          return statement;
+        })
+        const newProofSteps: StatementType[] = node.data.proofSteps.map((statement: StatementType, index: number) => {
+          try {
+            console.log(evaluate(statement.value));
+            statement.syntaxCorrect = true;
+          } catch (e: any) {
+            statement.syntaxCorrect = false;
+            errorDetected = true;
+            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
+            if (e instanceof Error) {
+              setSyntaxError(true);
+              setParseSuccessful(false);
+            }
+          }
+          return statement;
+        })
+        node.data = {
+          ...node.data,
+          givens: newGivens,
+          proofSteps: newProofSteps,
         }
+        
         if (!errorDetected) {
           setSyntaxError(false);
           setParseSuccessful(true);
         }
       }
-      return nds;
-    })
+      return node;
+    }));
   }
 
   const addProofStep = (nodeId: string) => {
@@ -122,6 +145,48 @@ function Flow() {
           ...node.data,
           proofSteps: [...node.data.proofSteps, { value: '' }],
         };
+      }
+      return node;
+    }));
+  }
+
+  const addStatementAtIndex = (nodeId: string, index: number, isGiven: boolean) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        const newStatements = isGiven ? node.data.givens : node.data.proofSteps;
+        newStatements.splice(index, 0, { value: '' });
+        if (isGiven) {
+          node.data = {
+            ...node.data,
+            givens: newStatements,
+          };
+        } else {
+          node.data = {
+            ...node.data,
+            proofSteps: newStatements,
+          };
+        }
+      }
+      return node;
+    }));
+  }
+
+  const deleteStatementAtIndex = (nodeId: string, index: number, isGiven: boolean) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        const newStatements = isGiven ? node.data.givens : node.data.proofSteps;
+        newStatements.splice(index, 1);
+        if (isGiven) {
+          node.data = {
+            ...node.data,
+            givens: newStatements,
+          };
+        } else {
+          node.data = {
+            ...node.data,
+            proofSteps: newStatements,
+          };
+        }
       }
       return node;
     }));
@@ -144,8 +209,8 @@ function Flow() {
         .find((other) => other.id !== node.id && collided(node, other));
     if (other !== undefined) {
       setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
-      let givens: Statement[] = [];
-      let proofSteps: Statement[] = [];
+      let givens: StatementType[] = [];
+      let proofSteps: StatementType[] = [];
       if (node.position.y < other.position.y) {
         givens = node.data.givens;
         proofSteps = [...node.data.proofSteps, ...other.data.givens, ...other.data.proofSteps];
@@ -166,7 +231,9 @@ function Flow() {
           updateProofSteps: updateProofSteps,
           addProofStep: addProofStep,
           addGiven: addGiven,
+          addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
+          deleteStatementAtIndex: deleteStatementAtIndex,
         },
         position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
@@ -193,7 +260,9 @@ function Flow() {
           updateProofSteps: updateProofSteps,
           addProofStep: addProofStep,
           addGiven: addGiven,
+          addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
+          deleteStatementAtIndex: deleteStatementAtIndex,
         },
         position: { x: 300, y: 0 },
         type: 'textUpdater',

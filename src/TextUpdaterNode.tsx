@@ -14,11 +14,15 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
 import Z3Solver from './Solver';
+import Statement from './Statement';
+import { ASTNode } from './AST';
 
 export type NodeType = "statement" | "given" | "goal";
 
-export type Statement = {
+export type StatementType = {
   value: string;
+  syntaxCorrect?: boolean;
+  parsed?: ASTNode;
 };
 
 export type NodeData = Readonly<{
@@ -26,13 +30,15 @@ export type NodeData = Readonly<{
   delete: (id: string) => void;
   id: number;
   type: NodeType;
-  givens: Statement[];
-  proofSteps: Statement[];
+  givens: StatementType[];
+  proofSteps: StatementType[];
   updateGivens: (nodeId: string, statementIndex: number, statement: string) => void;
   updateProofSteps: (nodeId: string, statementIndex: number, statement: string) => void;
   addGiven: (nodeId: string) => void;
   addProofStep: (nodeId: string) => void;
+  addStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
   checkSyntax: (nodeId: string) => void;
+  deleteStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
 }>;
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
@@ -57,7 +63,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
   const checkSatButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") }}>Solve</Button>;
   
-  const deletePopover = 
+  const deletePopover =
     <Popover isOpen={isOpen} onClose={onClose}>
       <PopoverTrigger>
         <Button size='xs' colorScheme='blackAlpha' onClick={onOpen}>Delete</Button>
@@ -66,7 +72,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <PopoverArrow />
         <PopoverCloseButton />
         <PopoverHeader>Are you sure you want to delete?</PopoverHeader>
-        <PopoverBody style={{display: 'flex', justifyContent: 'space-between'}}>
+        <PopoverBody style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Yes, I'm sure!</Button>
           <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
         </PopoverBody>
@@ -78,7 +84,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       <Box className={componentStyle}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
-          {data.givens.map((s: any, index: number) => <input onChange={e => onChange(e, index, true)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+          {data.givens.map((s: StatementType, index: number) =>
+            <Statement onChange={e => onChange(e, index, true)} statement={s} index={index} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -97,7 +104,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {targetHandle}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
-          {data.givens.map((s: any, index: number) => <input onChange={e => onChange(e, index, true)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+          {data.givens.map((s: StatementType, index: number) =>
+            <Statement onChange={e => onChange(e, index, true)} statement={s} index={index} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -122,7 +130,15 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {data.givens.map((s: any, index: number) => <input onChange={e => onChange(e, index, true)} style={{ marginTop: '5px' }} key={index} value={s.value} />)}
+        {data.givens.map((s: StatementType, index: number) =>
+          <Statement
+            onChange={e => onChange(e, index, true)}
+            statement={s}
+            index={index}
+            proofNode={true}
+            addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, true) }}
+            addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, true) }} 
+            deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, index, true)}}/>)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -140,11 +156,33 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {
           isCollapsed ?
             <>
-              <input onChange={e => onChange(e, 0, false)} style={{ marginTop: '5px' }} value={data.proofSteps[0].value} />
+              <Statement
+                onChange={e => onChange(e, 0, false)}
+                statement={data.proofSteps[0]}
+                index={0}
+                proofNode={true}
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, 0, false) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, false) }}
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, 0, false) }} />
               <Text as='b'>. . .</Text>
-              <input onChange={e => onChange(e, data.proofSteps.length - 1, false)} style={{ marginTop: '5px' }} value={data.proofSteps[data.proofSteps.length - 1].value} />
+              <Statement
+                onChange={e => onChange(e, data.proofSteps.length - 1, false)}
+                statement={data.proofSteps[data.proofSteps.length - 1]}
+                index={data.proofSteps.length - 1}
+                proofNode={true}
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, false) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, false) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, false) }}/>
             </> :
-            data.proofSteps.map((s: any, index: number) => <input onChange={e => onChange(e, index, false)} style={{ marginTop: '5px' }} key={index} value={s.value} />)
+            data.proofSteps.map((s: StatementType, index: number) =>
+              <Statement
+                onChange={e => onChange(e, index, false)}
+                statement={s}
+                index={index}
+                proofNode={true}
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, false) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, false) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, index, false) }} />)
         }
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
