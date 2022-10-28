@@ -175,6 +175,21 @@ function Flow() {
           }
           return statement;
         })
+        const newGoals: StatementType[] = node.data.goals.map((statement: StatementType, index: number) => {
+          try {
+            console.log(evaluate(statement.value));
+            statement.syntaxCorrect = true;
+          } catch (e: any) {
+            statement.syntaxCorrect = false;
+            errorDetected = true;
+            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
+            if (e instanceof Error) {
+              setSyntaxError(true);
+              setParseSuccessful(false);
+            }
+          }
+          return statement;
+        })
         const newProofSteps: StatementType[] = node.data.proofSteps.map((statement: StatementType, index: number) => {
           try {
             console.log(evaluate(statement.value));
@@ -194,6 +209,7 @@ function Flow() {
           ...node.data,
           givens: newGivens,
           proofSteps: newProofSteps,
+          goals: newGoals
         }
 
         if (!errorDetected) {
