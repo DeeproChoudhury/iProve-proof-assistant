@@ -13,6 +13,7 @@ import {
   PopoverAnchor,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
+import Z3Solver from './Solver';
 import Statement from './Statement';
 import { ASTNode } from './AST';
 
@@ -52,12 +53,16 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const [isCollapsed, setCollapsed] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
+  const localZ3Solver = new Z3Solver.Z3Prover("");
+
   const componentStyle = data.type + "-node";
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
+  const checkSatButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") }}>Solve</Button>;
+  
   const deletePopover =
     <Popover isOpen={isOpen} onClose={onClose}>
       <PopoverTrigger>
@@ -85,6 +90,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
           {checkSyntaxButton}
+          {checkSatButton}
         </div>
         {sourceHandle}
       </Box>
@@ -104,6 +110,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
           {checkSyntaxButton}
+          {checkSatButton}
         </div>
       </Box>
     )
@@ -182,6 +189,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
           {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {checkSyntaxButton}
+          {checkSatButton}
         </div>
       </div>
       {componentStyle !== "goal-node" && sourceHandle}
