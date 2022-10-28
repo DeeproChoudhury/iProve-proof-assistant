@@ -19,10 +19,15 @@ import './TextUpdaterNode.css';
 import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
 import { evaluate } from './fol-parser';
-import { error } from 'console';
+
 import ImplicationEdge from './ImplicationEdge';
 import CheckedEdge from './CheckedEdge';
 import InvalidEdge from './InvalidEdge';
+
+type ErrorPosition = {
+    columnBegin: number;
+    statement: StatementType
+}
 
 const initialNodes: Node<NodeData>[] = [];
 
@@ -36,7 +41,7 @@ function Flow() {
   const [count, setCount] = useState(0);
   const [syntaxError, setSyntaxError] = useState(false);
   const [parseSuccessful, setParseSuccessful] = useState(false);
-  const [errorPosition, setErrorPosition] = useState<any>(undefined);
+  const [errorPosition, setErrorPosition] = useState<ErrorPosition | undefined>(undefined);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -95,6 +100,7 @@ function Flow() {
       if (node.id === nodeId) {
         const newStatements = node.data.givens;
         newStatements[statementIndex].value = statement;
+        newStatements[statementIndex].parsed = undefined;
         node.data = {
           ...node.data,
           givens: newStatements,
@@ -109,6 +115,7 @@ function Flow() {
       if (node.id === nodeId) {
         const newStatements = node.data.proofSteps;
         newStatements[statementIndex].value = statement;
+        newStatements[statementIndex].parsed = undefined;
         node.data = {
           ...node.data,
           proofSteps: newStatements,
@@ -136,12 +143,14 @@ function Flow() {
       if (node.id === nodeId && node?.data !== undefined) {
         const newGivens: StatementType[] = node.data.givens.map((statement: StatementType, index: number) => {
           try {
-            console.log(evaluate(statement.value));
+            const parsed = evaluate(statement.value);
+            console.log(parsed);
+            statement.parsed = parsed;
             statement.syntaxCorrect = true;
           } catch (e: any) {
             statement.syntaxCorrect = false;
             errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
+            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement });
             if (e instanceof Error) {
               setSyntaxError(true);
               setParseSuccessful(false);
@@ -151,12 +160,14 @@ function Flow() {
         })
         const newProofSteps: StatementType[] = node.data.proofSteps.map((statement: StatementType, index: number) => {
           try {
-            console.log(evaluate(statement.value));
+            const parsed = evaluate(statement.value);
+            console.log(parsed);
+            statement.parsed = parsed;
             statement.syntaxCorrect = true;
           } catch (e: any) {
             statement.syntaxCorrect = false;
             errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
+            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement });
             if (e instanceof Error) {
               setSyntaxError(true);
               setParseSuccessful(false);
@@ -321,7 +332,7 @@ function Flow() {
           <AlertDescription>
             {errorPosition === undefined ?
               "Parsing for the last node failed. Check your syntax!" :
-              `Parsing for the last node failed. Error begins at column ${errorPosition.columnBegin}, from \"${errorPosition.statement}\"`}
+              `Parsing for the last node failed. Error begins at column ${errorPosition.columnBegin}, from "${errorPosition.statement.value}"`}
           </AlertDescription>
           <IconButton
             variant='outline'
