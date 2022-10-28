@@ -20,11 +20,15 @@ import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
 import { evaluate } from './fol-parser';
 import { error } from 'console';
+import ImplicationEdge from './ImplicationEdge';
+import CheckedEdge from './CheckedEdge';
+import InvalidEdge from './InvalidEdge';
 
 const initialNodes: Node<NodeData>[] = [];
 
 const initialEdges: Edge[] = [];
 const nodeTypes = { textUpdater: TextUpdaterNode };
+const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge};
 
 function Flow() {
   const [nodes, setNodes] = useState(initialNodes);
@@ -43,7 +47,44 @@ function Flow() {
     []
   );
 
-  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
+  const checkEdges = (nodeId: string) => {
+    // here we should get all incoming edges & nodes to nodeID
+    // use the proofSteps (maybe goals?) of the incoming nodes and the givens of nodeId
+    // to deduce whether the implication holds (using z3)
+    // if yes, set correctImplication = true and mark all edges + nodeId as true
+    let correctImplication: boolean = false;
+    setEdges(eds => {
+      const incomingEdges = eds.filter((e) => e.target === nodeId);
+      // get all nodes that have incoming edge to nodeId
+      // should probably use getIncomers from reactflow
+      const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
+      console.log(nodes.filter(node => incomingNodesIds.has(node.id)));
+      correctImplication = Math.random() > 0.5;
+      return eds.map((edge) => {
+        if (edge.target === nodeId) {
+          edge.type = correctImplication ? "checked" : "invalid";
+        }
+        return edge;
+      });
+    })
+    setNodes(nds => nds.map((node) => {
+      if (node.id == nodeId) {
+        node.data = {
+          ...node.data,
+          correctImplication: correctImplication
+        }
+      }
+      return node;
+    }))
+  }
+
+  const onConnect = useCallback(
+    (params: Connection) => {
+      setEdges((eds) => addEdge({...params, 
+        type:"implication", 
+        id: `${params.source}-${params.target}`,
+      }, eds));
+    }, []);
 
   const deleteNodeById = (id: string) => {
     setNodes(nds => nds.filter(node => node.id !== id));
@@ -128,7 +169,7 @@ function Flow() {
           givens: newGivens,
           proofSteps: newProofSteps,
         }
-        
+
         if (!errorDetected) {
           setSyntaxError(false);
           setParseSuccessful(true);
@@ -199,8 +240,6 @@ function Flow() {
   }
 
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
-    // probably also need to check node type here
-    // I don't think we want to merge givens or goals with anything
     if (node.data.type !== 'statement') {
       return;
     }
@@ -233,6 +272,7 @@ function Flow() {
           addGiven: addGiven,
           addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
+          checkEdges: checkEdges,
           deleteStatementAtIndex: deleteStatementAtIndex,
         },
         position: { x: other.position.x, y: other.position.y },
@@ -262,6 +302,7 @@ function Flow() {
           addGiven: addGiven,
           addStatementAtIndex: addStatementAtIndex,
           checkSyntax: checkSyntax,
+          checkEdges: checkEdges,
           deleteStatementAtIndex: deleteStatementAtIndex,
         },
         position: { x: 300, y: 0 },
@@ -318,6 +359,7 @@ function Flow() {
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           edges={edges}
+          edgeTypes={edgeTypes}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
