@@ -3,8 +3,6 @@ import React from 'react';
 import { getBezierPath } from 'reactflow';
 import './ImplicationEdge.css';
 
-const foreignObjectSize = 55;
-
 export default function ImplicationEdge({
   id,
   sourceX,
@@ -35,21 +33,6 @@ export default function ImplicationEdge({
         d={edgePath}
         markerEnd={markerEnd}
       />
-
-      <foreignObject
-        width={foreignObjectSize}
-        height={foreignObjectSize}
-        x={labelX - foreignObjectSize / 2}
-        y={labelY - foreignObjectSize / 2}
-        className="edgebutton-foreignobject"
-        requiredExtensions="http://www.w3.org/1999/xhtml"
-      >
-        <div>
-        <Button colorScheme='whatsapp' size='xs' className='edgebutton' onClick={() => {data.onCheckEdge(id)}}>
-          Check
-        </Button>
-        </div>
-      </foreignObject>
     </>
   );
 }

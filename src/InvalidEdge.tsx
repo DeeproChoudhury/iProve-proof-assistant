@@ -3,8 +3,6 @@ import React from 'react';
 import { getBezierPath } from 'reactflow';
 import './InvalidEdge.css';
 
-const foreignObjectSize = 85;
-
 export default function InvalidEdge({
   id,
   sourceX,
@@ -35,20 +33,6 @@ export default function InvalidEdge({
         style={{stroke: "red"}}
         markerEnd={markerEnd}
       />
-      <foreignObject
-        width={foreignObjectSize}
-        height={foreignObjectSize}
-        x={labelX - foreignObjectSize / 2}
-        y={labelY - foreignObjectSize / 2}
-        className="invalid-edgebutton-foreignobject"
-        requiredExtensions="http://www.w3.org/1999/xhtml"
-      >
-        <div>
-          <Button colorScheme='red' size='xs' className='invalid-edgebutton' onClick={() => {data.onCheckEdge(id)}}>
-            Check again
-          </Button>
-        </div>
-      </foreignObject>
     </>
   );
 }

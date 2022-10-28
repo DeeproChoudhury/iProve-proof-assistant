@@ -31,12 +31,14 @@ export type NodeData = Readonly<{
   type: NodeType;
   givens: StatementType[];
   proofSteps: StatementType[];
+  correctImplication?: boolean;
   updateGivens: (nodeId: string, statementIndex: number, statement: string) => void;
   updateProofSteps: (nodeId: string, statementIndex: number, statement: string) => void;
   addGiven: (nodeId: string) => void;
   addProofStep: (nodeId: string) => void;
   addStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
   checkSyntax: (nodeId: string) => void;
+  checkEdges: (nodeId: string) => void;
   deleteStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
 }>;
 
@@ -112,6 +114,20 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   return (
     <Box className={componentStyle}>
       {componentStyle !== "given-node" && targetHandle}
+      <div style={{display: 'flex', justifyContent: 'center'}}>
+      {data.correctImplication === undefined &&
+      <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+        Check incoming implications
+      </Button>}
+      {data.correctImplication === true &&
+        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+          Check passed
+        </Button>}
+      {data.correctImplication === false &&
+        <Button colorScheme='red' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+          Check failed. Check again?
+        </Button>}
+      </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text>Givens</Text>
         <IconButton

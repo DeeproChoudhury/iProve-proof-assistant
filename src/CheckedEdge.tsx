@@ -3,8 +3,6 @@ import React from 'react';
 import { getBezierPath } from 'reactflow';
 import './CheckedEdge.css';
 
-const foreignObjectSize = 55;
-
 export default function CheckedEdge({
   id,
   sourceX,
