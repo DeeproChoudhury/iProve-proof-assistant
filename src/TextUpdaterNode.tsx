@@ -54,9 +54,9 @@ export type NodeData = Readonly<{
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
   const onChange = useCallback((evt: any, updated: number, t: ProofNodeTypes) => {
-    if (t == ProofNodeTypes.GIVEN) {
+    if (t === ProofNodeTypes.GIVEN) {
       data.updateGivens(`${data.id}`, updated, evt.target.value);
-    } else if (t==ProofNodeTypes.PROOFSTEP) {
+    } else if (t === ProofNodeTypes.PROOFSTEP) {
       data.updateProofSteps(`${data.id}`, updated, evt.target.value);
     } else {
       data.updateGoals(`${data.id}`, updated, evt.target.value);
@@ -139,7 +139,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       </Button>}
       {data.correctImplication === true &&
         <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
-          Check passed
+          Check passed. Check again?
         </Button>}
       {data.correctImplication === false &&
         <Button colorScheme='red' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
