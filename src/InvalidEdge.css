@@ -1,0 +1,19 @@
+.invalid-edgebutton {
+  width: 70px;
+  height: 60px;
+  background: #eee;
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.invalid-edgebutton-foreignobject div {
+  background: transparent;
+  width: 85px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+}

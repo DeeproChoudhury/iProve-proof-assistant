@@ -20,11 +20,15 @@ import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
 import { evaluate } from './fol-parser';
 import { error } from 'console';
+import ImplicationEdge from './ImplicationEdge';
+import CheckedEdge from './CheckedEdge';
+import InvalidEdge from './InvalidEdge';
 
 const initialNodes: Node<NodeData>[] = [];
 
 const initialEdges: Edge[] = [];
 const nodeTypes = { textUpdater: TextUpdaterNode };
+const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge};
 
 function Flow() {
   const [nodes, setNodes] = useState(initialNodes);
@@ -43,7 +47,24 @@ function Flow() {
     []
   );
 
-  const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), []);
+  const onCheckEdge = (edgeId: string) => {
+    setEdges(eds => eds.map((edge) => {
+      if (edge.id === edgeId) {
+        edge.type = Math.random() > 0.5 ? "checked" : "invalid"
+      }
+      return edge;
+    }));
+  }
+
+  const onConnect = useCallback(
+    (params: Connection) => {
+      setEdges((eds) => addEdge({...params, 
+        type:"implication", 
+        id: `${params.source}-${params.target}`, 
+        data: {
+          onCheckEdge: onCheckEdge
+        }}, eds));
+    }, [onCheckEdge]);
 
   const deleteNodeById = (id: string) => {
     setNodes(nds => nds.filter(node => node.id !== id));
@@ -128,7 +149,7 @@ function Flow() {
           givens: newGivens,
           proofSteps: newProofSteps,
         }
-        
+
         if (!errorDetected) {
           setSyntaxError(false);
           setParseSuccessful(true);
@@ -318,6 +339,7 @@ function Flow() {
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           edges={edges}
+          edgeTypes={edgeTypes}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
