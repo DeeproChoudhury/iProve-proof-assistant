@@ -58,6 +58,7 @@ function Flow() {
       if (node.id === nodeId) {
         const newStatements = node.data.givens;
         newStatements[statementIndex].value = statement;
+        newStatements[statementIndex].parsed = undefined;
         node.data = {
           ...node.data,
           givens: newStatements,
@@ -72,6 +73,7 @@ function Flow() {
       if (node.id === nodeId) {
         const newStatements = node.data.proofSteps;
         newStatements[statementIndex].value = statement;
+        newStatements[statementIndex].parsed = undefined;
         node.data = {
           ...node.data,
           proofSteps: newStatements,

@@ -11,7 +11,7 @@ import {
 } from '@chakra-ui/react';
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import './Statement.css';
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { display } from "./AST";
 
 export type StatementPropsType = {
@@ -28,6 +28,9 @@ const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
   const {statement, index = 0, onChange, addAbove = () => {}, addBelow = () => {}, deleteStatement = () => {}, proofNode = false} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isFocused, setFocused] = useState<boolean>(false);
+  const onFocus = () => setFocused(true);
+  const onBlur = () => setFocused(false);
 
   const moreOptions = 
     <Popover isOpen={isOpen} onClose={onClose}>
@@ -55,11 +58,11 @@ const Statement = (props: StatementPropsType) => {
 
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   console.log(statement.parsed)
-  const value = statement.parsed && document.activeElement !== input.current ? display(statement.parsed) : statement.value;
+  const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
 
   return (
     <div style={{display: 'flex'}}>
-      <input ref={input} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
+      <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {proofNode && moreOptions}
     </div>
   )
