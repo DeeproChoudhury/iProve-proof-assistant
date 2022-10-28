@@ -47,6 +47,14 @@ function Flow() {
     []
   );
 
+  const getResults = (node: Node) => {
+    if (node.data.type === "statement") {
+      return node.data.goals;
+    } else if (node.data.type === "given") {
+      return node.data.givens;
+    } 
+  }
+
   const checkEdges = (nodeId: string) => {
     // here we should get all incoming edges & nodes to nodeID
     // use the proofSteps (maybe goals?) of the incoming nodes and the givens of nodeId
@@ -54,28 +62,39 @@ function Flow() {
     // if yes, set correctImplication = true and mark all edges + nodeId as true
     let correctImplication: boolean = false;
     setEdges(eds => {
-      const incomingEdges = eds.filter((e) => e.target === nodeId);
-      // get all nodes that have incoming edge to nodeId
-      // should probably use getIncomers from reactflow
-      const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
-      console.log(nodes.filter(node => incomingNodesIds.has(node.id)));
-      correctImplication = Math.random() > 0.5;
+      setNodes(nds => { 
+
+        const incomingEdges = eds.filter((e) => e.target === nodeId);
+        // get all nodes that have incoming edge to nodeId
+        // should probably use getIncomers from reactflow
+        const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
+        const incomingNodes = nds.filter(node => incomingNodesIds.has(node.id))
+        const givens = incomingNodes.map(node => getResults(node)).reduce((acc,v) => acc.concat(v), [])
+        const exp_implications = nds.filter(node => node.id === nodeId)[0].data.givens
+        
+        // check that exp_implications follows from givens with z3
+        correctImplication = Math.random() > 0.5;
+
+        //set nodes
+        return nds.map((node) => {
+          if (node.id == nodeId) {
+            node.data = {
+              ...node.data,
+              correctImplication: correctImplication
+            }
+          }
+        return node;
+      })})
+
+      //set edges
       return eds.map((edge) => {
         if (edge.target === nodeId) {
           edge.type = correctImplication ? "checked" : "invalid";
         }
         return edge;
       });
+      
     })
-    setNodes(nds => nds.map((node) => {
-      if (node.id == nodeId) {
-        node.data = {
-          ...node.data,
-          correctImplication: correctImplication
-        }
-      }
-      return node;
-    }))
   }
 
   const onConnect = useCallback(
