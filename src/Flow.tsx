@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Alert, Button, Stack, AlertIcon, AlertTitle, AlertDescription, IconButton } from '@chakra-ui/react'
+import { Alert, Button, Stack, AlertIcon, AlertTitle, AlertDescription, IconButton, GlobalStyle } from '@chakra-ui/react'
 import ReactFlow, {
   Controls,
   Background,
@@ -13,7 +13,7 @@ import ReactFlow, {
   Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode, { NodeData, NodeType, StatementType } from './TextUpdaterNode';
+import TextUpdaterNode, { ProofNodeTypes, NodeData, NodeType, StatementType } from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
 import './Flow.css';
@@ -104,6 +104,20 @@ function Flow() {
     }));
   };
 
+  const updateGoals = (nodeId: string, statementIndex: number, statement: string) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        const newStatements = node.data.goals;
+        newStatements[statementIndex].value = statement;
+        node.data = {
+          ...node.data,
+          goals: newStatements,
+        };
+      }
+      return node;
+    }));
+  };
+
   const updateProofSteps = (nodeId: string, statementIndex: number, statement: string) => {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
@@ -124,6 +138,18 @@ function Flow() {
         node.data = {
           ...node.data,
           givens: [...node.data.givens, { value: '' }],
+        };
+      }
+      return node;
+    }));
+  }
+
+  const addGoal = (nodeId: string) => {
+    setNodes(nds => nds.map((node) => {
+      if (node.id === nodeId) {
+        node.data = {
+          ...node.data,
+          goals: [...node.data.goals, { value: '' }],
         };
       }
       return node;
@@ -191,20 +217,35 @@ function Flow() {
     }));
   }
 
-  const addStatementAtIndex = (nodeId: string, index: number, isGiven: boolean) => {
+  const getCurrStatements = (node: Node, t: ProofNodeTypes) => {
+    if (t === ProofNodeTypes.GIVEN) {
+      return node.data.givens;
+    } else if (t === ProofNodeTypes.PROOFSTEP){
+      return node.data.proofSteps; 
+    } else {
+      return node.data.goals
+    }
+  }
+
+  const addStatementAtIndex = (nodeId: string, index: number, t: ProofNodeTypes) => {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
-        const newStatements = isGiven ? node.data.givens : node.data.proofSteps;
+        const newStatements = getCurrStatements(node, t);
         newStatements.splice(index, 0, { value: '' });
-        if (isGiven) {
+        if (t === ProofNodeTypes.GIVEN) {
           node.data = {
             ...node.data,
             givens: newStatements,
           };
-        } else {
+        } else if (t === ProofNodeTypes.PROOFSTEP) {
           node.data = {
             ...node.data,
             proofSteps: newStatements,
+          };
+        } else {
+          node.data = {
+            ...node.data,
+            goals: newStatements,
           };
         }
       }
@@ -212,20 +253,25 @@ function Flow() {
     }));
   }
 
-  const deleteStatementAtIndex = (nodeId: string, index: number, isGiven: boolean) => {
+  const deleteStatementAtIndex = (nodeId: string, index: number, t: ProofNodeTypes) => {
     setNodes(nds => nds.map((node) => {
       if (node.id === nodeId) {
-        const newStatements = isGiven ? node.data.givens : node.data.proofSteps;
+        const newStatements = getCurrStatements(node, t);
         newStatements.splice(index, 1);
-        if (isGiven) {
+        if (t === ProofNodeTypes.GIVEN) {
           node.data = {
             ...node.data,
             givens: newStatements,
           };
-        } else {
+        } else if (t === ProofNodeTypes.PROOFSTEP) {
           node.data = {
             ...node.data,
             proofSteps: newStatements,
+          };
+        } else {
+          node.data = {
+            ...node.data,
+            goals: newStatements,
           };
         }
       }
@@ -250,6 +296,7 @@ function Flow() {
       setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
       let givens: StatementType[] = [];
       let proofSteps: StatementType[] = [];
+      let goals: StatementType[] = []
       if (node.position.y < other.position.y) {
         givens = node.data.givens;
         proofSteps = [...node.data.proofSteps, ...other.data.givens, ...other.data.proofSteps];
@@ -266,6 +313,9 @@ function Flow() {
           type: 'statement',
           givens: givens,
           proofSteps: proofSteps,
+          goals: goals, 
+          updateGoals: updateGoals, 
+          addGoal: addGoal, 
           updateGivens: updateGivens,
           updateProofSteps: updateProofSteps,
           addProofStep: addProofStep,
@@ -287,6 +337,7 @@ function Flow() {
     setNodes(nds => {
       const givens = nodeType === 'statement' ? [] : [{ value: '' }];
       const proofSteps = nodeType === 'statement' ? [{ value: '' }] : [];
+      const goals = nodeType === 'statement' ? [{ value: '' }] : [];
       return [...nds, {
         id: `${count}`,
         data: {
@@ -296,6 +347,9 @@ function Flow() {
           type: nodeType,
           givens: givens,
           proofSteps: proofSteps,
+          goals: goals, 
+          updateGoals: updateGoals, 
+          addGoal: addGoal,
           updateGivens: updateGivens,
           updateProofSteps: updateProofSteps,
           addProofStep: addProofStep,

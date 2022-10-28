@@ -25,6 +25,12 @@ export type StatementType = {
   parsed?: ASTNode;
 };
 
+export enum ProofNodeTypes {
+  GIVEN, 
+  PROOFSTEP, 
+  GOAL
+}
+
 export type NodeData = Readonly<{
   label: string;
   delete: (id: string) => void;
@@ -32,23 +38,28 @@ export type NodeData = Readonly<{
   type: NodeType;
   givens: StatementType[];
   proofSteps: StatementType[];
+  goals: StatementType[];
   correctImplication?: boolean;
   updateGivens: (nodeId: string, statementIndex: number, statement: string) => void;
   updateProofSteps: (nodeId: string, statementIndex: number, statement: string) => void;
+  updateGoals: (nodeId: string, statementIndex: number, statement: string) => void;
   addGiven: (nodeId: string) => void;
   addProofStep: (nodeId: string) => void;
-  addStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
+  addGoal: (nodeId: string) => void;
+  addStatementAtIndex: (nodeId: string, index: number, t: ProofNodeTypes) => void;
   checkSyntax: (nodeId: string) => void;
   checkEdges: (nodeId: string) => void;
-  deleteStatementAtIndex: (nodeId: string, index: number, isGiven: boolean) => void;
+  deleteStatementAtIndex: (nodeId: string, index: number, t: ProofNodeTypes) => void;
 }>;
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
-  const onChange = useCallback((evt: any, updated: number, isGiven: boolean) => {
-    if (isGiven) {
+  const onChange = useCallback((evt: any, updated: number, t: ProofNodeTypes) => {
+    if (t == ProofNodeTypes.GIVEN) {
       data.updateGivens(`${data.id}`, updated, evt.target.value);
-    } else {
+    } else if (t==ProofNodeTypes.PROOFSTEP) {
       data.updateProofSteps(`${data.id}`, updated, evt.target.value);
+    } else {
+      data.updateGoals(`${data.id}`, updated, evt.target.value);
     }
   }, [data]);
 
@@ -87,7 +98,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
           {data.givens.map((s: StatementType, index: number) =>
-            <Statement onChange={e => onChange(e, index, true)} statement={s} index={index} />)}
+            <Statement onChange={e => onChange(e, index, ProofNodeTypes.GIVEN)} statement={s} index={index} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -107,7 +118,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
           {data.givens.map((s: StatementType, index: number) =>
-            <Statement onChange={e => onChange(e, index, true)} statement={s} index={index} />)}
+            <Statement onChange={e => onChange(e, index, ProofNodeTypes.GIVEN)} statement={s} index={index} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -148,13 +159,13 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {data.givens.map((s: StatementType, index: number) =>
           <Statement
-            onChange={e => onChange(e, index, true)}
+            onChange={e => onChange(e, index, ProofNodeTypes.GIVEN)}
             statement={s}
             index={index}
             proofNode={true}
-            addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, true) }}
-            addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, true) }} 
-            deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, index, true)}}/>)}
+            addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GIVEN) }}
+            addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.GIVEN) }} 
+            deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GIVEN)}}/>)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -173,33 +184,54 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           isCollapsed ?
             <>
               <Statement
-                onChange={e => onChange(e, 0, false)}
+                onChange={e => onChange(e, 0, ProofNodeTypes.PROOFSTEP)}
                 statement={data.proofSteps[0]}
                 index={0}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, 0, false) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, false) }}
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, 0, false) }} />
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, 0, ProofNodeTypes.PROOFSTEP) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, ProofNodeTypes.PROOFSTEP) }}
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, 0, ProofNodeTypes.PROOFSTEP) }} />
               <Text as='b'>. . .</Text>
               <Statement
-                onChange={e => onChange(e, data.proofSteps.length - 1, false)}
+                onChange={e => onChange(e, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP)}
                 statement={data.proofSteps[data.proofSteps.length - 1]}
                 index={data.proofSteps.length - 1}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, false) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, false) }} 
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, false) }}/>
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, ProofNodeTypes.PROOFSTEP) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP) }}/>
             </> :
             data.proofSteps.map((s: StatementType, index: number) =>
               <Statement
-                onChange={e => onChange(e, index, false)}
+                onChange={e => onChange(e, index, ProofNodeTypes.PROOFSTEP)}
                 statement={s}
                 index={index}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, false) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, false) }} 
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, index, false) }} />)
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.PROOFSTEP) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.PROOFSTEP) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, index, ProofNodeTypes.PROOFSTEP) }} />)
         }
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+          <Text>Goals</Text>
+          <IconButton
+            variant='outline'
+            aria-label='Add goal'
+            size='xs'
+            onClick={() => { data.addGoal(`${data.id}`) }}
+            icon={<AddIcon />}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {data.goals.map((s: StatementType, index: number) =>
+            <Statement
+              onChange={e => onChange(e, index, ProofNodeTypes.GOAL)}
+              statement={s}
+              index={index}
+              proofNode={true}
+              addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GOAL) }}
+              addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.GOAL) }} 
+              deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GOAL)}}/>)}
+        </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
           {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
