@@ -222,34 +222,6 @@ export type ParenFormula = {
     A: Formula
  }
 
-export type FinalNode =
-      Variable
-    | FunctionSymbol
-    | PredicateSymbol
-    | Type
-    | InfixSymbol
-    | PropOperator
-    | ImpOperator
-    | FunctionType 
-    | TypeExt 
-    | FunctionDeclaration 
-    | VariableDeclaration 
-    | VLElem 
-    | Term 
-    | Function 
-    | IntLiteral 
-    | ArrayElem
-    | ArrayRange 
-    | ParenTerm
-    | Neg 
-    | PropLiteral 
-    | Comparison 
-    | Predicate 
-    | QFClause 
-    | QuantifiedFormula 
-    | Formula
-    | ParenFormula
-
 function interleave<T>(a: T[], b: T[]): T[] {
     const c = [];
     let i;
