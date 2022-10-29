@@ -184,7 +184,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 onChange={e => onChange(e, 0, ProofNodeTypes.PROOFSTEP)}
                 statement={data.proofSteps[0]}
-                index={0}
+                index={data.givens.length}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, 0, ProofNodeTypes.PROOFSTEP) }}
                 addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, ProofNodeTypes.PROOFSTEP) }}
@@ -193,7 +193,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 onChange={e => onChange(e, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP)}
                 statement={data.proofSteps[data.proofSteps.length - 1]}
-                index={data.proofSteps.length - 1}
+                index={data.givens.length + data.proofSteps.length - 1}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP) }}
                 addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, ProofNodeTypes.PROOFSTEP) }} 
@@ -203,7 +203,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 onChange={e => onChange(e, index, ProofNodeTypes.PROOFSTEP)}
                 statement={s}
-                index={index}
+                index={data.givens.length + index}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.PROOFSTEP) }}
                 addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.PROOFSTEP) }} 
@@ -224,7 +224,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             <Statement
               onChange={e => onChange(e, index, ProofNodeTypes.GOAL)}
               statement={s}
-              index={index}
+              index={data.givens.length + data.proofSteps.length + index}
               proofNode={true}
               addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GOAL) }}
               addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.GOAL) }} 

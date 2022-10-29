@@ -62,6 +62,7 @@ const Statement = (props: StatementPropsType) => {
 
   return (
     <div style={{display: 'flex'}}>
+      <div style={{margin: 'auto 5px'}}>({index + 1})</div>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {proofNode && moreOptions}
     </div>
