@@ -210,7 +210,7 @@ function Flow() {
           } catch (e: any) {
             statement.syntaxCorrect = false;
             errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement.value });
+            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement });
             if (e instanceof Error) {
               setSyntaxError(true);
               setParseSuccessful(false);
