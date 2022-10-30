@@ -57,7 +57,6 @@ const Statement = (props: StatementPropsType) => {
     </Popover>
 
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
-  console.log(statement.parsed)
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
 
   return (
