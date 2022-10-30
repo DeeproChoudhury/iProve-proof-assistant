@@ -5,11 +5,12 @@ import { useState } from "react";
 export type ModalStatementPropsType = {
   statement: StatementType;
   index: number;
+  tag: string;
+  setTag: (v: string) => void;
 }
 
 const ModalStatement = (props: ModalStatementPropsType) => {
-  const {statement, index} = props;
-  const [tag, setTag] = useState('0');
+  const {statement, index, tag, setTag} = props;
   return (
     <Box borderRadius='md' bg='whiteAlpha.300' color='white' my='1'>
       <div style={{display: 'flex'}}>

@@ -141,7 +141,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   return (
     <Box className={componentStyle}>
       {componentStyle !== "given-node" && targetHandle}
-      <SolveNodeModal isOpen={isSolveModalOpen} onClose={onSolveModalClose} node={data}/>
+      <SolveNodeModal 
+        isOpen={isSolveModalOpen} 
+        onClose={onSolveModalClose} 
+        node={data}/>
       <div style={{display: 'flex', justifyContent: 'center'}}>
       {data.correctImplication === undefined &&
       <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
