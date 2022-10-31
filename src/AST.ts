@@ -282,8 +282,9 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         //the first non-empty case: InfixSymbol.
         case "InfixSymbol":
             return `${a.ident}`;
-        case "Term": return `${interleave(a.atoms.map(display), a.operators.map(display)).join(" ")}`;
-        case "VLElem": return a.T ? `(${display(a.v)} : ${display(a.T)})` : `(${display(a.v)} Int)`;
+        case "FunctionDeclaration": return `${ASTSMTLIB2(a.symbol)} :: ${ASTSMTLIB2(a.type)}`;
+        case "Term": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
+        case "VLElem": return a.T ? `(${ASTSMTLIB2(a.v)} : ${ASTSMTLIB2(a.T)})` : `(${ASTSMTLIB2(a.v)} Int)`;
         case "Predicate":
             return `(${ASTSMTLIB2(a.pred)} ${a.terms.map(ASTSMTLIB2).join(" ")})`;
         case "QFClause": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
