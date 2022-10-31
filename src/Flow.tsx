@@ -345,10 +345,12 @@ function Flow() {
       let goals: StatementType[] = []
       if (node.position.y < other.position.y) {
         givens = node.data.givens;
-        proofSteps = [...node.data.proofSteps, ...other.data.givens, ...other.data.proofSteps];
+        proofSteps = [...node.data.proofSteps, ...node.data.goals, ...other.data.givens, ...other.data.proofSteps];
+        goals = other.data.goals;
       } else {
         givens = other.data.givens;
-        proofSteps = [...other.data.proofSteps, ...node.data.givens, ...node.data.proofSteps];
+        proofSteps = [...other.data.proofSteps, ...other.data.goals, ...node.data.givens, ...node.data.proofSteps];
+        goals = node.data.goals;
       }
       setNodes(nds => [...nds, {
         id: `${count}`,
@@ -382,7 +384,7 @@ function Flow() {
   const addNode = (nodeType: NodeType) => {
     setNodes(nds => {
       const givens = nodeType === 'statement' ? [] : [{ value: '' }];
-      const proofSteps = nodeType === 'statement' ? [{ value: '' }] : [];
+      const proofSteps: StatementType[] = [];
       const goals = nodeType === 'statement' ? [{ value: '' }] : [];
       return [...nds, {
         id: `${count}`,

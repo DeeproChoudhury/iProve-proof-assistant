@@ -14,6 +14,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import Z3Solver from './Solver';
 import Statement from './Statement';
 import { ASTNode } from './AST';
+import SolveNodeModal from './SolveNodeModal';
 
 export type NodeType = "statement" | "given" | "goal";
 
@@ -63,6 +64,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
 
   const [isCollapsed, setCollapsed] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isSolveModalOpen, onOpen: onSolveModalOpen, onClose: onSolveModalClose } = useDisclosure();
 
   const localZ3Solver = new Z3Solver.Z3Prover("");
 
@@ -72,7 +74,16 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
-  const checkSatButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") }}>Solve</Button>;
+  const checkSatButton: ReactNode = 
+    <Button size='xs' 
+      colorScheme='blackAlpha' 
+      onClick={() => { 
+        onSolveModalOpen();
+        // console.log(isSolveModalOpen);
+        localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") 
+      }}>
+      Solve
+    </Button>;
   
   const deletePopover =
     <Popover isOpen={isOpen} onClose={onClose}>
@@ -130,6 +141,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   return (
     <Box className={componentStyle}>
       {componentStyle !== "given-node" && targetHandle}
+      <SolveNodeModal 
+        isOpen={isSolveModalOpen} 
+        onClose={onSolveModalClose} 
+        node={data}/>
       <div style={{display: 'flex', justifyContent: 'center'}}>
       {data.correctImplication === undefined &&
       <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
@@ -184,7 +199,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 onChange={e => onChange(e, 0, ProofNodeTypes.PROOFSTEP)}
                 statement={data.proofSteps[0]}
-                index={0}
+                index={data.givens.length}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, 0, ProofNodeTypes.PROOFSTEP) }}
                 addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, ProofNodeTypes.PROOFSTEP) }}
@@ -193,7 +208,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 onChange={e => onChange(e, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP)}
                 statement={data.proofSteps[data.proofSteps.length - 1]}
-                index={data.proofSteps.length - 1}
+                index={data.givens.length + data.proofSteps.length - 1}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP) }}
                 addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, ProofNodeTypes.PROOFSTEP) }} 
@@ -203,7 +218,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 onChange={e => onChange(e, index, ProofNodeTypes.PROOFSTEP)}
                 statement={s}
-                index={index}
+                index={data.givens.length + index}
                 proofNode={true}
                 addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.PROOFSTEP) }}
                 addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.PROOFSTEP) }} 
@@ -224,7 +239,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             <Statement
               onChange={e => onChange(e, index, ProofNodeTypes.GOAL)}
               statement={s}
-              index={index}
+              index={data.givens.length + data.proofSteps.length + index}
               proofNode={true}
               addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GOAL) }}
               addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.GOAL) }} 

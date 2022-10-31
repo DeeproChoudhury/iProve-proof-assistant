@@ -57,11 +57,11 @@ const Statement = (props: StatementPropsType) => {
     </Popover>
 
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
-  console.log(statement.parsed)
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
 
   return (
     <div style={{display: 'flex'}}>
+      <div style={{margin: 'auto 5px'}}>({index + 1})</div>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {proofNode && moreOptions}
     </div>
