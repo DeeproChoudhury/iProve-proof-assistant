@@ -274,10 +274,12 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         // case "Variable": return ""
         // case "FunctionSymbol":
         // case "PredicateSymbol":
-        case "Variable": return `${a.ident}`
+        case "Variable":
         case "FunctionSymbol":
         case "PredicateSymbol":
-        case "Type": 
+        case "Type":
+        // Cases for Variable, FunctionSymbol, PredicateSymbol, Type and InfixSymbol are all `a.ident` so we let them fall through to 
+        //the first non-empty case: InfixSymbol.
         case "InfixSymbol":
             return `${a.ident}`;
         case "Term": return `${interleave(a.atoms.map(display), a.operators.map(display)).join(" ")}`;
