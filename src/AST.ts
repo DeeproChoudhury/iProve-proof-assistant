@@ -284,6 +284,7 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
             return `${a.ident}`;
         case "FunctionDeclaration": return `${ASTSMTLIB2(a.symbol)} :: ${ASTSMTLIB2(a.type)}`;
         case "Term": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
+        case "ArrayElem": return `${ASTSMTLIB2(a.ident)}[${ASTSMTLIB2(a.idx)}]`;
         case "VLElem": return a.T ? `(${ASTSMTLIB2(a.v)} : ${ASTSMTLIB2(a.T)})` : `(${ASTSMTLIB2(a.v)} Int)`;
         case "Predicate":
             return `(${ASTSMTLIB2(a.pred)} ${a.terms.map(ASTSMTLIB2).join(" ")})`;
