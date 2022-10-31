@@ -280,8 +280,11 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         case "Type": 
         case "InfixSymbol":
             return `${a.ident}`;
+        case "Term": return `${interleave(a.atoms.map(display), a.operators.map(display)).join(" ")}`;
+        case "Predicate":
+            return `(${ASTSMTLIB2(a.pred)} ${a.terms.map(ASTSMTLIB2).join(" ")})`;
         case "QFClause": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
-        case "Formula": return `FORMULA HERE`;
+        case "Formula": return `${interleave(a.clauses.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
         default: return " ... ";
     }
     
