@@ -1,6 +1,6 @@
 import { Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
-import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, lrec_sc } from 'typescript-parsec';
+import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, lrec_sc, rep_sc, nil } from 'typescript-parsec';
 import * as AST from './AST'
 Error.stackTraceLimit = Infinity;
 
@@ -18,413 +18,189 @@ enum TokenKind {
     VarToken,
     Misc,
     Space,
+    DirEqToken
 }
 
 const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
+    [true, /^(\:\:\=)/g, TokenKind.DirEqToken],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(\:\:)/g, TokenKind.DoubleColon],
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
     [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
-    [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!)+/g, TokenKind.InfixSymbol],
-    [true, /^\~/g, TokenKind.NegToken],
-    [true, /^(\&|\|)/g, TokenKind.PropOperator],
+    [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!|\&|\||\~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
 ]);
 
-enum SymbolType {
-    Function,
-    Variable,
-    Type,
-    Infix,
-    Predicate
-}
-
-interface Symbol {
-    idx: number,
-    ident: string,
-    type: SymbolType
-}
-
-function applyIntLiteral(value: [Token<TokenKind> | undefined, Token<TokenKind.NumberLiteral>]): AST.IntLiteral {
-    return {
-        kind: "IntLiteral",
-        isIntLiteral: true, isAtom: true,
-        n: parseInt(value[1].text) * (value[0] ? -1 : 1)
-    }
-}
-
-function applyFnDeclaration(value: [AST.FunctionSymbol, AST.FunctionType]): AST.FunctionDeclaration {
-    return {
-        kind: "FunctionDeclaration",
-        isLine: true,
-        isDeclaration: true, isFunctionDeclaration: true,
-        symbol: value[0],
-        type: value[1]
-    }
-}
-
-function applyVarDeclaration(value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration {
-    return {
-        kind: "VariableDeclaration",
-        isLine: true,
-        isDeclaration: true, isVariableDeclaration: true,
-        symbol: value[0],
-        type: value[1]
-    }
-}
-
-function applyTypeExt(value: [AST.Type, AST.Type]): AST.TypeExt {
-    return {
-        kind: "TypeExt",
-        isLine: true,
-        isTypeExt: true,
-        A: value[0],
-        B: value[1]
-    }
-}
-
-const PROOF_LINE = rule<TokenKind, AST.ASTNode>();
-const TYPE_DEC = rule<TokenKind, AST.Declaration>();
-const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
+const VARIABLE = rule<TokenKind, AST.Variable>();
+const TYPE = rule<TokenKind, AST.Type>();
 const FN_TYPE = rule<TokenKind, AST.FunctionType>();
 
+const PROOF_LINE = rule<TokenKind, AST.Line>();
+const FN_DEC = rule<TokenKind, AST.FunctionDeclaration>();
+const VAR_DEC = rule<TokenKind, AST.VariableDeclaration>();
+const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
 
-const FORMULA = rule<TokenKind, AST.Formula>();
-const PROPOSITIONAL_SYMBOL = rule<TokenKind, AST.PropLiteral>();
-const NEG_FORMULA = rule<TokenKind, AST.Neg>();
-const QUANTIFIED_FORMULA = rule<TokenKind, AST.QuantifiedFormula>();
-const CLAUSE = rule<TokenKind, AST.Clause>();
-const PROP_ATOM = rule<TokenKind, AST.PropAtom>();
-const PROP_OPERATOR = rule<TokenKind, AST.PropOperator>();
-const IMP_OPERATOR = rule<TokenKind, AST.ImpOperator>();
-const COMPARISON = rule<TokenKind, AST.Comparison>();
-const PREDICATE_FORMULA = rule<TokenKind, AST.Predicate>();
+const ATOMIC_TERM = rule<TokenKind, AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable>();
+const PREFIX_APPLY = rule<TokenKind, AST.PrefixApplication>();
+const PAREN_TERM = rule<TokenKind, AST.ParenTerm>();
+const ARRAY_SLICE = rule<TokenKind, AST.ArraySlice | AST.ArrayElem>();
+
 const TERM = rule<TokenKind, AST.Term>();
-const ATOM = rule<TokenKind, AST.Atom>();
+interface Quantifier {
+    kind: "A" | "E",
+    vars: AST.VariableDeclaration[]
+}
+interface InfixOperator {
+    kind: "InfixFunc" | "InfixOp",
+    fn: string
+}
+type TermOperator = Quantifier | InfixOperator | Token<TokenKind.DirEqToken>;
+const OPERATOR = rule<TokenKind, TermOperator>();
 
 
 
-const TERM_LIST = rule<TokenKind, Array<AST.Term>>();
-const V_L_ELEM = rule<TokenKind, AST.VLElem>();
-const VAR_LIST = rule<TokenKind, Array<AST.VLElem>>();
-const FUNCTION_APPLICATION = rule<TokenKind, AST.Function>();
-const ARRAY_RANGE = rule<TokenKind, AST.ArrayRange>();
-const ARRAY_ELEM = rule<TokenKind, AST.ArrayElem>();
-
-const VAR_SYM = rule<TokenKind, AST.Variable>();
-const FN_SYM = rule<TokenKind, AST.FunctionSymbol>();
-const PREDICATE_SYM = rule<TokenKind, AST.PredicateSymbol>();
-const INFIX_SYM = rule<TokenKind, AST.InfixSymbol>();
-const VAR_TYPE = rule<TokenKind, AST.Type>();
-const INT_LITERAL = rule<TokenKind, AST.IntLiteral>();
-
-VAR_SYM.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
-    return { kind: "Variable", isSymbol: true, isAtom: true, isVariable: true, ident: s.text }
+VARIABLE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
+    return { kind: "Variable", ident: s.text }
 }));
-FN_SYM.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.FunctionSymbol => {
-    return { kind: "FunctionSymbol", isSymbol: true, isFunctionSymbol: true, isInfixOperator: true, ident: s.text }
+TYPE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Type => {
+    return { kind: "Type", ident: s.text }
 }));
-PREDICATE_SYM.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.PredicateSymbol => {
-    return { kind: "PredicateSymbol", isSymbol: true, isPredicateSymbol: true, ident: s.text }
-}));
-VAR_TYPE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Type => {
-    return { kind: "Type", isSymbol: true, isType: true, ident: s.text }
-}));
-INFIX_SYM.setPattern(apply(tok(TokenKind.InfixSymbol), (s: Token<TokenKind.InfixSymbol>): AST.InfixSymbol => {
-    return { kind: "InfixSymbol", isInfixOperator: true, isInfixSymbol: true, ident: s.text }
-}));
-PROP_OPERATOR.setPattern(apply(tok(TokenKind.PropOperator), (s: Token<TokenKind.PropOperator>): AST.PropOperator => {
-    return { kind: "PropOperator", isPropOperator: true, op: s.text }
-}));
-IMP_OPERATOR.setPattern(apply(tok(TokenKind.ImpOperator), (s: Token<TokenKind.ImpOperator>): AST.ImpOperator => {
-    return { kind: "ImpOperator", isImpOperator: true, op: s.text }
-}));
-
-INT_LITERAL.setPattern(
-    apply(seq(opt(str('-')), tok(TokenKind.NumberLiteral)), applyIntLiteral)
-)
-
-PROOF_LINE.setPattern(
-    alt(FORMULA, TYPE_EXT, TYPE_DEC)
-)
-
-TYPE_DEC.setPattern(
-    alt(
-        apply(seq(kleft(FN_SYM, str('::')), FN_TYPE), applyFnDeclaration),
-        apply(seq(kright(opt(tok(TokenKind.VarToken)), VAR_SYM), opt(kright(str(':'), VAR_TYPE))), applyVarDeclaration),
-    )
-)
-
-TYPE_EXT.setPattern(
-    apply(seq(VAR_TYPE, kright(str('\\subset'), VAR_TYPE)), applyTypeExt)
-)
-
-function applyFunctionType(value: [AST.Type, AST.Type]): AST.FunctionType {
-    return {
-        kind: "FunctionType",
-        isFunctionType: true,
-        A: value[0],
-        B: value[1],
+FN_TYPE.setPattern(apply(
+    seq(TYPE, kright(str("->"), TYPE)),
+    (value: [AST.Type, AST.Type]): AST.FunctionType => {
+        return { kind: "FunctionType", A: value[0], B: value[1] }
     }
-}
+));
 
-FN_TYPE.setPattern(
-    apply(seq(VAR_TYPE, kright(alt(str('->'), str('\\implies')), VAR_TYPE)),
-        applyFunctionType)
-)
 
-function applyParenFormula(x: AST.Formula): AST.ParenFormula {
-    return {
-        kind: "ParenFormula",
-        isPropAtom: true, isParenFormula: true,
-        A: x
+PROOF_LINE.setPattern(alt(
+    FN_DEC,
+    VAR_DEC,
+    TYPE_EXT,
+    TERM
+));
+FN_DEC.setPattern(apply(
+    seq(
+        kright(opt(str("fun")), tok(TokenKind.Symbol)),
+        kright(str("::"), FN_TYPE)),
+    (value: [Token<TokenKind.Symbol>, AST.FunctionType]): AST.FunctionDeclaration => {
+        return { kind: "FunctionDeclaration", symbol: value[0].text, type: value[1] }
     }
-}
-
-PROP_ATOM.setPattern(
-    alt(
-        apply(kmid(str('['), FORMULA, str(']')), applyParenFormula),
-        QUANTIFIED_FORMULA,
-        PROPOSITIONAL_SYMBOL,
-        PREDICATE_FORMULA,
-        COMPARISON
-    )
-)
-
-function applyPropSym(value: Token<TokenKind>): AST.PropLiteral {
-    return {
-        kind: "PropLiteral",
-        isPropLiteral: true, isPropAtom: true,
-        truth: value.text === '\\top'
+));
+VAR_DEC.setPattern(apply(
+    seq(
+        kright(opt(str("var")), VARIABLE),
+        opt(kright(str(":"), TYPE))),
+    (value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration => {
+        return { kind: "VariableDeclaration", symbol: value[0], type: value[1] }
     }
-}
-
-PROPOSITIONAL_SYMBOL.setPattern(
-    apply(alt(str('\\top'), str('\\bot')), applyPropSym)
-)
-
-function applyNegation(value: AST.Formula): AST.Neg {
-    return {
-        kind: "Neg",
-        isPropAtom: true, isNeg: true,
-        A: value
+));
+TYPE_EXT.setPattern(apply(
+    seq(
+        kleft(TYPE, str("⊆")), 
+        TYPE),
+    (value: [AST.Type, AST.Type]): AST.TypeExt => {
+        return { kind: "TypeExt", A: value[0], B: value[1] }
     }
-}
+));
 
-NEG_FORMULA.setPattern(
-    apply(kright(alt(str('\\neg'), str('\~')), FORMULA), applyNegation)
-)
-
-function applyComparison(value: [AST.Term, AST.InfixSymbol, AST.Term]): AST.Comparison {
-    return {
-        kind: "Comparison",
-        isComparison: true, isPropAtom: true,
-        x: value[0],
-        y: value[2],
-        op: value[1]
+ATOMIC_TERM.setPattern(alt(
+    VARIABLE,
+    PREFIX_APPLY,
+    PAREN_TERM,
+    ARRAY_SLICE
+));
+PREFIX_APPLY.setPattern(apply(
+    seq(
+        alt(
+            kmid(str("("), tok(TokenKind.InfixSymbol), str(")")),
+            tok(TokenKind.Symbol)
+        ),
+        kmid(str("("), list_sc(TERM, str(",")), str(")"))
+    ),    
+    (value: [Token<TokenKind.InfixSymbol | TokenKind.Symbol>, AST.Term[]]): AST.PrefixApplication => {
+        return { 
+            kind: "FunctionApplication",
+            fn: value[0].text,
+            params: value[1],
+            appType: (value[0].kind == TokenKind.Symbol) ? "PrefixFunc" : "PrefixOp"
+         }
     }
-}
-
-COMPARISON.setPattern(
-    apply(seq(TERM, INFIX_SYM, TERM), applyComparison)
-)
-
-function applyPredicateFormula(value: [AST.PredicateSymbol, Array<AST.Term>]): AST.Predicate {
-    return {
-        kind: "Predicate",
-        isPropAtom: true, isPredicate: true,
-        pred: value[0],
-        terms: value[1],
+));
+PAREN_TERM.setPattern(apply(
+    kmid(str("["), TERM, str("]")),
+    (value: AST.Term): AST.ParenTerm => {
+        return { kind: "ParenTerm", x: value }
     }
-}
-
-PREDICATE_FORMULA.setPattern(
-    apply(seq(PREDICATE_SYM, kmid(str('('), TERM_LIST, str(')'))), applyPredicateFormula)
-)
-
-function applyClause(x: AST.QFClause, y: [AST.PropOperator, AST.PropAtom]): AST.QFClause {
-    x.atoms.push(y[1]);
-    x.operators.push(y[0]);
-    return {
-        kind: "QFClause",
-        isClause: true, isQFClause: true,
-        atoms: x.atoms,
-        operators: x.operators
+));
+ARRAY_SLICE.setPattern(apply(
+    seq(
+        alt(PREFIX_APPLY, PAREN_TERM, VARIABLE),
+        rep_sc(alt(
+            kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
+            kmid(str("["), seq(apply(nil(), (_) => { return false; }), opt(TERM), kright(str(".."), opt(TERM))), str(")")),
+            ))
+    ),
+    (value: [AST.Term, [boolean, AST.Term?, AST.Term?][]]): AST.ArrayElem | AST.ArraySlice => {
+        let R : AST.ArrayElem | AST.ArraySlice 
+            = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
+                value[0], value[1][0][1], value[1][0][2]
+            ] };
+        for (let i = 0; i < value[1].length; i++) {
+            let prev : AST.Term = (i > 0) ? R : value[0];
+            // hack, find a more elegant way to structure in general
+            if (value[1][i][1])
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
+                    prev, value[1][i][1], value[1][i][2]
+                ] };
+            else
+                R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "select", params: [
+                    // HACK - prev is returned in an error state, value should always be defined
+                    prev, (value[1][i][1] ?? prev)
+                ] };
+                
+        }
+        return R;
     }
-}
+));
 
-function applyAtomicClause(x: AST.PropAtom): AST.QFClause {
-    return {
-        kind: "QFClause",
-        isClause: true, isQFClause: true,
-        atoms: [x],
-        operators: []
-    }
-}
-
-CLAUSE.setPattern(
-    lrec_sc(apply(PROP_ATOM, applyAtomicClause), seq(PROP_OPERATOR, PROP_ATOM), applyClause)
-)
-
-function applyQuantifiedFormula(value: [Token<TokenKind.QntToken>, Array<AST.VLElem>, AST.Clause]): AST.QuantifiedFormula {
-    return {
-        kind: "QuantifiedFormula",
-        isPropAtom: true, isQuantifiedFormula: true,
-        vars: value[1],
-        quantifier: (value[0].text === "FA") ? AST.Quantifier.A : AST.Quantifier.E,
-        A: value[2],
-    }
-}
-
-QUANTIFIED_FORMULA.setPattern(
-    apply(seq(tok(TokenKind.QntToken), kleft(VAR_LIST, str('.')), CLAUSE), applyQuantifiedFormula)
-)
-
-function applyFormula(x: AST.Formula, y: [AST.ImpOperator, AST.Clause]): AST.Formula {
-    x.clauses.push(y[1]);
-    x.operators.push(y[0]);
-    return {
-        kind: "Formula",
-        isFormula: true,
-        clauses: x.clauses,
-        operators: x.operators
-    }
-}
-
-function applyAtomicFormula(x: AST.Clause): AST.Formula {
-    return {
-        kind: "Formula",
-        isFormula: true,
-        clauses: [x],
-        operators: []
-    }
-}
-
-FORMULA.setPattern(
-    lrec_sc(apply(CLAUSE, applyAtomicFormula), seq(IMP_OPERATOR, CLAUSE), applyFormula)
-)
-
-function applyTerm(x: AST.Term, y: [AST.InfixSymbol, AST.Atom]): AST.Term {
-    x.atoms.push(y[1]);
-    x.operators.push(y[0]);
-    return {
-        kind: "Term",
-        isTerm: true,
-        atoms: x.atoms,
-        operators: x.operators
-    }
-}
-
-
-function applyAtomicTerm(x: AST.Atom): AST.Term {
-    return {
-        kind: "Term",
-        isTerm: true,
-        atoms: [x],
-        operators: []
-    }
-}
 
 TERM.setPattern(
-    lrec_sc(apply(ATOM, applyAtomicTerm), seq(INFIX_SYM, ATOM), applyTerm)
-)
+    lrec_sc(
+        ATOMIC_TERM,
+        seq(OPERATOR, ATOMIC_TERM), (x: AST.Term, y: [TermOperator, AST.Term]): AST.Term => {
+            // TODO - PRECEDENCE HERE
+            return x;
+        })
+);
 
-function applyParenTerm(x: AST.Term): AST.ParenTerm {
-    return {
-        kind: "ParenTerm",
-        isAtom: true, isParenTerm: true,
-        x: x
-    }
-}
-
-ATOM.setPattern(
-    alt(
-        apply(kmid(str('('), TERM, str(')')), applyParenTerm),
-        FUNCTION_APPLICATION,
-        ARRAY_RANGE,
-        ARRAY_ELEM,
-        VAR_SYM,
-        INT_LITERAL
+OPERATOR.setPattern(alt(
+    tok(TokenKind.DirEqToken),
+    apply(
+        alt(
+            tok(TokenKind.InfixSymbol),
+            kmid(str("`"), tok(TokenKind.Symbol), str("`"))
+        ), (value: Token<TokenKind.InfixSymbol | TokenKind.Symbol>): InfixOperator => {
+            return { 
+                kind: (value.kind == TokenKind.InfixSymbol) ? "InfixOp" : "InfixFunc",
+                fn: value.text }
+        }
+    ),
+    apply(
+        seq(
+            tok(TokenKind.QntToken),
+            kmid(str("("), list_sc(VAR_DEC, str(",")), str(")."))
+        ), (value: [Token<TokenKind.QntToken>, AST.VariableDeclaration[]]): Quantifier => {
+            return { 
+                kind: (value[0].text == "FA") ? "A" : "E",
+                vars: value[1] }
+        }
     )
-)
-
-
-TERM_LIST.setPattern(
-    list_sc(TERM, str(','))
-)
-
-function applyVLElem(value: [AST.Variable, AST.Type] | AST.Variable): AST.VLElem {
-    return (Array.isArray(value)) ?
-    {
-        kind: "VLElem",
-        isVLElem: true,
-        v: value[0],
-        T: value[1],
-    } :
-    {
-        kind: "VLElem",
-        isVLElem: true,
-        v: value
-    }
-}
-
-V_L_ELEM.setPattern(
-    apply(alt(
-        VAR_SYM,
-        kmid(str('('), seq(VAR_SYM, kright(str(':'), VAR_TYPE)), str(')'))
-    ), applyVLElem)
-)
-
-VAR_LIST.setPattern(
-    list_sc(V_L_ELEM, str(','))
-)
-
-function applyFnApplication(value: [AST.FunctionSymbol, Array<AST.Term>]): AST.Function {
-    return {
-        kind: "Function",
-        isFunction: true, isAtom: true,
-        fn: value[0],
-        terms: value[1]
-    }
-}
-
-FUNCTION_APPLICATION.setPattern(
-    apply(seq(FN_SYM, kmid(str('('), TERM_LIST, str(')'))), applyFnApplication)
-)
-
-
-function applyArrayRange(value: [AST.Variable, [AST.Term, AST.Term]]): AST.ArrayRange {
-    return {
-        kind: "ArrayRange",
-        isArrayRange: true, isArraySlice: true, isAtom: true,
-        ident: value[0],
-        begin: value[1][0],
-        end: value[1][1],
-        
-    }
-}
-
-ARRAY_RANGE.setPattern(
-    apply(seq(VAR_SYM, kmid(str('['), seq(TERM, kright(str('..'), TERM)), str(')'))), applyArrayRange)
-)
-
-function applyArrayElem(value: [AST.Variable, AST.Term]): AST.ArrayElem {
-    return {
-        kind: "ArrayElem",
-        isArrayElem: true, isArraySlice: true, isAtom: true,
-        ident: value[0],
-        idx: value[1],
-        
-    }
-}
-
-ARRAY_ELEM.setPattern(
-    apply(seq(VAR_SYM, kmid(str('['), TERM, str(']'))), applyArrayElem)
-)
+));
 
 
 export function evaluate(line: string): AST.ASTNode {

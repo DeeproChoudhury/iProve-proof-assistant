@@ -1,4 +1,4 @@
-export type ASTNode = Type | FunctionType | SortedVariable | Line
+export type ASTNode = Type | FunctionType | Line
 
 export type Type = { 
     kind: "Type",
@@ -9,12 +9,6 @@ export type FunctionType = {
     kind: "FunctionType",
     A: Type,
     B: Type
-}
-
-export type SortedVariable = {
-    kind: "SortedVariable",
-    symbol: Variable,
-    type?: Type
 }
 
 export type Line = TypeExt | Declaration | Term
@@ -70,7 +64,7 @@ export type ArraySlice = {
     kind: "FunctionApplication",
     appType: "ArraySlice",
     fn: "???", // TODO
-    params: [Term, Term, Term]
+    params: [Term, Term?, Term?]
 }
 
 export type Variable = { 
@@ -81,7 +75,7 @@ export type Variable = {
 export type QuantifierApplication = {
     kind: "QuantifierApplication",
     term: Term,
-    vars: [SortedVariable],
+    vars: VariableDeclaration[],
     quantifier: "E" | "A"
 }
 
@@ -100,7 +94,6 @@ function d(a: ASTNode): string {
     switch (a.kind) {
         case "Type": return a.ident;
         case "FunctionType": return `${d(a.A)} -> ${d(a.B)}`;
-        case "SortedVariable": return a.type ? `(${d(a.symbol)} : ${d(a.type)})` : `(${d(a.symbol)})`;
         case "TypeExt": return `${d(a.A)} ⊆ ${d(a.B)}`;
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
