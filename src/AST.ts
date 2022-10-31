@@ -7,7 +7,7 @@ export type Type = {
 
 export type FunctionType = {
     kind: "FunctionType",
-    A: Type,
+    A: Type[],
     B: Type
 }
 
@@ -35,7 +35,7 @@ export type VariableDeclaration = {
 
 export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm
 
-export type FunctionApplication = PrefixApplication | InfixApplication | ArrayElem | ArraySlice
+export type FunctionApplication = UnaryApplication | PrefixApplication | InfixApplication | ArrayElem | ArraySlice
 
 export type AppType = FunctionApplication["appType"]
 
@@ -44,6 +44,13 @@ export type PrefixApplication = {
     appType: "PrefixFunc" | "PrefixOp",
     fn: string,
     params: Term[]
+}
+
+export type UnaryApplication = {
+    kind: "FunctionApplication",
+    appType: "UnaryFunc" | "UnaryOp",
+    fn: string,
+    params: [Term]
 }
 
 export type InfixApplication = {

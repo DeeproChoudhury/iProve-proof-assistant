@@ -44,7 +44,7 @@ const FN_DEC = rule<TokenKind, AST.FunctionDeclaration>();
 const VAR_DEC = rule<TokenKind, AST.VariableDeclaration>();
 const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
 
-const ATOMIC_TERM = rule<TokenKind, AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable>();
+const ATOMIC_TERM = rule<TokenKind, AST.UnaryApplication | AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable>();
 const PREFIX_APPLY = rule<TokenKind, AST.PrefixApplication>();
 const PAREN_TERM = rule<TokenKind, AST.ParenTerm>();
 const ARRAY_SLICE = rule<TokenKind, AST.ArraySlice | AST.ArrayElem>();
@@ -70,8 +70,10 @@ TYPE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.T
     return { kind: "Type", ident: s.text }
 }));
 FN_TYPE.setPattern(apply(
-    seq(TYPE, kright(str("->"), TYPE)),
-    (value: [AST.Type, AST.Type]): AST.FunctionType => {
+    seq(
+        kmid(opt(str("(")), list_sc(TYPE, str(",")), opt(str(")"))),
+        kright(str("->"), TYPE)),
+    (value: [AST.Type[], AST.Type]): AST.FunctionType => {
         return { kind: "FunctionType", A: value[0], B: value[1] }
     }
 ));
@@ -172,8 +174,15 @@ ARRAY_SLICE.setPattern(apply(
 TERM.setPattern(
     lrec_sc(
         ATOMIC_TERM,
-        seq(OPERATOR, ATOMIC_TERM), (x: AST.Term, y: [TermOperator, AST.Term]): AST.Term => {
+        seq(OPERATOR, ATOMIC_TERM), (x: AST.Term, ops: [TermOperator, AST.Term]): AST.Term => {
+            let out_stack: AST.Term[] = [x];
+            let op_stack: TermOperator[] = [];
+
             // TODO - PRECEDENCE HERE
+            for (let pair in ops) {
+                let [op, trm] = pair;
+                
+            }
             return x;
         })
 );
