@@ -274,17 +274,19 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         // case "Variable": return ""
         // case "FunctionSymbol":
         // case "PredicateSymbol":
-        case "Variable":
+        case "Variable": return `${a.ident}`
         case "FunctionSymbol":
         case "PredicateSymbol":
         case "Type": 
         case "InfixSymbol":
             return `${a.ident}`;
         case "Term": return `${interleave(a.atoms.map(display), a.operators.map(display)).join(" ")}`;
+        case "VLElem": return a.T ? `(${display(a.v)} : ${display(a.T)})` : `(${display(a.v)} Int)`;
         case "Predicate":
             return `(${ASTSMTLIB2(a.pred)} ${a.terms.map(ASTSMTLIB2).join(" ")})`;
         case "QFClause": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
         case "Formula": return `${interleave(a.clauses.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
+        case "QuantifiedFormula": return `(${a.quantifier === Quantifier.E ? "exists " : "forall "} (${a.vars.map(ASTSMTLIB2).join(" Int) (")}) ${ASTSMTLIB2(a.A)})`
         default: return " ... ";
     }
     
