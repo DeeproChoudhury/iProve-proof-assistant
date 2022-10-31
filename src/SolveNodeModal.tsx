@@ -23,16 +23,29 @@ export type SolveNodeModalPropsType = {
 
 const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const { isOpen, onClose, node} = props;
-  const [tag, setTags] = useState(new Array(100).fill('0'));
+  const [tags, setTags] = useState(new Array(100).fill('0'));
 
   const onChange = (v: string, index: number) => {
     setTags(tags => tags.map((t, i) => {
-      return i === index ? v : t;
+      if (t == '2' && v === '2') {
+        return '0';
+      }
+      if (i === index) {
+        return v;
+      }
+      if (i > index && v === '2') {
+        return '0';
+      } 
+      return t;
     }));
   }
 
+  const isReasonDisabled = (index: number) => {
+    return tags.slice(0, index).findIndex((tag) => tag === '2') !== -1;
+  }
+
   return (
-    <Modal isOpen={isOpen} onClose={() => {setTags(new Array(100).fill('0')); onClose();}}>
+    <Modal isOpen={isOpen} onClose={() => {setTags(new Array(100).fill('0')); onClose();}} size='xl'>
       <ModalOverlay />
       <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
         <ModalHeader>Check correctness of your proof node</ModalHeader>
@@ -44,8 +57,10 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
               <ModalStatement 
                 statement={s} 
                 index={index} 
-                tag={tag[index]}
-                setTag={(v: string) => onChange(v, index)}/>
+                tag={tags[index]}
+                setTag={(v: string) => onChange(v, index)}
+                isReasonDisabled={isReasonDisabled(index)}
+                isConclusionDisabled={true}/>
             )}
           </div>
           <Text>Proof Steps</Text>
@@ -54,8 +69,9 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
               <ModalStatement 
                 statement={s} 
                 index={node.givens.length + index}
-                tag={tag[node.givens.length + index]}
-                setTag={(v: string) => onChange(v, node.givens.length + index)}/>
+                tag={tags[node.givens.length + index]}
+                setTag={(v: string) => onChange(v, node.givens.length + index)}
+                isReasonDisabled={isReasonDisabled(node.givens.length + index)}/>
             )}
           </div>
           <Text>Goals</Text>
@@ -64,8 +80,9 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
               <ModalStatement 
                 statement={s} 
                 index={node.givens.length + node.proofSteps.length + index}
-                tag={tag[node.givens.length + node.proofSteps.length + index]}
-                setTag={(v: string) => onChange(v, node.givens.length + node.proofSteps.length + index)}/>
+                tag={tags[node.givens.length + node.proofSteps.length + index]}
+                setTag={(v: string) => onChange(v, node.givens.length + node.proofSteps.length + index)}
+                isReasonDisabled={isReasonDisabled(node.givens.length + node.proofSteps.length + index)}/>
             )}
           </div>
         </ModalBody>
