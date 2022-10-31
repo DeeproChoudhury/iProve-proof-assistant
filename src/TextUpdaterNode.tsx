@@ -13,7 +13,7 @@ import {
 import { AddIcon } from '@chakra-ui/icons';
 import Z3Solver from './Solver';
 import Statement from './Statement';
-import { ASTNode } from './AST';
+import { ASTNode, ASTSMTLIB2 } from './AST';
 import SolveNodeModal from './SolveNodeModal';
 
 export type NodeType = "statement" | "given" | "goal";
@@ -79,6 +79,11 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       colorScheme='blackAlpha' 
       onClick={() => { 
         onSolveModalOpen();
+        console.log(data.proofSteps);
+        console.log(data.proofSteps.map(x => {
+          return ASTSMTLIB2(x.parsed);
+        }).join(" "));
+
         // console.log(isSolveModalOpen);
         localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") 
       }}>

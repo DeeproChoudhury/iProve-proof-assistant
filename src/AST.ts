@@ -265,3 +265,24 @@ export function display(a: ASTNode): string {
         case "ParenFormula": return `(${display(a.A)})`;
     }
 }
+
+export function ASTSMTLIB2(a: ASTNode | undefined) : string {
+    if(a === undefined) {
+        return "NULL";
+    }
+    switch (a.kind) {
+        // case "Variable": return ""
+        // case "FunctionSymbol":
+        // case "PredicateSymbol":
+        case "Variable":
+        case "FunctionSymbol":
+        case "PredicateSymbol":
+        case "Type": 
+        case "InfixSymbol":
+            return `${a.ident}`;
+        case "QFClause": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
+        case "Formula": return `FORMULA HERE`;
+        default: return " ... ";
+    }
+    
+}
