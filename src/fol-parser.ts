@@ -19,7 +19,8 @@ enum TokenKind {
     Misc,
     Space,
     DirEqToken,
-    SquareBrace
+    SquareBrace,
+    FunToken
 }
 
 const lexer = buildLexer([
@@ -29,8 +30,8 @@ const lexer = buildLexer([
     [true, /^(\:\:)/g, TokenKind.DoubleColon],
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(var)/g, TokenKind.VarToken],
-    [true, /^\d+/g, TokenKind.NumberLiteral],
-    [true, /^\w+/g, TokenKind.Symbol],
+    [true, /^(fun)/g, TokenKind.FunToken],
+    [true, /^(\w|\d)+/g, TokenKind.Symbol],
     [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!|\&|\||\~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
