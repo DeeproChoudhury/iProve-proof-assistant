@@ -13,7 +13,7 @@ import {
 import { AddIcon } from '@chakra-ui/icons';
 import Z3Solver from './Solver';
 import Statement from './Statement';
-import { ASTNode } from './AST';
+import { Line } from './AST';
 import SolveNodeModal from './SolveNodeModal';
 
 export type NodeType = "statement" | "given" | "goal";
@@ -21,7 +21,7 @@ export type NodeType = "statement" | "given" | "goal";
 export type StatementType = {
   value: string;
   syntaxCorrect?: boolean;
-  parsed?: ASTNode;
+  parsed?: Line;
 };
 
 export enum ProofNodeTypes {

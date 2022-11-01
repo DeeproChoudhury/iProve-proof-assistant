@@ -88,7 +88,7 @@ FN_TYPE.setPattern(apply(
         kmid(opt(str("(")), list_sc(TYPE, str(",")), opt(str(")"))),
         kright(str("->"), TYPE)),
     (value: [AST.Type[], AST.Type]): AST.FunctionType => {
-        return { kind: "FunctionType", A: value[0], B: value[1] }
+        return { kind: "FunctionType", argTypes: value[0], retType: value[1] }
     }
 ));
 
@@ -120,7 +120,7 @@ TYPE_EXT.setPattern(apply(
         kleft(TYPE, str("⊆")), 
         TYPE),
     (value: [AST.Type, AST.Type]): AST.TypeExt => {
-        return { kind: "TypeExt", A: value[0], B: value[1] }
+        return { kind: "TypeExt", subType: value[0], superType: value[1] }
     }
 ));
 
@@ -144,7 +144,7 @@ PREFIX_APPLY.setPattern(apply(
 PAREN_TERM.setPattern(apply(
     kmid(str("["), TERM, str("]")),
     (value: AST.Term): AST.ParenTerm => {
-        return { kind: "ParenTerm", x: value }
+        return { kind: "ParenTerm", term: value }
     }
 ));
 ATOMIC_TERM.setPattern(apply(
