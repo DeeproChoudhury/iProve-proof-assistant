@@ -23,6 +23,7 @@ import { evaluate } from './fol-parser';
 import ImplicationEdge from './ImplicationEdge';
 import CheckedEdge from './CheckedEdge';
 import InvalidEdge from './InvalidEdge';
+import { Line } from './AST';
 
 type ErrorPosition = {
     columnBegin: number;
@@ -134,6 +135,7 @@ function Flow() {
       if (node.id === nodeId) {
         const newStatements = node.data.goals;
         newStatements[statementIndex].value = statement;
+        newStatements[statementIndex].parsed = undefined;
         node.data = {
           ...node.data,
           goals: newStatements,
@@ -186,55 +188,26 @@ function Flow() {
     setNodes(nds => nds.map((node) => {
       let errorDetected = false;
       if (node.id === nodeId && node?.data !== undefined) {
-        const newGivens: StatementType[] = node.data.givens.map((statement: StatementType, index: number) => {
-          try {
-            const parsed = evaluate(statement.value);
-            console.log(parsed);
-            statement.parsed = parsed;
-            statement.syntaxCorrect = true;
-          } catch (e: any) {
+
+        const updateStatement = (statement: StatementType, index: number) => {
+          const parsedOrError = evaluate(statement.value);
+          if(parsedOrError.kind === "Error") {
             statement.syntaxCorrect = false;
             errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement });
-            if (e instanceof Error) {
-              setSyntaxError(true);
-              setParseSuccessful(false);
-            }
-          }
-          return statement;
-        })
-        const newGoals: StatementType[] = node.data.goals.map((statement: StatementType, index: number) => {
-          try {
-            console.log(evaluate(statement.value));
+            setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
+            setSyntaxError(true);
+            setParseSuccessful(false);
+          } else {
+            console.log(parsedOrError);
+            statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
             statement.syntaxCorrect = true;
-          } catch (e: any) {
-            statement.syntaxCorrect = false;
-            errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement });
-            if (e instanceof Error) {
-              setSyntaxError(true);
-              setParseSuccessful(false);
-            }
           }
           return statement;
-        })
-        const newProofSteps: StatementType[] = node.data.proofSteps.map((statement: StatementType, index: number) => {
-          try {
-            const parsed = evaluate(statement.value);
-            console.log(parsed);
-            statement.parsed = parsed;
-            statement.syntaxCorrect = true;
-          } catch (e: any) {
-            statement.syntaxCorrect = false;
-            errorDetected = true;
-            setErrorPosition(e.pos === undefined ? undefined : { columnBegin: e.pos.columnBegin, statement: statement });
-            if (e instanceof Error) {
-              setSyntaxError(true);
-              setParseSuccessful(false);
-            }
-          }
-          return statement;
-        })
+        };
+
+        const newGivens: StatementType[] = node.data.givens.map(updateStatement);
+        const newGoals: StatementType[] = node.data.goals.map(updateStatement);
+        const newProofSteps: StatementType[] = node.data.proofSteps.map(updateStatement);
         node.data = {
           ...node.data,
           givens: newGivens,
