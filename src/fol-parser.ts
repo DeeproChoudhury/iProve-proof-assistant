@@ -178,8 +178,8 @@ ATOMIC_TERM.setPattern(apply(
 
 // PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC 
 const precedence_table: {[name: string]: [number, boolean, boolean]} = {
-    "~": [10, false, true],
-    "!": [10, false, true],
+    "~": [10, false, false],
+    "!": [10, false, false],
 
     "*": [8, true, true],
     "/": [8, true, true],
