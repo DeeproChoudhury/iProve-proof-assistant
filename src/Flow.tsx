@@ -134,6 +134,7 @@ function Flow() {
       if (node.id === nodeId) {
         const newStatements = node.data.goals;
         newStatements[statementIndex].value = statement;
+        newStatements[statementIndex].parsed = undefined;
         node.data = {
           ...node.data,
           goals: newStatements,
@@ -149,6 +150,7 @@ function Flow() {
         const newStatements = node.data.proofSteps;
         newStatements[statementIndex].value = statement;
         newStatements[statementIndex].parsed = undefined;
+        newStatements[statementIndex].syntaxCorrect = false;
         node.data = {
           ...node.data,
           proofSteps: newStatements,
@@ -205,7 +207,9 @@ function Flow() {
         })
         const newGoals: StatementType[] = node.data.goals.map((statement: StatementType, index: number) => {
           try {
-            console.log(evaluate(statement.value));
+            const parsed = evaluate(statement.value);
+            console.log(parsed);
+            statement.parsed = parsed;
             statement.syntaxCorrect = true;
           } catch (e: any) {
             statement.syntaxCorrect = false;
