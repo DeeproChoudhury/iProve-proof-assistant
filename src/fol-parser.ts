@@ -1,6 +1,6 @@
 import { Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
-import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, lrec_sc, rep_sc, nil } from 'typescript-parsec';
+import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, rep_sc, nil } from 'typescript-parsec';
 import * as AST from './AST'
 Error.stackTraceLimit = Infinity;
 
@@ -44,27 +44,30 @@ const FN_DEC = rule<TokenKind, AST.FunctionDeclaration>();
 const VAR_DEC = rule<TokenKind, AST.VariableDeclaration>();
 const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
 
-const ATOMIC_TERM = rule<TokenKind, AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable>();
+type AtomicTerm = AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable
+const ATOMIC_TERM = rule<TokenKind, AtomicTerm>();
 const PREFIX_APPLY = rule<TokenKind, AST.PrefixApplication>();
 const PAREN_TERM = rule<TokenKind, AST.ParenTerm>();
-const ARRAY_SLICE = rule<TokenKind, AST.ArraySlice | AST.ArrayElem>();
 
 const TERM = rule<TokenKind, AST.Term>();
 interface UnaryOperator {
     kind: "Operator",
     appType: "Unary",
     precedence: number,
+    left_assoc: boolean,
     apply: (t: AST.Term) => AST.Term,
 }
 interface InfixOperator {
     kind: "Operator",
     appType: "Binary",
     precedence: number,
+    left_assoc: boolean,
     apply: (x: AST.Term, y: AST.Term) => AST.Term,
 }
 type EndOfTerm = {
     kind: "Operator",
     appType: "End",
+    left_assoc: false,
     precedence: 0
 }
 type TermOperator = InfixOperator | UnaryOperator | EndOfTerm;
@@ -105,7 +108,7 @@ FN_DEC.setPattern(apply(
 VAR_DEC.setPattern(apply(
     seq(
         kright(opt(str("var")), VARIABLE),
-        opt(kright(str(":"), TYPE))),
+        kright(str(":"), TYPE)),
     (value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration => {
         return { kind: "VariableDeclaration", symbol: value[0], type: value[1] }
     }
@@ -119,12 +122,6 @@ TYPE_EXT.setPattern(apply(
     }
 ));
 
-ATOMIC_TERM.setPattern(alt(
-    VARIABLE,
-    PREFIX_APPLY,
-    PAREN_TERM,
-    ARRAY_SLICE
-));
 PREFIX_APPLY.setPattern(apply(
     seq(
         alt(
@@ -148,7 +145,7 @@ PAREN_TERM.setPattern(apply(
         return { kind: "ParenTerm", x: value }
     }
 ));
-ARRAY_SLICE.setPattern(apply(
+ATOMIC_TERM.setPattern(apply(
     seq(
         alt(PREFIX_APPLY, PAREN_TERM, VARIABLE),
         rep_sc(alt(
@@ -156,13 +153,10 @@ ARRAY_SLICE.setPattern(apply(
             kmid(str("["), seq(apply(nil(), (_) => { return false; }), opt(TERM), kright(str(".."), opt(TERM))), str(")")),
             ))
     ),
-    (value: [AST.Term, [boolean, AST.Term?, AST.Term?][]]): AST.ArrayElem | AST.ArraySlice => {
-        let R : AST.ArrayElem | AST.ArraySlice 
-            = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
-                value[0], value[1][0][1], value[1][0][2]
-            ] };
+    (value: [AtomicTerm, [boolean, AST.Term?, AST.Term?][]]): AtomicTerm => {
+        let R : AtomicTerm = value[0];
         for (let i = 0; i < value[1].length; i++) {
-            let prev : AST.Term = (i > 0) ? R : value[0];
+            let prev : AST.Term = (R) ? R : value[0];
             // hack, find a more elegant way to structure in general
             if (value[1][i][1])
                 R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
@@ -179,44 +173,63 @@ ARRAY_SLICE.setPattern(apply(
     }
 ));
 
-// PRECEDENCE   IS_BINARY   IS_LEFT_ASSOC 
+// PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC 
 const precedence_table: {[name: string]: [number, boolean, boolean]} = {
-    "&": [1, true, true],
-    "|": [1, true, true],
+    "~": [10, false, true],
+    "!": [10, false, true],
+
+    "+": [8, true, true],
+    "-": [8, true, true],
+    "++": [8, true, true],
+    "=": [8, true, true],
+
+    "&": [6, true, true],
+    "|": [6, true, true],
+    "^": [6, true, true],
+
+    "->": [4, true, true],
+    "<->": [4, true, true],
+
+    "::=": [3, true, true],
 }
-
-
 
 TERM.setPattern(
     apply(
         seq(alt(OPERATOR, ATOMIC_TERM), rep_sc(alt(OPERATOR, ATOMIC_TERM))),
         (value: [TermOperator | AST.Term,  (TermOperator | AST.Term)[]]): AST.Term => {
             let queue: (TermOperator | AST.Term)[] = [value[0]].concat(value[1]);
-            queue.push({ kind: "Operator", appType: "End", precedence: 0 });
+            queue.push({ kind: "Operator", appType: "End", left_assoc: false, precedence: 0 });
             let out_stack: AST.Term[] = [];
             let op_stack: TermOperator[] = [];
 
             let prev_atom = false;
             for (let token of queue) {
+                //console.log(token, out_stack, op_stack);
                 switch (token.kind) {
                     case "Operator": {
                         prev_atom = false;
-                        while (op_stack.length > 0 && op_stack[-1].precedence > token.precedence) {
-                            let tba = op_stack.pop();
-                            if (!tba) throw new Error("Syntax Error: FAIL STATE");
-                            switch (tba.appType) {
+                        let stack_top = op_stack.pop();
+                        while (stack_top) {
+                            //console.log("HERE 2", stack_top);
+                            let overrule = stack_top.precedence > token.precedence
+                                || (stack_top.precedence == token.precedence && token.left_assoc)
+                            if (!overrule) { op_stack.push(stack_top); break;}
+                            //console.log("HERE", stack_top);
+
+                            switch (stack_top.appType) {
                                 case "Unary": {
                                     let x = out_stack.pop();
                                     if (!x) throw new Error("Syntax Error: Expected 1 argument, got none");
-                                    out_stack.push(tba.apply(x));
+                                    out_stack.push(stack_top.apply(x));
                                     break;
                                 } case "Binary": {
-                                    let x = out_stack.pop();
                                     let y = out_stack.pop();
+                                    let x = out_stack.pop();
                                     if (!x || !y) throw new Error("Syntax Error: Expected 2 arguments, got 1 or none");
-                                    out_stack.push(tba.apply(x, y));
+                                    out_stack.push(stack_top.apply(x, y));
                                 } case "End": { }
                             }
+                            stack_top = op_stack.pop();
                         }
                         op_stack.push(token);
                         break;
@@ -249,7 +262,8 @@ OPERATOR.setPattern(alt(
             ? { 
                 kind: "Operator",
                 appType: "Binary",
-                precedence: (precedence_table[value.text]) ? precedence_table[value.text][0] : 5,
+                left_assoc: (precedence_table[value.text]) ? precedence_table[value.text][2] : true,
+                precedence: (precedence_table[value.text]) ? precedence_table[value.text][0] : 8,
                 apply: (x: AST.Term, y: AST.Term): AST.Term => {
                     return {
                         kind: "FunctionApplication",
@@ -262,7 +276,8 @@ OPERATOR.setPattern(alt(
             : { 
                 kind: "Operator",
                 appType: "Unary",
-                precedence: (value.kind == TokenKind.InfixSymbol) ? precedence_table[value.text][0] : 8,
+                left_assoc: precedence_table[value.text][2],
+                precedence: precedence_table[value.text][0],
                 apply: (t: AST.Term): AST.Term => {
                     return {
                         kind: "FunctionApplication",
@@ -282,7 +297,8 @@ OPERATOR.setPattern(alt(
             return { 
                 kind: "Operator",
                 appType: "Unary",
-                precedence: 3,
+                left_assoc: false,
+                precedence: 5,
                 apply: (t: AST.Term): AST.Term => {
                     return {
                         kind: "QuantifierApplication",
@@ -296,8 +312,14 @@ OPERATOR.setPattern(alt(
 ));
 
 
-export function evaluate(line: string): AST.ASTNode {
+export function evaluate(line: string): AST.ASTNode | undefined {
+    let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
+    if (!A.successful) return undefined;
+    //console.log(A.candidates);
     return expectSingleResult(expectEOF(PROOF_LINE.parse(lexer.parse(line))));
 }
 
 export default evaluate;
+
+//const util = require("util");
+//console.log(util.inspect(evaluate("f(x, ~b + a) + y"), false, null, true));
