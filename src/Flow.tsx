@@ -151,6 +151,7 @@ function Flow() {
         const newStatements = node.data.proofSteps;
         newStatements[statementIndex].value = statement;
         newStatements[statementIndex].parsed = undefined;
+        newStatements[statementIndex].syntaxCorrect = false;
         node.data = {
           ...node.data,
           proofSteps: newStatements,

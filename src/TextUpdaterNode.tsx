@@ -64,6 +64,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
 
   const [isCollapsed, setCollapsed] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isSolveNotReadyOpen, onOpen: onSolveNotReadyOpen, onClose: onSolveNotReadyClose } = useDisclosure();
   const { isOpen: isSolveModalOpen, onOpen: onSolveModalOpen, onClose: onSolveModalClose } = useDisclosure();
 
   const localZ3Solver = new Z3Solver.Z3Prover("");
@@ -79,6 +80,11 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       colorScheme='blackAlpha' 
       onClick={() => { 
         onSolveModalOpen();
+        console.log(data.proofSteps);
+        console.log(data.proofSteps.map(x => {
+          return ASTSMTLIB2(x.parsed);
+        }).join(" "));
+
         // console.log(isSolveModalOpen);
         localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") 
       }}>
@@ -98,6 +104,19 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Yes, I'm sure!</Button>
           <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
         </PopoverBody>
+      </PopoverContent>
+    </Popover>
+    
+  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals).every((s) => s.parsed !== undefined);
+  const solveNotReadyPopover =
+    <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
+      <PopoverTrigger>
+        <Button size='xs' colorScheme='blackAlpha' onClick={onSolveNotReadyOpen}>Solve</Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <PopoverArrow />
+        <PopoverCloseButton />
+        <PopoverHeader>Check node syntax first</PopoverHeader>
       </PopoverContent>
     </Popover>
 
@@ -250,7 +269,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
           {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {checkSyntaxButton}
-          {checkSatButton}
+          {checkSolveReady ? checkSatButton : solveNotReadyPopover}
         </div>
       </div>
       {componentStyle !== "goal-node" && sourceHandle}

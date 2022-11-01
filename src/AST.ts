@@ -152,4 +152,38 @@ function d(a: ASTNode): string {
     }
 }
 
+
 export const display: (line: Line) => string = d
+
+
+export function ASTSMTLIB2(a: ASTNode | undefined) : string {
+    if(a === undefined) {
+        return "NULL";
+    }
+    return "NULL"; // TODO: implement the rest of the function using the new AST types
+    /*
+    switch (a.kind) {
+        // case "Variable": return ""
+        // case "FunctionSymbol":
+        // case "PredicateSymbol":
+        case "Variable":
+        case "FunctionSymbol":
+        case "PredicateSymbol":
+        case "Type":
+        // Cases for Variable, FunctionSymbol, PredicateSymbol, Type and InfixSymbol are all `a.ident` so we let them fall through to 
+        //the first non-empty case: InfixSymbol.
+        case "InfixSymbol":
+            return `${a.ident}`;
+        case "FunctionDeclaration": return `${ASTSMTLIB2(a.symbol)} :: ${ASTSMTLIB2(a.type)}`;
+        case "Term": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
+        case "ArrayElem": return `${ASTSMTLIB2(a.ident)}[${ASTSMTLIB2(a.idx)}]`;
+        case "VLElem": return a.T ? `(${ASTSMTLIB2(a.v)} : ${ASTSMTLIB2(a.T)})` : `(${ASTSMTLIB2(a.v)} Int)`;
+        case "Predicate":
+            return `(${ASTSMTLIB2(a.pred)} ${a.terms.map(ASTSMTLIB2).join(" ")})`;
+        case "QFClause": return `${interleave(a.atoms.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
+        case "Formula": return `${interleave(a.clauses.map(ASTSMTLIB2), a.operators.map(ASTSMTLIB2)).join(" ")}`;
+        case "QuantifiedFormula": return `(${a.quantifier === Quantifier.E ? "exists " : "forall "} (${a.vars.map(ASTSMTLIB2).join(" Int) (")}) ${ASTSMTLIB2(a.A)})`
+        default: return " ... ";
+    }
+    */
+}

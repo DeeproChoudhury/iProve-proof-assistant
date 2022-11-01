@@ -10,10 +10,11 @@ import {
   Text,
   Button,
 } from '@chakra-ui/react';
-import { NodeData, ProofNodeTypes, StatementType } from './TextUpdaterNode';
+import { NodeData, StatementType } from './TextUpdaterNode';
 import './SolveNodeModal.css';
 import ModalStatement from './ModalStatement';
-import { Radio, RadioGroup, Stack } from '@chakra-ui/react'
+import Z3Solver from './Solver';
+import { ASTNode, ASTSMTLIB2 } from './AST';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
@@ -42,6 +43,18 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
 
   const isReasonDisabled = (index: number) => {
     return tags.slice(0, index).findIndex((tag) => tag === '2') !== -1;
+  }
+  
+  const localZ3Solver = new Z3Solver.Z3Prover("");
+  const solveZ3 = () => {
+    const reasons = node.givens.concat(node.proofSteps, node.goals).filter((g, i) => tags[i] === '1')
+    const conclusion = node.givens.concat(node.proofSteps, node.goals).find((s, i) => tags[i] === '2')
+    console.log('reasons: ' + reasons.map(r => r.value));
+    console.log('conclusion: ' + conclusion?.value);
+    console.log(reasons.map(x => {
+      return ASTSMTLIB2(x.parsed);
+    }).join(" "));
+    console.log("(not (" + ASTSMTLIB2(conclusion?.parsed) + "))")
   }
 
   return (
@@ -91,7 +104,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
           <Button colorScheme='blackAlpha' mr={3} onClick={() => {setTags(new Array(100).fill('0')); onClose();}}>
             Close
           </Button>
-          <Button colorScheme='whatsapp'>Check</Button>
+          <Button colorScheme='whatsapp' onClick={solveZ3}>Check</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
