@@ -179,13 +179,13 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
     "~": [10, false, true],
     "!": [10, false, true],
 
-    "*": [9, true, true],
-    "/": [9, true, true],
+    "*": [8, true, true],
+    "/": [8, true, true],
 
-    "+": [8, true, true],
-    "-": [8, true, true],
-    "++": [8, true, true],
-    "=": [8, true, true],
+    "+": [7, true, true],
+    "-": [7, true, true],
+    "++": [7, true, true],
+    "=": [7, true, true],
 
     "&": [6, true, true],
     "|": [6, true, true],
@@ -308,12 +308,11 @@ OPERATOR.setPattern(alt(
                     case "VariableDeclaration": decs.push(v);
                 }
             }
-
             return { 
                 kind: "Operator",
                 appType: "Unary",
                 left_assoc: false,
-                precedence: 10,
+                precedence: 9,
                 apply: (t: AST.Term): AST.Term => {
                     return {
                         kind: "QuantifierApplication",
