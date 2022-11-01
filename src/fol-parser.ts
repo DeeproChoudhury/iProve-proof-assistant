@@ -160,15 +160,16 @@ ATOMIC_TERM.setPattern(apply(
         for (let i = 0; i < value[1].length; i++) {
             let prev : AST.Term = (R) ? R : value[0];
             // hack, find a more elegant way to structure in general
-            if (value[1][i][1])
-                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
-                    prev, value[1][i][1], value[1][i][2]
-                ] };
-            else
+            if (value[1][i][0])
                 R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "select", params: [
                     // HACK - prev is returned in an error state, value should always be defined
                     prev, (value[1][i][1] ?? prev)
                 ] };
+            else
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
+                    prev, value[1][i][1], value[1][i][2]
+                ] };
+                
                 
         }
         return R;
