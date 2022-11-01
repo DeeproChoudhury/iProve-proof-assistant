@@ -108,16 +108,16 @@ function d(a: ASTNode): string {
         case "FunctionApplication": switch (a.appType) {
             case "PrefixFunc": return `${a.fn}(${a.params.map(d).join(", ")})`;
             case "PrefixOp": return `(${a.fn})(${a.params.map(d).join(", ")})`;
-            case "InfixFunc": return `${d(a.params[0])} \`${a.fn}\` ${d(a.params[1])}}`;
-            case "InfixOp": return `${d(a.params[0])} ${a.fn} ${d(a.params[1])}}`;
-            case "UnaryFunc": return `$\`${a.fn}\` ${d(a.params[0])}}`;
-            case "UnaryOp": return `${a.fn} ${d(a.params[0])}}`;
+            case "InfixFunc": return `${d(a.params[0])} \`${a.fn}\` ${d(a.params[1])}`;
+            case "InfixOp": return `${d(a.params[0])} ${a.fn} ${d(a.params[1])}`;
+            case "UnaryFunc": return `$\`${a.fn}\` ${d(a.params[0])}`;
+            case "UnaryOp": return `${a.fn} ${d(a.params[0])}`;
             case "ArrayElem": return `${d(a.params[0])}[${d(a.params[1])}]`;
             case "ArraySlice": return `${d(a.params[0])}[${(a.params[1]) ? d(a.params[1]) : ""}..${(a.params[2]) ? d(a.params[2]) : ""})`;
         }
-        case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}${a.vars.map(d).join(" ")}.${d(a.term)}`;
+        case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(d).join(",")}).${d(a.term)}`;
         case "EquationTerm": return `${d(a.lhs)} ::= ${d(a.rhs)}`;
-        case "ParenTerm": return `[${a.x}]`;
+        case "ParenTerm": return `[${d(a.x)}]`;
     }
 }
 

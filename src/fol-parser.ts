@@ -1,5 +1,5 @@
 import { Token } from 'typescript-parsec';
-import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
+import { buildLexer, expectEOF, expectSingleResult, rule, ParseError } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, rep_sc, nil } from 'typescript-parsec';
 import * as AST from './AST'
 Error.stackTraceLimit = Infinity;
@@ -18,7 +18,8 @@ enum TokenKind {
     VarToken,
     Misc,
     Space,
-    DirEqToken
+    DirEqToken,
+    SquareBrace
 }
 
 const lexer = buildLexer([
@@ -26,10 +27,10 @@ const lexer = buildLexer([
     [true, /^(\:\:\=)/g, TokenKind.DirEqToken],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(\:\:)/g, TokenKind.DoubleColon],
+    [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^\d+/g, TokenKind.NumberLiteral],
     [true, /^\w+/g, TokenKind.Symbol],
-    [true, /^((\-\>)|(\<\-\>))/g, TokenKind.ImpOperator],
     [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!|\&|\||\~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
@@ -178,6 +179,9 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
     "~": [10, false, true],
     "!": [10, false, true],
 
+    "*": [9, true, true],
+    "/": [9, true, true],
+
     "+": [8, true, true],
     "-": [8, true, true],
     "++": [8, true, true],
@@ -292,18 +296,29 @@ OPERATOR.setPattern(alt(
     apply(
         seq(
             tok(TokenKind.QntToken),
-            kmid(str("("), list_sc(VAR_DEC, str(",")), str(")."))
-        ), (value: [Token<TokenKind.QntToken>, AST.VariableDeclaration[]]): UnaryOperator => {
+            alt(
+                kleft(list_sc(VARIABLE, str(",")), str(".")),
+                kmid(str("("), list_sc(VAR_DEC, str(",")), kleft(str(")"),str(".")))
+                )
+        ), (value: [Token<TokenKind.QntToken>, AST.Variable[] | AST.VariableDeclaration[]]): UnaryOperator => {
+            let decs : AST.VariableDeclaration[] = [];
+            for (let v of value[1]) {
+                switch (v.kind) {
+                    case "Variable": decs.push({kind: "VariableDeclaration", symbol: v }); break;
+                    case "VariableDeclaration": decs.push(v);
+                }
+            }
+
             return { 
                 kind: "Operator",
                 appType: "Unary",
                 left_assoc: false,
-                precedence: 5,
+                precedence: 10,
                 apply: (t: AST.Term): AST.Term => {
                     return {
                         kind: "QuantifierApplication",
                         term: t,
-                        vars: value[1],
+                        vars: decs,
                         quantifier: (value[0].text == "FA") ? "A" : "E"
                     };
                 } }
@@ -312,14 +327,10 @@ OPERATOR.setPattern(alt(
 ));
 
 
-export function evaluate(line: string): AST.ASTNode | undefined {
+export function evaluate(line: string): AST.ASTNode | ParseError {
     let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
-    if (!A.successful) return undefined;
-    //console.log(A.candidates);
-    return expectSingleResult(expectEOF(PROOF_LINE.parse(lexer.parse(line))));
+    if (!A.successful) return A.error;
+    return expectSingleResult(A);
 }
 
 export default evaluate;
-
-//const util = require("util");
-//console.log(util.inspect(evaluate("f(x, ~b + a) + y"), false, null, true));
