@@ -44,21 +44,30 @@ const FN_DEC = rule<TokenKind, AST.FunctionDeclaration>();
 const VAR_DEC = rule<TokenKind, AST.VariableDeclaration>();
 const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
 
-const ATOMIC_TERM = rule<TokenKind, AST.UnaryApplication | AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable>();
+const ATOMIC_TERM = rule<TokenKind, AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable>();
 const PREFIX_APPLY = rule<TokenKind, AST.PrefixApplication>();
 const PAREN_TERM = rule<TokenKind, AST.ParenTerm>();
 const ARRAY_SLICE = rule<TokenKind, AST.ArraySlice | AST.ArrayElem>();
 
 const TERM = rule<TokenKind, AST.Term>();
-interface Quantifier {
-    kind: "A" | "E",
-    vars: AST.VariableDeclaration[]
+interface UnaryOperator {
+    kind: "Operator",
+    appType: "Unary",
+    precedence: number,
+    apply: (t: AST.Term) => AST.Term,
 }
 interface InfixOperator {
-    kind: "InfixFunc" | "InfixOp",
-    fn: string
+    kind: "Operator",
+    appType: "Binary",
+    precedence: number,
+    apply: (x: AST.Term, y: AST.Term) => AST.Term,
 }
-type TermOperator = Quantifier | InfixOperator | Token<TokenKind.DirEqToken>;
+type EndOfTerm = {
+    kind: "Operator",
+    appType: "End",
+    precedence: 0
+}
+type TermOperator = InfixOperator | UnaryOperator | EndOfTerm;
 const OPERATOR = rule<TokenKind, TermOperator>();
 
 
@@ -170,43 +179,118 @@ ARRAY_SLICE.setPattern(apply(
     }
 ));
 
+// PRECEDENCE   IS_BINARY   IS_LEFT_ASSOC 
+const precedence_table: {[name: string]: [number, boolean, boolean]} = {
+    "&": [1, true, true],
+    "|": [1, true, true],
+}
+
+
 
 TERM.setPattern(
-    lrec_sc(
-        ATOMIC_TERM,
-        seq(OPERATOR, ATOMIC_TERM), (x: AST.Term, ops: [TermOperator, AST.Term]): AST.Term => {
-            let out_stack: AST.Term[] = [x];
+    apply(
+        seq(alt(OPERATOR, ATOMIC_TERM), rep_sc(alt(OPERATOR, ATOMIC_TERM))),
+        (value: [TermOperator | AST.Term,  (TermOperator | AST.Term)[]]): AST.Term => {
+            let queue: (TermOperator | AST.Term)[] = [value[0]].concat(value[1]);
+            queue.push({ kind: "Operator", appType: "End", precedence: 0 });
+            let out_stack: AST.Term[] = [];
             let op_stack: TermOperator[] = [];
 
-            // TODO - PRECEDENCE HERE
-            for (let pair in ops) {
-                let [op, trm] = pair;
-                
+            let prev_atom = false;
+            for (let token of queue) {
+                switch (token.kind) {
+                    case "Operator": {
+                        prev_atom = false;
+                        while (op_stack.length > 0 && op_stack[-1].precedence > token.precedence) {
+                            let tba = op_stack.pop();
+                            if (!tba) throw new Error("Syntax Error: FAIL STATE");
+                            switch (tba.appType) {
+                                case "Unary": {
+                                    let x = out_stack.pop();
+                                    if (!x) throw new Error("Syntax Error: Expected 1 argument, got none");
+                                    out_stack.push(tba.apply(x));
+                                    break;
+                                } case "Binary": {
+                                    let x = out_stack.pop();
+                                    let y = out_stack.pop();
+                                    if (!x || !y) throw new Error("Syntax Error: Expected 2 arguments, got 1 or none");
+                                    out_stack.push(tba.apply(x, y));
+                                } case "End": { }
+                            }
+                        }
+                        op_stack.push(token);
+                        break;
+                    }
+                    case "FunctionApplication":
+                    case "ParenTerm":
+                    case "EquationTerm":
+                    case "Variable":
+                    case "QuantifierApplication": {
+                        if (prev_atom) throw new Error("Syntax Error: Cannot apply Term to Term");
+                        prev_atom = true;
+                        out_stack.push(token);
+                        break;
+                    }
+                }
             }
-            return x;
+            if (out_stack.length != 1) throw new Error("Syntax Error: Cannot apply Term to Term");
+            return out_stack[0];
         })
 );
 
 OPERATOR.setPattern(alt(
-    tok(TokenKind.DirEqToken),
     apply(
         alt(
+            tok(TokenKind.DirEqToken),
             tok(TokenKind.InfixSymbol),
             kmid(str("`"), tok(TokenKind.Symbol), str("`"))
-        ), (value: Token<TokenKind.InfixSymbol | TokenKind.Symbol>): InfixOperator => {
-            return { 
-                kind: (value.kind == TokenKind.InfixSymbol) ? "InfixOp" : "InfixFunc",
-                fn: value.text }
+        ), (value: Token<TokenKind.DirEqToken | TokenKind.InfixSymbol | TokenKind.Symbol>): UnaryOperator | InfixOperator => {
+            return ((!precedence_table[value.text]) || precedence_table[value.text][1]) 
+            ? { 
+                kind: "Operator",
+                appType: "Binary",
+                precedence: (precedence_table[value.text]) ? precedence_table[value.text][0] : 5,
+                apply: (x: AST.Term, y: AST.Term): AST.Term => {
+                    return {
+                        kind: "FunctionApplication",
+                        appType: (value.kind == TokenKind.InfixSymbol) ? "InfixOp" : "InfixFunc",
+                        fn: value.text,
+                        params: [x, y]
+                    };
+                } 
+            }
+            : { 
+                kind: "Operator",
+                appType: "Unary",
+                precedence: (value.kind == TokenKind.InfixSymbol) ? precedence_table[value.text][0] : 8,
+                apply: (t: AST.Term): AST.Term => {
+                    return {
+                        kind: "FunctionApplication",
+                        appType: (value.kind == TokenKind.InfixSymbol) ? "UnaryOp" : "UnaryFunc",
+                        fn: value.text,
+                        params: [t]
+                    };
+                } 
+            }
         }
     ),
     apply(
         seq(
             tok(TokenKind.QntToken),
             kmid(str("("), list_sc(VAR_DEC, str(",")), str(")."))
-        ), (value: [Token<TokenKind.QntToken>, AST.VariableDeclaration[]]): Quantifier => {
+        ), (value: [Token<TokenKind.QntToken>, AST.VariableDeclaration[]]): UnaryOperator => {
             return { 
-                kind: (value[0].text == "FA") ? "A" : "E",
-                vars: value[1] }
+                kind: "Operator",
+                appType: "Unary",
+                precedence: 3,
+                apply: (t: AST.Term): AST.Term => {
+                    return {
+                        kind: "QuantifierApplication",
+                        term: t,
+                        vars: value[1],
+                        quantifier: (value[0].text == "FA") ? "A" : "E"
+                    };
+                } }
         }
     )
 ));
