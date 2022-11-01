@@ -1,275 +1,167 @@
-export type ASTNode = Symbol | FunctionType | Line | VLElem | Term | Atom | PropAtom | Clause | InfixOperator | PropOperator | ImpOperator | Formula
+export type ASTNode = Type | FunctionType | Line
 
-export type Symbol = Variable | Type | FunctionSymbol | PredicateSymbol | RawSymbol
-
-export type Variable = { 
-    kind: "Variable"
-    isAtom: true,
-    isSymbol: true,
-    isVariable: true,
-    ident: String
- }
 export type Type = { 
-    kind: "Type"
-    isSymbol: true,
-    ident: String
-    isType: true
- }
-export type FunctionSymbol = { 
-    kind: "FunctionSymbol"
-    isSymbol: true,
-    isInfixOperator: true,
-    isFunctionSymbol: true
-    ident: String
- }
-export type PredicateSymbol = { 
-    kind: "PredicateSymbol"
-    isSymbol: true,
-    ident: String
-    isPredicateSymbol: true
- }
-export type RawSymbol = Variable & Type & FunctionSymbol & PredicateSymbol & { 
-    isSymbol: true,
-    ident: String
-    isRawSymbol: true
- }
-
-export type InfixSymbol = {
-    kind: "InfixSymbol"
-    isInfixOperator: true,
-    isInfixSymbol: true,
-    ident: String
+    kind: "Type",
+    ident: string
 }
 
 export type FunctionType = {
     kind: "FunctionType",
-    isFunctionType: true,
-    A: Type,
-    B: Type
+    argTypes: Type[],
+    retType: Type
 }
 
-export type Line = TypeExt | Declaration
+export type Line = TypeExt | Declaration | Term
 
 export type TypeExt = {
     kind: "TypeExt",
-    isLine: true,
-    isTypeExt: true,
-    A: Type,
-    B: Type
+    subType: Type,
+    superType: Type
 }
 
 export type Declaration = FunctionDeclaration | VariableDeclaration
 
 export type FunctionDeclaration = {
     kind: "FunctionDeclaration",
-    isLine: true,
-    isDeclaration: true
-    isFunctionDeclaration: true,
-    symbol: FunctionSymbol,
+    symbol: string,
     type: FunctionType
 }
 
 export type VariableDeclaration = {
     kind: "VariableDeclaration",
-    isLine: true,
-    isDeclaration: true
-    isVariableDeclaration: true,
     symbol: Variable,
     type?: Type
 }
 
-export type VLElem = {
-    kind: "VLElem",
-    isVLElem: true,
-    v: Variable,
-    T?: Type
+export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm
+
+export type FunctionApplication = PrefixApplication | UnaryApplication | InfixApplication | ArrayElem | ArraySlice
+
+export type AppType = FunctionApplication["appType"]
+
+export type PrefixApplication = {
+    kind: "FunctionApplication",
+    appType: "PrefixFunc" | "PrefixOp",
+    fn: string,
+    params: Term[]
 }
 
-export type Term = {
-    kind: "Term",
-    isTerm: true,
-    atoms: Array<Atom>,
-    operators: Array<InfixOperator>
+export type UnaryApplication = {
+    kind: "FunctionApplication",
+    appType: "UnaryFunc" | "UnaryOp",
+    fn: string,
+    params: [Term]
 }
 
-export type Atom = Variable | Function | IntLiteral | ArraySlice | ParenTerm
-
-export type Function = {
-    kind: "Function"
-    isAtom: true,
-    isFunction: true,
-    fn: FunctionSymbol,
-    terms: Array<Term>
+export type InfixApplication = {
+    kind: "FunctionApplication",
+    appType: "InfixFunc" | "InfixOp",
+    fn: string,
+    params: [Term, Term]
 }
-
-export type IntLiteral = {
-    kind: "IntLiteral",
-    isAtom: true,
-    isIntLiteral: true,
-    n: number
-}
-
-export type InfixOperator = FunctionSymbol | InfixSymbol
-
-export type ArraySlice = ArrayElem | ArrayRange
 
 export type ArrayElem = {
-    kind: "ArrayElem",
-    isAtom: true,
-    isArraySlice: true,
-    isArrayElem: true,
-    ident: Variable
-    idx: Term
+    kind: "FunctionApplication",
+    appType: "ArrayElem",
+    fn: "select",
+    params: [Term, Term]
 }
 
-export type ArrayRange = {
-    kind: "ArrayRange",
-    isAtom: true,
-    isArraySlice: true,
-    isArrayRange: true,
-    ident: Variable
-    begin: Term,
-    end: Term
+export type ArraySlice = {
+    kind: "FunctionApplication",
+    appType: "ArraySlice",
+    fn: "???", // TODO
+    params: [Term, Term?, Term?]
+}
+
+export type Variable = { 
+    kind: "Variable",
+    ident: string
+}
+
+export type QuantifierApplication = {
+    kind: "QuantifierApplication",
+    term: Term,
+    vars: VariableDeclaration[],
+    quantifier: "E" | "A"
+}
+
+export type EquationTerm = {
+    kind: "EquationTerm",
+    lhs: Term,
+    rhs: Term
 }
 
 export type ParenTerm = { 
     kind: "ParenTerm",
-    isAtom: true,
-    isParenTerm: true,
-    x: Term
+    term: Term
 }
 
-export type PropAtom = Neg | PropLiteral | Comparison | Predicate | QuantifiedFormula | ParenFormula
-
- export type Neg = {
-    kind: "Neg",
-    isPropAtom: true
-    isNeg: true,
-    A: Formula
-}
-
- export type PropLiteral = {
-    kind: "PropLiteral",
-    isPropAtom: true
-    isPropLiteral: true,
-    truth: boolean,
- }
-
- export type Comparison = {
-    kind: "Comparison",
-    isPropAtom: true
-    isComparison: true,
-    op: InfixSymbol,
-    x: Term,
-    y: Term,
-}
-
-export type Predicate = {
-    kind: "Predicate",
-    isPropAtom: true
-    isPredicate: true,
-    pred: PredicateSymbol,
-    terms: Array<Term>
-}
-
-export enum Quantifier {
-    E,
-    A
-}
-
-export type PropOperator = {
-    kind: "PropOperator"
-    isPropOperator: true,
-    op: string
-}
-
-export type Clause = QFClause
-
-export type QFClause =  {
-    kind: "QFClause"
-    isClause: true,
-    isQFClause: true,
-    atoms: Array<PropAtom>
-    operators: Array<PropOperator>
-}
-
-export type QuantifiedFormula = {
-    kind: "QuantifiedFormula",
-    isPropAtom: true
-    isQuantifiedFormula: true,
-    quantifier: Quantifier,
-    vars: Array<VLElem>,
-    A: Clause
- }
-
- export type ImpOperator = {
-    kind: "ImpOperator",
-    isImpOperator: true,
-    op: string
-}
-
-export type Formula = {
-    kind: "Formula",
-    isFormula: true,
-    clauses: Array<Clause>,
-    operators: Array<ImpOperator>
-}
-
-export type ParenFormula = {
-    kind: "ParenFormula",
-    isPropAtom: true
-    isParenFormula: true,
-    A: Formula
- }
-
-function interleave<T>(a: T[], b: T[]): T[] {
-    const c = [];
-    let i;
-    for (i = 0; i < a.length && i < b.length; i++) {
-        c.push(a[i]);
-        c.push(b[i]);
+function fnDisplay(fn: string): string {
+    switch (fn) {
+        case "~": return "¬"; 
+        case "&": return "∧";
+        case "|": return "∨";
+        case "^": return "⊕";
+        case "->": return "→";
+        case "<->": return "↔";
+        default: return fn;
     }
-    if (i < a.length) c.push(a[i]);
-    return c;
 }
 
-export function display(a: ASTNode): string {
+function fnSMT(fn: string): string {
+    switch (fn) {
+        case "~": return "not";
+        case "&": return "and";
+        case "|": return "or";
+        case "^": return "xor";
+        case "->": return "=>";
+        case "<->": return "=";
+        default: return fn;
+    }
+}
+
+function d(a: ASTNode): string {
     switch (a.kind) {
-        case "Variable":
-        case "FunctionSymbol":
-        case "PredicateSymbol":
-        case "Type": 
-        case "InfixSymbol":
-            return `${a.ident}`;
-        case "PropOperator":
-        case "ImpOperator":
-            return `${a.op}`;
-        case "FunctionType": return `${display(a.A)} -> ${display(a.B)}`;
-        case "TypeExt": return `${display(a.A)} ⊆ ${display(a.B)}`;
-        case "FunctionDeclaration": return `${display(a.symbol)} :: ${display(a.type)}`;
-        case "VariableDeclaration": return `var ${a.symbol}` + (a.type ? `: ${display(a.type)}` : "");
-        case "VLElem": return a.T ? `(${display(a.v)} : ${display(a.T)})` : `(${display(a.v)})`;
-        case "Term": return `${interleave(a.atoms.map(display), a.operators.map(display)).join(" ")}`;
-        case "Function": return `${display(a.fn)}(${a.terms.map(display).join(", ")})`;
-        case "IntLiteral": return a.n.toString();
-        case "ArrayElem": return `${display(a.ident)}[${display(a.idx)}]`;
-        case "ArrayRange": return `${display(a.ident)}[${display(a.begin)}..${display(a.end)})`;
-        case "ParenTerm": return `(${display(a.x)})`;
-        case "Neg": return `¬${display(a.A)}`;
-        case "PropLiteral": return a.truth ? "⊤" : "⊥";
-        case "Comparison": return `${display(a.x)} ${display(a.op)} ${display(a.y)}`;
-        case "Predicate": return `${display(a.pred)}(${a.terms.map(display).join(", ")})`;
-        case "QFClause": return `${interleave(a.atoms.map(display), a.operators.map(display)).join(" ")}`;
-        case "QuantifiedFormula": return `${a.quantifier === Quantifier.E ? "∃" : "∀"}${a.vars.map(display).join("")}.${display(a.A)}`;
-        case "Formula": return `${interleave(a.clauses.map(display), a.operators.map(display)).join(" ")}`;
-        case "ParenFormula": return `(${display(a.A)})`;
+        case "Type": return a.ident;
+        case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
+        case "TypeExt": return `${d(a.subType)} ⊆ ${d(a.superType)}`;
+        case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
+        case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
+        case "Variable": return a.ident;
+        case "FunctionApplication": {
+            const fn = fnDisplay(a.fn);
+            switch (a.appType) {
+                case "PrefixFunc": return `${fn}(${a.params.map(d).join(", ")})`;
+                case "PrefixOp": return `(${fn})(${a.params.map(d).join(", ")})`;
+                case "InfixFunc": return `${d(a.params[0])} \`${fn}\` ${d(a.params[1])}`;
+                case "InfixOp": return `${d(a.params[0])} ${fn} ${d(a.params[1])}`;
+                case "UnaryFunc": return `$\`${fn}\` ${d(a.params[0])}`;
+                case "UnaryOp": return `${fn} ${d(a.params[0])}`;
+                case "ArrayElem": return `${d(a.params[0])}[${d(a.params[1])}]`;
+                case "ArraySlice": {
+                    const p1 = (a.params[1]) ? d(a.params[1]) : "";
+                    const p2 = (a.params[2]) ? d(a.params[2]) : "";
+                    return `${d(a.params[0])}[${p1}..${p2})`;
+                }
+            }
+        }
+        case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(d).join(",")}).${d(a.term)}`;
+        case "EquationTerm": return `${d(a.lhs)} ::= ${d(a.rhs)}`;
+        case "ParenTerm": return `[${d(a.term)}]`;
     }
 }
+
+
+export const display: (line: Line) => string = d
+
 
 export function ASTSMTLIB2(a: ASTNode | undefined) : string {
     if(a === undefined) {
         return "NULL";
     }
+    return "NULL"; // TODO: implement the rest of the function using the new AST types
+    /*
     switch (a.kind) {
         // case "Variable": return ""
         // case "FunctionSymbol":
@@ -293,5 +185,5 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         case "QuantifiedFormula": return `(${a.quantifier === Quantifier.E ? "exists " : "forall "} (${a.vars.map(ASTSMTLIB2).join(" Int) (")}) ${ASTSMTLIB2(a.A)})`
         default: return " ... ";
     }
-    
+    */
 }
