@@ -25,11 +25,11 @@ export namespace Z3Solver {
         public async solve(str : string) {
             const cfg = Z3EvalLib.mk_config();
             Z3EvalLib.set_param_value(cfg, "proof", "true")
-    
-            console.log(await Z3EvalLib.eval_smtlib2_string(
+            const result = await Z3EvalLib.eval_smtlib2_string(
                 Z3EvalLib.mk_context(cfg),
-                str)) ;
-            
+                str); 
+            console.log(result) ;
+            return result;
         }
 
     }

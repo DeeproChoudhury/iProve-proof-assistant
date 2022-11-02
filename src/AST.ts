@@ -166,7 +166,7 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         case "FunctionType": return `(${a.argTypes.map(ASTSMTLIB2).join(" ")})  ${ASTSMTLIB2(a.retType)}`;
         case "TypeExt": return `${ASTSMTLIB2(a.subType)} ⊆ ${ASTSMTLIB2(a.superType)}`;
         case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${ASTSMTLIB2(a.type)})`;
-        case "VariableDeclaration": return `${ASTSMTLIB2(a.symbol)} ${a.type ? `: ${ASTSMTLIB2(a.type)}` : "Int"}`;
+        case "VariableDeclaration": return `(declare-const ${ASTSMTLIB2(a.symbol)} ${a.type ? `${ASTSMTLIB2(a.type)}` : "Int"})`;
         case "Variable": return a.ident;
         case "FunctionApplication": {
             const fn = fnSMT(a.fn);

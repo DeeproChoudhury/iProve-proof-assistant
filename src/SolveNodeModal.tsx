@@ -48,7 +48,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   }
 
   const localZ3Solver = new Z3Solver.Z3Prover("");
-  const solveZ3 = () => {
+  const solveZ3 = async () => {
     setCheckFailed(false);
     const reasonsIndexes = node.givens.concat(node.proofSteps, node.goals).map((g, i) => tags[i] === '1' ? i + 1 : -1).filter((i) => i > 0)
     const reasons = node.givens.concat(node.proofSteps, node.goals).filter((g, i) => tags[i] === '1')
@@ -57,22 +57,27 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
       node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') :
       node.goals.findIndex((s, i) => tags[node.givens.length + node.proofSteps.length + i] === '2');
     const conclusion = conclusionType === "proofStep" ? node.proofSteps[conclusionIndex] : node.goals[conclusionIndex];
-    console.log('reasons: ' + reasons.map(r => r.value));
-    console.log('conclusion: ' + conclusion?.value);
-    console.log(reasons.map(x => {
-      return ASTSMTLIB2(x.parsed);
-    }).join(" "));
-    console.log("(not (" + ASTSMTLIB2(conclusion?.parsed) + "))")
-    const correct = Math.random() > 0.5;
-    console.log(conclusionType)
-    console.log(conclusionIndex)
-    if (correct && conclusion) {
-      node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, reasonsIndexes)
-    } else {
-      node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, undefined)
-      setCheckFailed(true)
+    if (!conclusion) {
+      setCheckFailed(true);
+      return;
     }
-    console.log(node)
+    const smtReasons = reasons.map(reason => {
+      if (reason.parsed?.kind === "FunctionDeclaration" || reason.parsed?.kind === "VariableDeclaration") {
+        return ASTSMTLIB2(reason.parsed);
+      }
+      return `(assert ${ASTSMTLIB2(reason.parsed)})`
+    }).join("\n");
+    console.log(smtReasons);
+    const smtConclusion = "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
+    console.log(smtConclusion);
+    localZ3Solver.solve(smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
+      if (output == "unsat\n") {
+        node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, reasonsIndexes)
+      } else {
+        node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, undefined)
+        setCheckFailed(true)
+      }
+    })
   }
 
   return (
