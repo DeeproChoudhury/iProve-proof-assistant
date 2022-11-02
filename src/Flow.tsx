@@ -78,6 +78,12 @@ function Flow() {
         return statements;
       });
     },
+    addReasonsToStatement: (nodeId: string, k: StatementKind, statementIndex: number, reasons?: number[]) => {
+      modifyStatementsForNode(nodeId, k, statements => {
+        statements[statementIndex].reasons = reasons;
+        return statements;
+      });
+    },
     addStatement: (nodeId: string, k: StatementKind) => {
       modifyStatementsForNode(nodeId, k, statements => [...statements, {value: ""}]);
     },

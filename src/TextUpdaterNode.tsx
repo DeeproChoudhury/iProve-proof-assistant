@@ -22,6 +22,7 @@ export type StatementType = {
   value: string;
   syntaxCorrect?: boolean;
   parsed?: Line;
+  reasons?: number[] | undefined;
 };
 
 export type StatementKind = "given" | "proofStep" | "goal";
@@ -36,6 +37,7 @@ export type NodeData = Readonly<{
   goals: StatementType[];
   correctImplication?: boolean;
   updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => void;
+  addReasonsToStatement: (nodeId: string, k: StatementKind, statementIndex: number, reasons?: number[]) => void;
   addStatement: (nodeId: string, k: StatementKind) => void;
   addStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => void;
   deleteStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => void;
