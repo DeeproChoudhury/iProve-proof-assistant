@@ -13,7 +13,7 @@ import {
 import { AddIcon } from '@chakra-ui/icons';
 import Z3Solver from './Solver';
 import Statement from './Statement';
-import { Line } from './AST';
+import { ASTSMTLIB2, Line } from './AST';
 import SolveNodeModal from './SolveNodeModal';
 
 export type NodeType = "statement" | "given" | "goal";
@@ -24,11 +24,7 @@ export type StatementType = {
   parsed?: Line;
 };
 
-export enum ProofNodeTypes {
-  GIVEN, 
-  PROOFSTEP, 
-  GOAL
-}
+export type StatementKind = "given" | "proofStep" | "goal";
 
 export type NodeData = Readonly<{
   label: string;
@@ -39,27 +35,27 @@ export type NodeData = Readonly<{
   proofSteps: StatementType[];
   goals: StatementType[];
   correctImplication?: boolean;
-  updateGivens: (nodeId: string, statementIndex: number, statement: string) => void;
-  updateProofSteps: (nodeId: string, statementIndex: number, statement: string) => void;
-  updateGoals: (nodeId: string, statementIndex: number, statement: string) => void;
-  addGiven: (nodeId: string) => void;
-  addProofStep: (nodeId: string) => void;
-  addGoal: (nodeId: string) => void;
-  addStatementAtIndex: (nodeId: string, index: number, t: ProofNodeTypes) => void;
+  updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => void;
+  addStatement: (nodeId: string, k: StatementKind) => void;
+  addStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => void;
+  deleteStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => void;
   checkSyntax: (nodeId: string) => void;
   checkEdges: (nodeId: string) => void;
-  deleteStatementAtIndex: (nodeId: string, index: number, t: ProofNodeTypes) => void;
 }>;
 
-function TextUpdaterNode({ data }: { data: NodeData }) {
-  const onChange = useCallback((evt: any, updated: number, t: ProofNodeTypes) => {
-    if (t === ProofNodeTypes.GIVEN) {
-      data.updateGivens(`${data.id}`, updated, evt.target.value);
-    } else if (t === ProofNodeTypes.PROOFSTEP) {
-      data.updateProofSteps(`${data.id}`, updated, evt.target.value);
-    } else {
-      data.updateGoals(`${data.id}`, updated, evt.target.value);
+export type StatementListFieldName = "givens" | "proofSteps" | "goals";
+
+export function listField(k: StatementKind): StatementListFieldName {
+    switch (k) {
+        case "given": return "givens";
+        case "proofStep": return "proofSteps";
+        case "goal": return "goals";
     }
+}
+
+function TextUpdaterNode({ data }: { data: NodeData }) {
+  const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
+    data.updateStatement(`${data.id}`, k, updated, evt.target.value);
   }, [data]);
 
   const [isCollapsed, setCollapsed] = useState(false);
@@ -126,7 +122,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
           {data.givens.map((s: StatementType, index: number) =>
-            <Statement onChange={e => onChange(e, index, ProofNodeTypes.GIVEN)} statement={s} index={index} />)}
+            <Statement onChange={e => onChange(e, "given", index)} statement={s} index={index} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -146,7 +142,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
           {data.givens.map((s: StatementType, index: number) =>
-            <Statement onChange={e => onChange(e, index, ProofNodeTypes.GIVEN)} statement={s} index={index} />)}
+            <Statement onChange={e => onChange(e, "given", index)} statement={s} index={index} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -184,20 +180,20 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           variant='outline'
           aria-label='Add given'
           size='xs'
-          onClick={() => { data.addGiven(`${data.id}`) }}
+          onClick={() => { data.addStatement(`${data.id}`, "given") }}
           icon={<AddIcon />}
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {data.givens.map((s: StatementType, index: number) =>
           <Statement
-            onChange={e => onChange(e, index, ProofNodeTypes.GIVEN)}
+            onChange={e => onChange(e, "given", index)}
             statement={s}
             index={index}
             proofNode={true}
-            addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GIVEN) }}
-            addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.GIVEN) }} 
-            deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GIVEN)}}/>)}
+            addAbove={() => { data.addStatementAtIndex(`${data.id}`, "given", index) }}
+            addBelow={() => { data.addStatementAtIndex(`${data.id}`, "given", index + 1) }} 
+            deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, "given", index)}}/>)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -205,7 +201,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           variant='outline'
           aria-label='Add proof step'
           size='xs'
-          onClick={() => { data.addProofStep(`${data.id}`) }}
+          onClick={() => { data.addStatement(`${data.id}`, "proofStep") }}
           icon={<AddIcon />}
         />
       </div>
@@ -216,32 +212,32 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           isCollapsed ?
             <>
               <Statement
-                onChange={e => onChange(e, 0, ProofNodeTypes.PROOFSTEP)}
+                onChange={e => onChange(e, "proofStep", 0)}
                 statement={data.proofSteps[0]}
                 index={data.givens.length}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, 0, ProofNodeTypes.PROOFSTEP) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, 1, ProofNodeTypes.PROOFSTEP) }}
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, 0, ProofNodeTypes.PROOFSTEP) }} />
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", 0) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", 1) }}
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, "proofStep", 0) }} />
               <Text as='b'>. . .</Text>
               <Statement
-                onChange={e => onChange(e, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP)}
+                onChange={e => onChange(e, "proofStep", data.proofSteps.length - 1)}
                 statement={data.proofSteps[data.proofSteps.length - 1]}
                 index={data.givens.length + data.proofSteps.length - 1}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, data.proofSteps.length, ProofNodeTypes.PROOFSTEP) }} 
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, data.proofSteps.length - 1, ProofNodeTypes.PROOFSTEP) }}/>
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", data.proofSteps.length - 1) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", data.proofSteps.length) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, "proofStep", data.proofSteps.length - 1) }}/>
             </> :
             data.proofSteps.map((s: StatementType, index: number) =>
               <Statement
-                onChange={e => onChange(e, index, ProofNodeTypes.PROOFSTEP)}
+                onChange={e => onChange(e, "proofStep", index)}
                 statement={s}
                 index={data.givens.length + index}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.PROOFSTEP) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.PROOFSTEP) }} 
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, index, ProofNodeTypes.PROOFSTEP) }} />)
+                addAbove={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", index) }}
+                addBelow={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", index + 1) }} 
+                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, "proofStep", index) }} />)
         }
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
           <Text>Goals</Text>
@@ -249,20 +245,20 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             variant='outline'
             aria-label='Add goal'
             size='xs'
-            onClick={() => { data.addGoal(`${data.id}`) }}
+            onClick={() => { data.addStatement(`${data.id}`, "goal") }}
             icon={<AddIcon />}
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {data.goals.map((s: StatementType, index: number) =>
             <Statement
-              onChange={e => onChange(e, index, ProofNodeTypes.GOAL)}
+              onChange={e => onChange(e, "goal", index)}
               statement={s}
               index={data.givens.length + data.proofSteps.length + index}
               proofNode={true}
-              addAbove={() => { data.addStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GOAL) }}
-              addBelow={() => { data.addStatementAtIndex(`${data.id}`, index + 1, ProofNodeTypes.GOAL) }} 
-              deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, index, ProofNodeTypes.GOAL)}}/>)}
+              addAbove={() => { data.addStatementAtIndex(`${data.id}`, "goal", index) }}
+              addBelow={() => { data.addStatementAtIndex(`${data.id}`, "goal", index + 1) }} 
+              deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, "goal", index)}}/>)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}

@@ -13,7 +13,7 @@ import ReactFlow, {
   Connection,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode, { ProofNodeTypes, NodeData, NodeType, StatementType } from './TextUpdaterNode';
+import TextUpdaterNode, { StatementKind, NodeData, NodeType, StatementType, listField } from './TextUpdaterNode';
 
 import './TextUpdaterNode.css';
 import './Flow.css';
@@ -53,54 +53,134 @@ function Flow() {
     []
   );
 
+  function forNodeWithId(nodeId: string, callback: (node: Node<NodeData>) => Node<NodeData>) {
+    setNodes(nds => nds.map((nd) => nd.id === nodeId ? callback(nd) : nd));
+  }
+
+  function modifyStatementsForNode(nodeId: string, k: StatementKind, callback: (statements: StatementType[]) => StatementType[]) {
+    forNodeWithId(nodeId, node => {
+      const fieldName = listField(k);
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          [fieldName]: callback(node.data[fieldName])
+        }
+      }
+    });
+  }
+
+  const nodeCallbacks = {
+    updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => {
+      modifyStatementsForNode(nodeId, k, statements => {
+        statements[statementIndex].value = statement;
+        statements[statementIndex].parsed = undefined;
+        return statements;
+      });
+    },
+    addStatement: (nodeId: string, k: StatementKind) => {
+      modifyStatementsForNode(nodeId, k, statements => [...statements, {value: ""}]);
+    },
+    addStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => {
+      modifyStatementsForNode(nodeId, k, statements => {
+        statements.splice(index, 0, { value: '' });
+        return statements;
+      });
+    },
+    deleteStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => {
+      modifyStatementsForNode(nodeId, k, statements => {
+        statements.splice(index, 1);
+        return statements;
+      });
+    },
+    checkSyntax: (nodeId: string) => {
+      setNodes(nds => nds.map((node) => {
+        let errorDetected = false;
+        if (node.id === nodeId && node?.data !== undefined) {
+
+          const updateWithParsed = (statement: StatementType, index: number) => {
+            const parsedOrError = evaluate(statement.value);
+            if(parsedOrError.kind === "Error") {
+              statement.syntaxCorrect = false;
+              errorDetected = true;
+              setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
+              setSyntaxError(true);
+              setParseSuccessful(false);
+            } else {
+              console.log(parsedOrError);
+              statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
+              statement.syntaxCorrect = true;
+            }
+            return statement;
+          };
+
+          const newGivens: StatementType[] = node.data.givens.map(updateWithParsed);
+          const newGoals: StatementType[] = node.data.goals.map(updateWithParsed);
+          const newProofSteps: StatementType[] = node.data.proofSteps.map(updateWithParsed);
+          node.data = {
+            ...node.data,
+            givens: newGivens,
+            proofSteps: newProofSteps,
+            goals: newGoals
+          }
+
+          if (!errorDetected) {
+            setSyntaxError(false);
+            setParseSuccessful(true);
+          }
+        }
+        return node;
+      }));
+    },
+    checkEdges: (nodeId: string) => {
+      // here we should get all incoming edges & nodes to nodeID
+      // use the proofSteps (maybe goals?) of the incoming nodes and the givens of nodeId
+      // to deduce whether the implication holds (using z3)
+      // if yes, set correctImplication = true and mark all edges + nodeId as true
+      let correctImplication = false;
+      setEdges(eds => {
+        setNodes(nds => { 
+
+          const incomingEdges = eds.filter((e) => e.target === nodeId);
+          // get all nodes that have incoming edge to nodeId
+          // should probably use getIncomers from reactflow
+          const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
+          const incomingNodes = nds.filter(node => incomingNodesIds.has(node.id))
+          const givens = incomingNodes.map(node => getResults(node)).reduce((acc,v) => acc.concat(v), [])
+          const exp_implications = nds.filter(node => node.id === nodeId)[0].data.givens
+          
+          // check that exp_implications follows from givens with z3
+          correctImplication = Math.random() > 0.5;
+
+          //set nodes
+          return nds.map((node) => {
+            if (node.id == nodeId) {
+              node.data = {
+                ...node.data,
+                correctImplication: correctImplication
+              }
+            }
+            return node;
+          });
+        });
+
+        //set edges
+        return eds.map((edge) => {
+          if (edge.target === nodeId) {
+            edge.type = correctImplication ? "checked" : "invalid";
+          }
+          return edge;
+        });
+      });
+    }
+  }
+
   const getResults = (node: Node) => {
     if (node.data.type === "statement") {
       return node.data.goals;
     } else if (node.data.type === "given") {
       return node.data.givens;
     } 
-  }
-
-  const checkEdges = (nodeId: string) => {
-    // here we should get all incoming edges & nodes to nodeID
-    // use the proofSteps (maybe goals?) of the incoming nodes and the givens of nodeId
-    // to deduce whether the implication holds (using z3)
-    // if yes, set correctImplication = true and mark all edges + nodeId as true
-    let correctImplication: boolean = false;
-    setEdges(eds => {
-      setNodes(nds => { 
-
-        const incomingEdges = eds.filter((e) => e.target === nodeId);
-        // get all nodes that have incoming edge to nodeId
-        // should probably use getIncomers from reactflow
-        const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
-        const incomingNodes = nds.filter(node => incomingNodesIds.has(node.id))
-        const givens = incomingNodes.map(node => getResults(node)).reduce((acc,v) => acc.concat(v), [])
-        const exp_implications = nds.filter(node => node.id === nodeId)[0].data.givens
-        
-        // check that exp_implications follows from givens with z3
-        correctImplication = Math.random() > 0.5;
-
-        //set nodes
-        return nds.map((node) => {
-          if (node.id == nodeId) {
-            node.data = {
-              ...node.data,
-              correctImplication: correctImplication
-            }
-          }
-        return node;
-      })})
-
-      //set edges
-      return eds.map((edge) => {
-        if (edge.target === nodeId) {
-          edge.type = correctImplication ? "checked" : "invalid";
-        }
-        return edge;
-      });
-      
-    })
   }
 
   const onConnect = useCallback(
@@ -114,190 +194,6 @@ function Flow() {
   const deleteNodeById = (id: string) => {
     setNodes(nds => nds.filter(node => node.id !== id));
   };
-
-  const updateGivens = (nodeId: string, statementIndex: number, statement: string) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        const newStatements = node.data.givens;
-        newStatements[statementIndex].value = statement;
-        newStatements[statementIndex].parsed = undefined;
-        node.data = {
-          ...node.data,
-          givens: newStatements,
-        };
-      }
-      return node;
-    }));
-  };
-
-  const updateGoals = (nodeId: string, statementIndex: number, statement: string) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        const newStatements = node.data.goals;
-        newStatements[statementIndex].value = statement;
-        newStatements[statementIndex].parsed = undefined;
-        node.data = {
-          ...node.data,
-          goals: newStatements,
-        };
-      }
-      return node;
-    }));
-  };
-
-  const updateProofSteps = (nodeId: string, statementIndex: number, statement: string) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        const newStatements = node.data.proofSteps;
-        newStatements[statementIndex].value = statement;
-        newStatements[statementIndex].parsed = undefined;
-        newStatements[statementIndex].syntaxCorrect = false;
-        node.data = {
-          ...node.data,
-          proofSteps: newStatements,
-        };
-      }
-      return node;
-    }));
-  };
-
-  const addGiven = (nodeId: string) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        node.data = {
-          ...node.data,
-          givens: [...node.data.givens, { value: '' }],
-        };
-      }
-      return node;
-    }));
-  }
-
-  const addGoal = (nodeId: string) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        node.data = {
-          ...node.data,
-          goals: [...node.data.goals, { value: '' }],
-        };
-      }
-      return node;
-    }));
-  }
-
-  const checkSyntax = (nodeId: string) => {
-    setNodes(nds => nds.map((node) => {
-      let errorDetected = false;
-      if (node.id === nodeId && node?.data !== undefined) {
-
-        const updateStatement = (statement: StatementType, index: number) => {
-          const parsedOrError = evaluate(statement.value);
-          if(parsedOrError.kind === "Error") {
-            statement.syntaxCorrect = false;
-            errorDetected = true;
-            setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
-            setSyntaxError(true);
-            setParseSuccessful(false);
-          } else {
-            console.log(parsedOrError);
-            statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
-            statement.syntaxCorrect = true;
-          }
-          return statement;
-        };
-
-        const newGivens: StatementType[] = node.data.givens.map(updateStatement);
-        const newGoals: StatementType[] = node.data.goals.map(updateStatement);
-        const newProofSteps: StatementType[] = node.data.proofSteps.map(updateStatement);
-        node.data = {
-          ...node.data,
-          givens: newGivens,
-          proofSteps: newProofSteps,
-          goals: newGoals
-        }
-
-        if (!errorDetected) {
-          setSyntaxError(false);
-          setParseSuccessful(true);
-        }
-      }
-      return node;
-    }));
-  }
-
-  const addProofStep = (nodeId: string) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        node.data = {
-          ...node.data,
-          proofSteps: [...node.data.proofSteps, { value: '' }],
-        };
-      }
-      return node;
-    }));
-  }
-
-  const getCurrStatements = (node: Node, t: ProofNodeTypes) => {
-    if (t === ProofNodeTypes.GIVEN) {
-      return node.data.givens;
-    } else if (t === ProofNodeTypes.PROOFSTEP){
-      return node.data.proofSteps; 
-    } else {
-      return node.data.goals
-    }
-  }
-
-  const addStatementAtIndex = (nodeId: string, index: number, t: ProofNodeTypes) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        const newStatements = getCurrStatements(node, t);
-        newStatements.splice(index, 0, { value: '' });
-        if (t === ProofNodeTypes.GIVEN) {
-          node.data = {
-            ...node.data,
-            givens: newStatements,
-          };
-        } else if (t === ProofNodeTypes.PROOFSTEP) {
-          node.data = {
-            ...node.data,
-            proofSteps: newStatements,
-          };
-        } else {
-          node.data = {
-            ...node.data,
-            goals: newStatements,
-          };
-        }
-      }
-      return node;
-    }));
-  }
-
-  const deleteStatementAtIndex = (nodeId: string, index: number, t: ProofNodeTypes) => {
-    setNodes(nds => nds.map((node) => {
-      if (node.id === nodeId) {
-        const newStatements = getCurrStatements(node, t);
-        newStatements.splice(index, 1);
-        if (t === ProofNodeTypes.GIVEN) {
-          node.data = {
-            ...node.data,
-            givens: newStatements,
-          };
-        } else if (t === ProofNodeTypes.PROOFSTEP) {
-          node.data = {
-            ...node.data,
-            proofSteps: newStatements,
-          };
-        } else {
-          node.data = {
-            ...node.data,
-            goals: newStatements,
-          };
-        }
-      }
-      return node;
-    }));
-  }
 
   const collided = (node1: Node, node2: Node): boolean => {
     const a: number = node1.position.x - node2.position.x;
@@ -336,16 +232,7 @@ function Flow() {
           givens: givens,
           proofSteps: proofSteps,
           goals: goals, 
-          updateGoals: updateGoals, 
-          addGoal: addGoal, 
-          updateGivens: updateGivens,
-          updateProofSteps: updateProofSteps,
-          addProofStep: addProofStep,
-          addGiven: addGiven,
-          addStatementAtIndex: addStatementAtIndex,
-          checkSyntax: checkSyntax,
-          checkEdges: checkEdges,
-          deleteStatementAtIndex: deleteStatementAtIndex,
+          ...nodeCallbacks
         },
         position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
@@ -370,16 +257,7 @@ function Flow() {
           givens: givens,
           proofSteps: proofSteps,
           goals: goals, 
-          updateGoals: updateGoals, 
-          addGoal: addGoal,
-          updateGivens: updateGivens,
-          updateProofSteps: updateProofSteps,
-          addProofStep: addProofStep,
-          addGiven: addGiven,
-          addStatementAtIndex: addStatementAtIndex,
-          checkSyntax: checkSyntax,
-          checkEdges: checkEdges,
-          deleteStatementAtIndex: deleteStatementAtIndex,
+          ...nodeCallbacks
         },
         position: { x: 300, y: 0 },
         type: 'textUpdater',
