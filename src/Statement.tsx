@@ -8,8 +8,9 @@ import {
   PopoverBody,
   PopoverArrow,
   PopoverCloseButton,
+  Tooltip,
 } from '@chakra-ui/react';
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
 import './Statement.css';
 import { useRef, useState } from "react";
 import { display } from "./AST";
@@ -58,11 +59,15 @@ const Statement = (props: StatementPropsType) => {
 
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
+  const reasonsLabel = statement.reasons && (statement.reasons.length === 0 ? 'lemma' : `from ${statement.reasons.map(r => `(${r})`).join(", ")}`)
 
   return (
     <div style={{display: 'flex'}}>
       <div style={{margin: 'auto 5px'}}>({index + 1})</div>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
+      {statement.reasons && <Tooltip label={reasonsLabel} fontSize='xs'>
+        <CheckIcon style={{margin: 'auto 5px'}}/>
+      </Tooltip>}
       {proofNode && moreOptions}
     </div>
   )
