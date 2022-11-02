@@ -160,7 +160,39 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
     if(a === undefined) {
         return "NULL";
     }
-    return "NULL"; // TODO: implement the rest of the function using the new AST types
+
+    switch (a.kind) {
+        case "Type": return `${a.ident}`;
+        case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${ASTSMTLIB2(a.retType)}`;
+        case "TypeExt": return `${ASTSMTLIB2(a.subType)} ⊆ ${ASTSMTLIB2(a.superType)}`;
+        case "FunctionDeclaration": return `${a.symbol} :: ${ASTSMTLIB2(a.type)}`;
+        case "VariableDeclaration": return `var ${a.symbol}` + (a.type ? `: ${ASTSMTLIB2(a.type)}` : "");
+        case "Variable": return `${a.ident}`;
+        case "FunctionApplication": {
+            const fn = a.fn;
+            switch (a.appType) {
+                case "PrefixFunc": return `${fn}(${a.params.map(d).join(", ")})`;
+                case "PrefixOp": return `(${fn})(${a.params.map(d).join(", ")})`;
+                case "InfixFunc": return `${ASTSMTLIB2(a.params[0])} \`${fn}\` ${ASTSMTLIB2(a.params[1])}`;
+                case "InfixOp": return `${ASTSMTLIB2(a.params[0])} ${fn} ${ASTSMTLIB2(a.params[1])}`;
+                case "UnaryFunc": return `$\`${fn}\` ${ASTSMTLIB2(a.params[0])}`;
+                case "UnaryOp": return `${fn} ${ASTSMTLIB2(a.params[0])}`;
+                case "ArrayElem": return `${ASTSMTLIB2(a.params[0])}[${ASTSMTLIB2(a.params[1])}]`;
+                case "ArraySlice": {
+                    const p1 = (a.params[1]) ? ASTSMTLIB2(a.params[1]) : "";
+                    const p2 = (a.params[2]) ? ASTSMTLIB2(a.params[2]) : "";
+                    return `${ASTSMTLIB2(a.params[0])}[${p1}..${p2})`;
+                }
+            }
+        }
+        case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(d).join(",")}).${ASTSMTLIB2(a.term)}`;
+        case "EquationTerm": return `${ASTSMTLIB2(a.lhs)} ::= ${ASTSMTLIB2(a.rhs)}`;
+        case "ParenTerm": return `[${ASTSMTLIB2(a.term)}]`;
+    }
+    
+    
+    
+    // TODO: implement the rest of the function using the new AST types
     /*
     switch (a.kind) {
         // case "Variable": return ""
