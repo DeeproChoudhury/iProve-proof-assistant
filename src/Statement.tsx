@@ -59,7 +59,7 @@ const Statement = (props: StatementPropsType) => {
 
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
-  const reasonsLabel = statement.reasons && `from ${statement.reasons.map(r => `(${r})`).join(", ")}`
+  const reasonsLabel = statement.reasons && (statement.reasons.length === 0 ? 'lemma' : `from ${statement.reasons.map(r => `(${r})`).join(", ")}`)
 
   return (
     <div style={{display: 'flex'}}>
