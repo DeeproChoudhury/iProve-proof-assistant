@@ -169,7 +169,7 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         case "VariableDeclaration": return `var ${a.symbol}` + (a.type ? `: ${ASTSMTLIB2(a.type)}` : "");
         case "Variable": return `${a.ident}`;
         case "FunctionApplication": {
-            const fn = a.fn;
+            const fn = fnSMT(a.fn);
             switch (a.appType) {
                 case "PrefixFunc": return `(${fn} ${a.params.map(d).join(" ")})`;
                 case "PrefixOp": return `(${fn} ${a.params.map(d).join(", ")})`;
