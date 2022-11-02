@@ -165,7 +165,7 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         case "Type": return `${a.ident}`;
         case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${ASTSMTLIB2(a.retType)}`;
         case "TypeExt": return `${ASTSMTLIB2(a.subType)} ⊆ ${ASTSMTLIB2(a.superType)}`;
-        case "FunctionDeclaration": return `${a.symbol} :: ${ASTSMTLIB2(a.type)}`;
+        case "FunctionDeclaration": return `declare fun ${a.symbol} ${ASTSMTLIB2(a.type)}`;
         case "VariableDeclaration": return `var ${a.symbol}` + (a.type ? `: ${ASTSMTLIB2(a.type)}` : "");
         case "Variable": return `${a.ident}`;
         case "FunctionApplication": {
