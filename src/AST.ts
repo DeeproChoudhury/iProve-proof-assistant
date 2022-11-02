@@ -171,10 +171,10 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         case "FunctionApplication": {
             const fn = a.fn;
             switch (a.appType) {
-                case "PrefixFunc": return `${fn}(${a.params.map(d).join(", ")})`;
-                case "PrefixOp": return `(${fn})(${a.params.map(d).join(", ")})`;
-                case "InfixFunc": return `${ASTSMTLIB2(a.params[0])} \`${fn}\` ${ASTSMTLIB2(a.params[1])}`;
-                case "InfixOp": return `${ASTSMTLIB2(a.params[0])} ${fn} ${ASTSMTLIB2(a.params[1])}`;
+                case "PrefixFunc": return `(${fn} ${a.params.map(d).join(" ")})`;
+                case "PrefixOp": return `(${fn} ${a.params.map(d).join(", ")})`;
+                case "InfixFunc": return `${fn} ${ASTSMTLIB2(a.params[0])} \`\` ${ASTSMTLIB2(a.params[1])}`;
+                case "InfixOp": return `${fn} ${ASTSMTLIB2(a.params[0])} ${ASTSMTLIB2(a.params[1])}`;
                 case "UnaryFunc": return `$\`${fn}\` ${ASTSMTLIB2(a.params[0])}`;
                 case "UnaryOp": return `${fn} ${ASTSMTLIB2(a.params[0])}`;
                 case "ArrayElem": return `${ASTSMTLIB2(a.params[0])}[${ASTSMTLIB2(a.params[1])}]`;
@@ -185,7 +185,7 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
                 }
             }
         }
-        case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(d).join(",")}).${ASTSMTLIB2(a.term)}`;
+        case "QuantifierApplication": return `${a.quantifier === "E" ? "exists" : "forall"}(${a.vars.map(d).join(" ")}).${ASTSMTLIB2(a.term)}`;
         case "EquationTerm": return `${ASTSMTLIB2(a.lhs)} ::= ${ASTSMTLIB2(a.rhs)}`;
         case "ParenTerm": return `[${ASTSMTLIB2(a.term)}]`;
     }
