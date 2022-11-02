@@ -78,8 +78,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         onSolveModalOpen();
         console.log(data.proofSteps);
         console.log(data.proofSteps.map(x => {
-          return ASTSMTLIB2(x.parsed);
-        }).join(" "));
+          return (x.parsed?.kind !== "FunctionDeclaration") ? `(assert ${ASTSMTLIB2(x.parsed)})` : ASTSMTLIB2(x.parsed);
+        }).join("\n"));
 
         // console.log(isSolveModalOpen);
         localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") 
