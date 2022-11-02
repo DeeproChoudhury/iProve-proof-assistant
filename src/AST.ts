@@ -115,7 +115,7 @@ function fnSMT(fn: string): string {
         case "&": return "and";
         case "|": return "or";
         case "^": return "xor";
-        case "->": return "=>";
+        case "->": return "implies";
         case "<->": return "=";
         default: return fn;
     }
@@ -159,6 +159,35 @@ export const display: (line: Line) => string = d
 export function ASTSMTLIB2(a: ASTNode | undefined) : string {
     if(a === undefined) {
         return "NULL";
+    }
+
+    switch (a.kind) {
+        case "Type": return a.ident;
+        case "FunctionType": return `(${a.argTypes.map(ASTSMTLIB2).join(", ")}) -> ${ASTSMTLIB2(a.retType)}`;
+        case "TypeExt": return `${ASTSMTLIB2(a.subType)} ⊆ ${ASTSMTLIB2(a.superType)}`;
+        case "FunctionDeclaration": return `${a.symbol} :: ${ASTSMTLIB2(a.type)}`;
+        case "VariableDeclaration": return `var ${ASTSMTLIB2(a.symbol)}` + (a.type ? `: ${ASTSMTLIB2(a.type)}` : "");
+        case "Variable": return a.ident;
+        case "FunctionApplication": {
+            const fn = fnSMT(a.fn);
+            switch (a.appType) {
+                case "PrefixFunc": return `(${fn} ${a.params.map(ASTSMTLIB2).join(" ")})`;
+                case "PrefixOp": return `(${fn} ${a.params.map(ASTSMTLIB2).join(", ")})`;
+                case "InfixFunc": return `${fn} ${ASTSMTLIB2(a.params[0])} \`\` ${ASTSMTLIB2(a.params[1])}`;
+                case "InfixOp": return `${fn} ${ASTSMTLIB2(a.params[0])}  ${ASTSMTLIB2(a.params[1])}`;
+                case "UnaryFunc": return `$\`${fn}\` ${ASTSMTLIB2(a.params[0])}`;
+                case "UnaryOp": return `${fn} ${ASTSMTLIB2(a.params[0])}`;
+                case "ArrayElem": return `${ASTSMTLIB2(a.params[0])}[${ASTSMTLIB2(a.params[1])}]`;
+                case "ArraySlice": {
+                    const p1 = (a.params[1]) ? ASTSMTLIB2(a.params[1]) : "";
+                    const p2 = (a.params[2]) ? ASTSMTLIB2(a.params[2]) : "";
+                    return `${ASTSMTLIB2(a.params[0])}[${p1}..${p2})`;
+                }
+            }
+        }
+        case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(ASTSMTLIB2).join(",")}).${ASTSMTLIB2(a.term)}`;
+        case "EquationTerm": return `${ASTSMTLIB2(a.lhs)} ::= ${ASTSMTLIB2(a.rhs)}`;
+        case "ParenTerm": return `[${ASTSMTLIB2(a.term)}]`;
     }
     return "NULL"; // TODO: implement the rest of the function using the new AST types
     /*
