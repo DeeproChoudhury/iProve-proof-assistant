@@ -26,8 +26,8 @@ import InvalidEdge from './InvalidEdge';
 import { Line } from './AST';
 
 type ErrorPosition = {
-    columnBegin: number;
-    statement: StatementType
+  columnBegin: number;
+  statement: StatementType
 }
 
 const initialNodes: Node<NodeData>[] = [];
@@ -44,20 +44,11 @@ function Flow() {
   const [parseSuccessful, setParseSuccessful] = useState(false);
   const [errorPosition, setErrorPosition] = useState<ErrorPosition | undefined>(undefined);
 
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
-  );
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
-  );
-
-  function forNodeWithId(nodeId: string, callback: (node: Node<NodeData>) => Node<NodeData>) {
-    setNodes(nds => nds.map((nd) => nd.id === nodeId ? callback(nd) : nd));
+  const forNodeWithId = (nodeId: string, callback: (node: Node<NodeData>, nodes: Node<NodeData>[]) => Node<NodeData>) => {
+    setNodes(nds => nds.map((nd) => nd.id === nodeId ? callback(nd, nds) : nd));
   }
 
-  function modifyStatementsForNode(nodeId: string, k: StatementKind, callback: (statements: StatementType[]) => StatementType[]) {
+  const modifyStatementsForNode = (nodeId: string, k: StatementKind, callback: (statements: StatementType[]) => StatementType[]) => {
     forNodeWithId(nodeId, node => {
       const fieldName = listField(k);
       return {
@@ -70,7 +61,24 @@ function Flow() {
     });
   }
 
+  const getResults = (node: Node<NodeData>): StatementType[] => {
+    switch (node.data.type) {
+      case "given": return node.data.givens;
+      case "statement": return node.data.goals;
+      case "goal": return [];
+    }
+  }
+
+  const collided = (node1: Node, node2: Node): boolean => {
+    const a: number = node1.position.x - node2.position.x;
+    const b: number = node1.position.y - node2.position.y;
+    return Math.sqrt(a * a + b * b) < 100;
+  }
+
   const nodeCallbacks = {
+    deleteNode: (nodeId: string) => {
+      setNodes(nds => nds.filter(node => node.id !== nodeId));
+    },
     updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => {
       modifyStatementsForNode(nodeId, k, statements => {
         statements[statementIndex].value = statement;
@@ -94,43 +102,40 @@ function Flow() {
       });
     },
     checkSyntax: (nodeId: string) => {
-      setNodes(nds => nds.map((node) => {
+      forNodeWithId(nodeId, node => {
+        if (!node.data) return node;
+
         let errorDetected = false;
-        if (node.id === nodeId && node?.data !== undefined) {
-
-          const updateWithParsed = (statement: StatementType, index: number) => {
-            const parsedOrError = evaluate(statement.value);
-            if(parsedOrError.kind === "Error") {
-              statement.syntaxCorrect = false;
-              errorDetected = true;
-              setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
-              setSyntaxError(true);
-              setParseSuccessful(false);
-            } else {
-              console.log(parsedOrError);
-              statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
-              statement.syntaxCorrect = true;
-            }
-            return statement;
-          };
-
-          const newGivens: StatementType[] = node.data.givens.map(updateWithParsed);
-          const newGoals: StatementType[] = node.data.goals.map(updateWithParsed);
-          const newProofSteps: StatementType[] = node.data.proofSteps.map(updateWithParsed);
-          node.data = {
-            ...node.data,
-            givens: newGivens,
-            proofSteps: newProofSteps,
-            goals: newGoals
+        const updateWithParsed = (statement: StatementType) => {
+          const parsedOrError = evaluate(statement.value);
+          if(parsedOrError.kind === "Error") {
+            statement.syntaxCorrect = false;
+            errorDetected = true;
+            setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
+            setSyntaxError(true);
+            setParseSuccessful(false);
+          } else {
+            console.log(parsedOrError);
+            statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
+            statement.syntaxCorrect = true;
           }
+          return statement;
+        };
 
-          if (!errorDetected) {
-            setSyntaxError(false);
-            setParseSuccessful(true);
-          }
+        if (!errorDetected) {
+          setSyntaxError(false);
+          setParseSuccessful(true);
         }
-        return node;
-      }));
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            givens: node.data.givens.map(updateWithParsed),
+            proofSteps: node.data.proofSteps.map(updateWithParsed),
+            goals: node.data.goals.map(updateWithParsed)
+          }
+        };
+      });
     },
     checkEdges: (nodeId: string) => {
       // here we should get all incoming edges & nodes to nodeID
@@ -139,29 +144,26 @@ function Flow() {
       // if yes, set correctImplication = true and mark all edges + nodeId as true
       let correctImplication = false;
       setEdges(eds => {
-        setNodes(nds => { 
-
+        forNodeWithId(nodeId, (node, nds) => {
           const incomingEdges = eds.filter((e) => e.target === nodeId);
           // get all nodes that have incoming edge to nodeId
           // should probably use getIncomers from reactflow
           const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
           const incomingNodes = nds.filter(node => incomingNodesIds.has(node.id))
-          const givens = incomingNodes.map(node => getResults(node)).reduce((acc,v) => acc.concat(v), [])
-          const exp_implications = nds.filter(node => node.id === nodeId)[0].data.givens
+          const givens = incomingNodes.map(node => getResults(node)).flat();
+          const exp_implications = node.data.givens;
           
           // check that exp_implications follows from givens with z3
           correctImplication = Math.random() > 0.5;
 
           //set nodes
-          return nds.map((node) => {
-            if (node.id == nodeId) {
-              node.data = {
-                ...node.data,
-                correctImplication: correctImplication
-              }
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              correctImplication
             }
-            return node;
-          });
+          };
         });
 
         //set edges
@@ -173,96 +175,71 @@ function Flow() {
         });
       });
     }
-  }
-
-  const getResults = (node: Node) => {
-    if (node.data.type === "statement") {
-      return node.data.goals;
-    } else if (node.data.type === "given") {
-      return node.data.givens;
-    } 
-  }
-
-  const onConnect = useCallback(
-    (params: Connection) => {
-      setEdges((eds) => addEdge({...params, 
-        type:"implication", 
-        id: `${params.source}-${params.target}`,
-      }, eds));
-    }, []);
-
-  const deleteNodeById = (id: string) => {
-    setNodes(nds => nds.filter(node => node.id !== id));
   };
+  
+  const flowCallbacks = {
+    onNodeDragStop: useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
+      if (node.data.type !== 'statement') return;
 
-  const collided = (node1: Node, node2: Node): boolean => {
-    const a: number = node1.position.x - node2.position.x;
-    const b: number = node1.position.y - node2.position.y;
-    return Math.sqrt(a * a + b * b) < 100;
-  }
-
-  const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
-    if (node.data.type !== 'statement') {
-      return;
-    }
-    const other: Node<NodeData> | undefined =
-      nodes.filter((other) => other.data.type === 'statement')
+      const other: Node<NodeData> | undefined = nodes
+        .filter((other) => other.data.type === 'statement')
         .find((other) => other.id !== node.id && collided(node, other));
-    if (other !== undefined) {
-      setNodes(nds => nds.filter(n => n.id !== node.id && n.id !== other.id));
-      let givens: StatementType[] = [];
-      let proofSteps: StatementType[] = [];
-      let goals: StatementType[] = []
-      if (node.position.y < other.position.y) {
-        givens = node.data.givens;
-        proofSteps = [...node.data.proofSteps, ...node.data.goals, ...other.data.givens, ...other.data.proofSteps];
-        goals = other.data.goals;
-      } else {
-        givens = other.data.givens;
-        proofSteps = [...other.data.proofSteps, ...other.data.goals, ...node.data.givens, ...node.data.proofSteps];
-        goals = node.data.goals;
-      }
-      setNodes(nds => [...nds, {
+
+      if (!other) return;
+
+      const [first, second] = node.position.y < other.position.y ? [node, other] : [other, node];
+      setNodes(nds => [...nds.filter(n => n.id !== node.id && n.id !== other.id), {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
-          delete: deleteNodeById,
           id: count,
           type: 'statement',
-          givens: givens,
-          proofSteps: proofSteps,
-          goals: goals, 
+          givens: first.data.givens,
+          proofSteps: [
+            ...first.data.proofSteps,
+            ...first.data.goals,
+            ...second.data.givens,
+            ...second.data.proofSteps
+          ],
+          goals: second.data.goals,
           ...nodeCallbacks
         },
         position: { x: other.position.x, y: other.position.y },
         type: 'textUpdater',
       }]);
       setCount(count + 1);
-    }
-  }, [nodes, count]);
+    }, [nodes, count]),
+    onNodesChange: useCallback(
+      (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+      []
+    ),
+    onEdgesChange: useCallback(
+      (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+      []
+    ),
+    onConnect: useCallback((params: Connection) => {
+      setEdges((eds) => addEdge({...params, 
+        type:"implication", 
+        id: `${params.source}-${params.target}`,
+      }, eds));
+    }, [])
+  };
 
-  const background = <Background />;
   const addNode = (nodeType: NodeType) => {
-    setNodes(nds => {
-      const givens = nodeType === 'statement' ? [] : [{ value: '' }];
-      const proofSteps: StatementType[] = [];
-      const goals = nodeType === 'statement' ? [{ value: '' }] : [];
-      return [...nds, {
-        id: `${count}`,
-        data: {
-          label: `Node ${count}`,
-          delete: deleteNodeById,
-          id: count,
-          type: nodeType,
-          givens: givens,
-          proofSteps: proofSteps,
-          goals: goals, 
-          ...nodeCallbacks
-        },
-        position: { x: 300, y: 0 },
-        type: 'textUpdater',
-      }]
-    });
+    setNodes(nds => [...nds, {
+      id: `${count}`,
+      data: {
+        label: `Node ${count}`,
+        id: count,
+        type: nodeType,
+        givens: nodeType === 'statement' ? [] : [{ value: '' }],
+        proofSteps: [],
+        goals: nodeType === 'statement' ? [{ value: '' }] : [], 
+        ...nodeCallbacks
+      },
+      position: { x: 300, y: 0 },
+      type: 'textUpdater',
+    }]);
     setCount(count + 1);
   };
 
@@ -311,14 +288,11 @@ function Flow() {
         <ReactFlow
           nodes={nodes}
           nodeTypes={nodeTypes}
-          onNodesChange={onNodesChange}
           edges={edges}
           edgeTypes={edgeTypes}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeDragStop={onNodeDragStop}
+          {...flowCallbacks}
         >
-          {background}
+          <Background />
           <Controls />
         </ReactFlow>
       </div>
