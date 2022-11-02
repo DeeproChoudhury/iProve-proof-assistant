@@ -28,13 +28,13 @@ export type StatementKind = "given" | "proofStep" | "goal";
 
 export type NodeData = Readonly<{
   label: string;
-  delete: (id: string) => void;
   id: number;
   type: NodeType;
   givens: StatementType[];
   proofSteps: StatementType[];
   goals: StatementType[];
   correctImplication?: boolean;
+  deleteNode: (nodeId: string) => void;
   updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => void;
   addStatement: (nodeId: string, k: StatementKind) => void;
   addStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => void;
@@ -97,7 +97,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <PopoverCloseButton />
         <PopoverHeader>Are you sure you want to delete?</PopoverHeader>
         <PopoverBody style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.delete(`${data.id}`) }}>Yes, I'm sure!</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.deleteNode(`${data.id}`) }}>Yes, I'm sure!</Button>
           <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
         </PopoverBody>
       </PopoverContent>
