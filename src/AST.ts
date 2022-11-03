@@ -183,4 +183,4 @@ export function s(a: ASTNode | undefined) : string {
     }
 }
 
-export const ASTSMTLIB2: (line: Line) => string = s;
+export const ASTSMTLIB2: (line: Line | undefined) => string = s;
