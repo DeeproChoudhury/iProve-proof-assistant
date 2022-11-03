@@ -296,6 +296,15 @@ function Flow() {
       }
       return updateWithParsed(declaration);
     }))
+    setNodes(nds => nds.map(node => {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          declarations: declarations
+        }
+      }
+    }));
   }
 
   return (
