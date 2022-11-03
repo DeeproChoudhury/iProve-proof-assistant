@@ -210,6 +210,7 @@ function Flow() {
             ...second.data.proofSteps
           ],
           goals: second.data.goals,
+          declarations: declarations,
           ...nodeCallbacks
         },
         position: { x: other.position.x, y: other.position.y },
@@ -242,6 +243,7 @@ function Flow() {
         type: nodeType,
         givens: nodeType === 'statement' ? [] : [{ value: '' }],
         proofSteps: [],
+        declarations: declarations,
         goals: nodeType === 'statement' ? [{ value: '' }] : [], 
         ...nodeCallbacks
       },

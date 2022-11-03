@@ -15,7 +15,7 @@ import { NodeData, StatementType } from './TextUpdaterNode';
 import './SolveNodeModal.css';
 import ModalStatement from './ModalStatement';
 import Z3Solver from './Solver';
-import { ASTNode, ASTSMTLIB2 } from './AST';
+import { ASTNode, ASTSMTLIB2, declareConstantASTSMTLIB2 } from './AST';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
@@ -61,16 +61,23 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
       setCheckFailed(true);
       return;
     }
+    const declarations = node.declarations.map(declaration => {
+      if (declaration.parsed?.kind === "VariableDeclaration") {
+        return declareConstantASTSMTLIB2(declaration.parsed);
+      }
+      return ASTSMTLIB2(declaration.parsed);
+    }).join("\n");
     const smtReasons = reasons.map(reason => {
       if (reason.parsed?.kind === "FunctionDeclaration" || reason.parsed?.kind === "VariableDeclaration") {
         return ASTSMTLIB2(reason.parsed);
       }
       return `(assert ${ASTSMTLIB2(reason.parsed)})`
     }).join("\n");
+    console.log(declarations);
     console.log(smtReasons);
     const smtConclusion = "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
     console.log(smtConclusion);
-    localZ3Solver.solve(smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
+    localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
       if (output == "unsat\n") {
         node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, reasonsIndexes)
       } else {

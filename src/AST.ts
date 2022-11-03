@@ -216,3 +216,13 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
     }
     */
 }
+
+export function declareConstantASTSMTLIB2(a: ASTNode | undefined): string {
+    if(a === undefined) {
+        return "NULL";
+    }
+    switch (a.kind) {
+        case "VariableDeclaration": return `(declare-const ${ASTSMTLIB2(a.symbol)} ${a.type ? `${ASTSMTLIB2(a.type)}` : "Int"})`;
+        default: return "NULL";
+    }
+}
