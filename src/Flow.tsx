@@ -24,6 +24,7 @@ import ImplicationEdge from './ImplicationEdge';
 import CheckedEdge from './CheckedEdge';
 import InvalidEdge from './InvalidEdge';
 import { Line } from './AST';
+import Declarations from './Declarations';
 
 type ErrorPosition = {
   columnBegin: number;
@@ -43,6 +44,7 @@ function Flow() {
   const [syntaxError, setSyntaxError] = useState(false);
   const [parseSuccessful, setParseSuccessful] = useState(false);
   const [errorPosition, setErrorPosition] = useState<ErrorPosition | undefined>(undefined);
+  const [declarations, setDeclarations] = useState<StatementType[]>([]);
 
   const forNodeWithId = (nodeId: string, callback: (node: Node<NodeData>, nodes: Node<NodeData>[]) => Node<NodeData>) => {
     setNodes(nds => nds.map((nd) => nd.id === nodeId ? callback(nd, nds) : nd));
@@ -249,6 +251,51 @@ function Flow() {
     setCount(count + 1);
   };
 
+  const addDeclaration = (index: number) => {
+    setDeclarations(decl => [...decl.slice(0, index), {value: ''}, ...decl.slice(index)]);
+  };
+
+  const deleteDeclaration = (index: number) => {
+    setDeclarations(decl => decl.filter((d, i) => i !== index))
+  };
+
+  const updateDeclaration = (index: number, declaration: string) => {
+    setDeclarations((decls) => decls.map((decl, i) => {
+      if (i === index) {
+       decl.value = declaration
+       decl.parsed = undefined; 
+      }
+      return decl;
+    }));
+  };
+
+  const checkDeclarationSyntax = () => {
+    setDeclarations(decls => decls.map((declaration, index) => {
+      let errorDetected = false;
+      const updateWithParsed = (statement: StatementType) => {
+        const parsedOrError = evaluate(statement.value);
+        if(parsedOrError.kind === "Error") {
+          statement.syntaxCorrect = false;
+          errorDetected = true;
+          setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
+          setSyntaxError(true);
+          setParseSuccessful(false);
+        } else {
+          console.log(parsedOrError);
+          statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
+          statement.syntaxCorrect = true;
+        }
+        return statement;
+      };
+
+      if (!errorDetected) {
+        setSyntaxError(false);
+        setParseSuccessful(true);
+      }
+      return updateWithParsed(declaration);
+    }))
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       <div className="alert-container">
@@ -285,11 +332,17 @@ function Flow() {
       </div>
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
         </Stack>
       </div>
+      <Declarations 
+        statements={declarations} 
+        addDeclaration={addDeclaration} 
+        deleteDeclaration={deleteDeclaration} 
+        updateDeclaration={updateDeclaration}
+        checkSyntax={checkDeclarationSyntax}/>
       <div style={{ height: '85vh', width: '100%' }}>
         <ReactFlow
           nodes={nodes}
