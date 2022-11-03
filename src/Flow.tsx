@@ -23,8 +23,9 @@ import { evaluate } from './fol-parser';
 import ImplicationEdge from './ImplicationEdge';
 import CheckedEdge from './CheckedEdge';
 import InvalidEdge from './InvalidEdge';
-import { Line } from './AST';
+import { ASTSMTLIB2, declareConstantASTSMTLIB2, Line } from './AST';
 import Declarations from './Declarations';
+import Z3Solver from './Solver';
 
 type ErrorPosition = {
   columnBegin: number;
@@ -45,8 +46,9 @@ function Flow() {
   const [parseSuccessful, setParseSuccessful] = useState(false);
   const [errorPosition, setErrorPosition] = useState<ErrorPosition | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
+  const localZ3Solver = new Z3Solver.Z3Prover("");
 
-  const forNodeWithId = (nodeId: string, callback: (node: Node<NodeData>, nodes: Node<NodeData>[]) => Node<NodeData>) => {
+  const forNodeWithId = async (nodeId: string, callback: (node: Node<NodeData>, nodes: Node<NodeData>[]) => Node<NodeData>) => {
     setNodes(nds => nds.map((nd) => nd.id === nodeId ? callback(nd, nds) : nd));
   }
 
@@ -151,37 +153,75 @@ function Flow() {
       // to deduce whether the implication holds (using z3)
       // if yes, set correctImplication = true and mark all edges + nodeId as true
       let correctImplication = false;
+      // TODO: Fix this
+      let currEdges: Edge<any>[] = [];
       setEdges(eds => {
-        forNodeWithId(nodeId, (node, nds) => {
-          const incomingEdges = eds.filter((e) => e.target === nodeId);
-          // get all nodes that have incoming edge to nodeId
-          // should probably use getIncomers from reactflow
-          const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
-          const incomingNodes = nds.filter(node => incomingNodesIds.has(node.id))
-          const givens = incomingNodes.map(node => getResults(node)).flat();
-          const exp_implications = node.data.givens;
-          
-          // check that exp_implications follows from givens with z3
-          correctImplication = Math.random() > 0.5;
-
-          //set nodes
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              correctImplication
-            }
-          };
-        });
-
-        //set edges
-        return eds.map((edge) => {
-          if (edge.target === nodeId) {
-            edge.type = correctImplication ? "checked" : "invalid";
-          }
-          return edge;
-        });
+        currEdges = eds;
+        return eds;
+      })
+      let currNodes: Node<any>[] = [];
+      let node: Node<any> | undefined;
+      setNodes(nds => {
+        currNodes = nds;
+        node = currNodes.find((n) => n.id === nodeId);
+        return nds;
       });
+      const incomingEdges = currEdges.filter((e) => e.target === nodeId);
+      // get all nodes that have incoming edge to nodeId
+      // should probably use getIncomers from reactflow
+      const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
+      const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
+      const givens = incomingNodes.map(node => getResults(node)).flat();
+      const exp_implications = node?.data.givens;
+      
+      // check that exp_implications follows from givens with z3
+      correctImplication = false;
+      console.log(node?.data.declarations);
+      const smtDeclarations = node?.data.declarations.map((declaration: StatementType) => {
+        if (declaration.parsed?.kind === "VariableDeclaration") {
+          return declareConstantASTSMTLIB2(declaration.parsed);
+        }
+        return ASTSMTLIB2(declaration.parsed);
+      }).join("\n");
+      const smtReasons = givens.map(given => {
+        if (given.parsed?.kind === "FunctionDeclaration" || given.parsed?.kind === "VariableDeclaration") {
+          return ASTSMTLIB2(given.parsed);
+        }
+        return `(assert ${ASTSMTLIB2(given.parsed)})`
+      }).join("\n");
+      console.log(smtDeclarations);
+      console.log(smtReasons);
+      const smtConclusions = exp_implications.map((conclusion: StatementType) => {
+        return "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
+      }).join("\n");
+      console.log(smtConclusions);
+      localZ3Solver.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)").then((output: string) => {
+        if (output == "unsat\n") {
+          correctImplication = true;
+        } else {
+          correctImplication = false;
+        }
+        setEdges(eds => {
+          forNodeWithId(nodeId, (node, nds) => {
+            //set nodes
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                correctImplication
+              }
+            };
+          });
+  
+          //set edges
+          return eds.map((edge) => {
+            if (edge.target === nodeId) {
+              edge.type = correctImplication ? "checked" : "invalid";
+            }
+            return edge;
+          });
+        });
+      })
     }
   };
   

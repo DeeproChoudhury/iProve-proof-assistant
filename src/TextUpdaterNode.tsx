@@ -139,6 +139,20 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     return (
       <Box className={componentStyle}>
         {targetHandle}
+        <div style={{display: 'flex', justifyContent: 'center'}}>
+        {data.correctImplication === undefined &&
+        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+          Check incoming implications
+        </Button>}
+        {data.correctImplication === true &&
+          <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+            Check passed. Check again?
+          </Button>}
+        {data.correctImplication === false &&
+          <Button colorScheme='red' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+            Check failed. Check again?
+          </Button>}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
           {data.givens.map((s: StatementType, index: number) =>
