@@ -34,6 +34,7 @@ export type NodeData = Readonly<{
   givens: StatementType[];
   proofSteps: StatementType[];
   goals: StatementType[];
+  declarations: StatementType[];
   correctImplication?: boolean;
   deleteNode: (nodeId: string) => void;
   updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => void;
@@ -82,9 +83,6 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         console.log(data.proofSteps.map(x => {
           return (x.parsed?.kind !== "FunctionDeclaration") ? `(assert ${ASTSMTLIB2(x.parsed)})` : ASTSMTLIB2(x.parsed);
         }).join("\n"));
-
-        // console.log(isSolveModalOpen);
-        localZ3Solver.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n") 
       }}>
       Solve
     </Button>;
@@ -105,7 +103,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       </PopoverContent>
     </Popover>
     
-  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals).every((s) => s.parsed !== undefined);
+  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarations).every((s) => s.parsed !== undefined);
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
       <PopoverTrigger>
@@ -141,6 +139,20 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     return (
       <Box className={componentStyle}>
         {targetHandle}
+        <div style={{display: 'flex', justifyContent: 'center'}}>
+        {data.correctImplication === undefined &&
+        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+          Check incoming implications
+        </Button>}
+        {data.correctImplication === true &&
+          <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+            Check passed. Check again?
+          </Button>}
+        {data.correctImplication === false &&
+          <Button colorScheme='red' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+            Check failed. Check again?
+          </Button>}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
           {data.givens.map((s: StatementType, index: number) =>

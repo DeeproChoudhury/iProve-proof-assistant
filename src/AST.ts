@@ -184,3 +184,13 @@ export function s(a: ASTNode | undefined) : string {
 }
 
 export const ASTSMTLIB2: (line: Line | undefined) => string = s;
+
+export function declareConstantASTSMTLIB2(a: ASTNode | undefined): string {
+    if(a === undefined) {
+        return "NULL";
+    }
+    switch (a.kind) {
+        case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `${s(a.type)}` : "Int"})`;
+        default: return "NULL";
+    }
+}

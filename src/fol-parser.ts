@@ -109,8 +109,8 @@ FN_DEC.setPattern(apply(
 ));
 VAR_DEC.setPattern(apply(
     seq(
-        kright(opt(str("var")), VARIABLE),
-        kright(str(":"), TYPE)),
+        kright(str("var"), VARIABLE),
+        opt(kright(str(":"), TYPE))),
     (value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration => {
         return { kind: "VariableDeclaration", symbol: value[0], type: value[1] }
     }
