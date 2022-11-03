@@ -23,7 +23,7 @@ import { evaluate } from './fol-parser';
 import ImplicationEdge from './ImplicationEdge';
 import CheckedEdge from './CheckedEdge';
 import InvalidEdge from './InvalidEdge';
-import { ASTSMTLIB2, declareConstantASTSMTLIB2, Line } from './AST';
+import { ASTSMTLIB2, Line } from './AST';
 import Declarations from './Declarations';
 import Z3Solver from './Solver';
 
@@ -178,9 +178,6 @@ function Flow() {
       correctImplication = false;
       console.log(node?.data.declarations);
       const smtDeclarations = node?.data.declarations.map((declaration: StatementType) => {
-        if (declaration.parsed?.kind === "VariableDeclaration") {
-          return declareConstantASTSMTLIB2(declaration.parsed);
-        }
         return ASTSMTLIB2(declaration.parsed);
       }).join("\n");
       const smtReasons = givens.map(given => {

@@ -15,7 +15,7 @@ import { NodeData, StatementType } from './TextUpdaterNode';
 import './SolveNodeModal.css';
 import ModalStatement from './ModalStatement';
 import Z3Solver from './Solver';
-import { ASTNode, ASTSMTLIB2, declareConstantASTSMTLIB2 } from './AST';
+import { ASTNode, ASTSMTLIB2 } from './AST';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
@@ -62,9 +62,6 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
       return;
     }
     const declarations = node.declarations.map(declaration => {
-      if (declaration.parsed?.kind === "VariableDeclaration") {
-        return declareConstantASTSMTLIB2(declaration.parsed);
-      }
       return ASTSMTLIB2(declaration.parsed);
     }).join("\n");
     const smtReasons = reasons.map(reason => {

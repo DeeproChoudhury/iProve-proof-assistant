@@ -88,7 +88,7 @@ export type ArraySlice = {
 export type QuantifierApplication = {
     kind: "QuantifierApplication",
     term: Term,
-    vars: VariableDeclaration[],
+    vars: VariableBinding[],
     quantifier: "E" | "A"
 }
 
@@ -132,7 +132,7 @@ function d(a: ASTNode): string {
         case "Type": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
         case "TypeExt": return `${d(a.subType)} ⊆ ${d(a.superType)}`;
-        case "VariableBinding": return a.symbol + (a.type ? `: ${d(a.type)}` : "");
+        case "VariableBinding": return s(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
         case "Variable": return a.ident;
@@ -171,7 +171,7 @@ export function s(a: ASTNode | undefined) : string {
     switch (a.kind) {
         case "Type": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
-        case "VariableBinding": return `(${a.symbol} ${a.type ? s(a.type) : "Int"})`;
+        case "VariableBinding": return `(${s(a.symbol)} ${a.type ? s(a.type) : "Int"})`;
         case "TypeExt": return `${s(a.subType)} ⊆ ${s(a.superType)}`;
         case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${s(a.type)})`;
         case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `: ${s(a.type)}` : "Int"})`;
@@ -184,13 +184,3 @@ export function s(a: ASTNode | undefined) : string {
 }
 
 export const ASTSMTLIB2: (line: Line | undefined) => string = s;
-
-export function declareConstantASTSMTLIB2(a: ASTNode | undefined): string {
-    if(a === undefined) {
-        return "NULL";
-    }
-    switch (a.kind) {
-        case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `${s(a.type)}` : "Int"})`;
-        default: return "NULL";
-    }
-}

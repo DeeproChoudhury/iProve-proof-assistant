@@ -46,6 +46,8 @@ const FN_DEC = rule<TokenKind, AST.FunctionDeclaration>();
 const VAR_DEC = rule<TokenKind, AST.VariableDeclaration>();
 const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
 
+const VAR_BIND = rule<TokenKind, AST.VariableBinding>();
+
 type AtomicTerm = AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable
 const ATOMIC_TERM = rule<TokenKind, AtomicTerm>();
 const PREFIX_APPLY = rule<TokenKind, AST.PrefixApplication>();
@@ -121,6 +123,13 @@ TYPE_EXT.setPattern(apply(
         TYPE),
     (value: [AST.Type, AST.Type]): AST.TypeExt => {
         return { kind: "TypeExt", subType: value[0], superType: value[1] }
+    }
+));
+
+VAR_BIND.setPattern(apply(
+    seq(VARIABLE, opt(kright(str(":"), TYPE))),
+    (value: [AST.Variable, AST.Type | undefined]): AST.VariableBinding => {
+        return { kind: "VariableBinding", symbol: value[0], type: value[1] }
     }
 ));
 
@@ -300,14 +309,14 @@ OPERATOR.setPattern(alt(
             tok(TokenKind.QntToken),
             alt(
                 kleft(list_sc(VARIABLE, str(",")), str(".")),
-                kmid(str("("), list_sc(VAR_DEC, str(",")), kleft(str(")"),str(".")))
+                kmid(str("("), list_sc(VAR_BIND, str(",")), kleft(str(")"),str(".")))
                 )
-        ), (value: [Token<TokenKind.QntToken>, AST.Variable[] | AST.VariableDeclaration[]]): UnaryOperator => {
-            let decs : AST.VariableDeclaration[] = [];
+        ), (value: [Token<TokenKind.QntToken>, AST.Variable[] | AST.VariableBinding[]]): UnaryOperator => {
+            let decs : AST.VariableBinding[] = [];
             for (let v of value[1]) {
                 switch (v.kind) {
-                    case "Variable": decs.push({kind: "VariableDeclaration", symbol: v }); break;
-                    case "VariableDeclaration": decs.push(v);
+                    case "Variable": decs.push({kind: "VariableBinding", symbol: v }); break;
+                    case "VariableBinding": decs.push(v);
                 }
             }
             return { 
