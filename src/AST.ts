@@ -187,7 +187,7 @@ export function ASTSMTLIB2(a: ASTNode | undefined) : string {
         }
         case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} ((${a.vars.map(ASTSMTLIB2).join(") (")})) ${ASTSMTLIB2(a.term)})`;
         case "EquationTerm": return `${ASTSMTLIB2(a.lhs)} ::= ${ASTSMTLIB2(a.rhs)}`;
-        case "ParenTerm": return `(${ASTSMTLIB2(a.term)})`;
+        case "ParenTerm": return `${ASTSMTLIB2(a.term)}`;
     }
     return "NULL"; // TODO: implement the rest of the function using the new AST types
     /*
