@@ -174,7 +174,7 @@ export function s(a: ASTNode | undefined) : string {
         case "VariableBinding": return `(${s(a.symbol)} ${a.type ? s(a.type) : "Int"})`;
         case "TypeExt": return `${s(a.subType)} ⊆ ${s(a.superType)}`;
         case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${s(a.type)})`;
-        case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `: ${s(a.type)}` : "Int"})`;
+        case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `${s(a.type)}` : "Int"})`;
         case "Variable": return a.ident;
         case "FunctionApplication": return `(${fnSMT(a.fn)} ${a.params.map(s).join(" ")})`;
         case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
