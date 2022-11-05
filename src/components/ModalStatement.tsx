@@ -1,7 +1,6 @@
-import { StatementType } from "./TextUpdaterNode";
 import { Box, Radio, RadioGroup, Stack } from '@chakra-ui/react'
-import { useState } from "react";
 import { display } from "../parser/AST";
+import { StatementType } from '../types/Statement';
 
 export type ModalStatementPropsType = {
   statement: StatementType;

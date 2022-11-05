@@ -11,11 +11,12 @@ import {
   Button,
   Tooltip,
 } from '@chakra-ui/react';
-import { NodeData, StatementType } from './TextUpdaterNode';
 import './SolveNodeModal.css';
 import ModalStatement from './ModalStatement';
 import Z3Solver from '../solver/Solver';
 import { ASTNode, ASTSMTLIB2 } from '../parser/AST';
+import { NodeData } from '../types/Node';
+import { StatementType } from '../types/Statement';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
@@ -61,7 +62,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
       setCheckFailed(true);
       return;
     }
-    const declarations = node.declarations.map(declaration => {
+    const declarations = node.declarationsRef.current.map(declaration => {
       return ASTSMTLIB2(declaration.parsed);
     }).join("\n");
     const smtReasons = reasons.map(reason => {
@@ -76,10 +77,10 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     console.log(smtConclusion);
     localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
       if (output == "unsat\n") {
-        node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, reasonsIndexes)
+        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, reasonsIndexes);
       } else {
-        node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, undefined)
-        setCheckFailed(true)
+        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, undefined);
+        setCheckFailed(true);
       }
     })
   }

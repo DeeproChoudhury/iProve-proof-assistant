@@ -1,331 +1,59 @@
-import { useState, useCallback } from 'react';
-import { Alert, Button, Stack, AlertIcon, AlertTitle, AlertDescription, IconButton, GlobalStyle } from '@chakra-ui/react'
+import { CloseIcon } from '@chakra-ui/icons';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, IconButton, Stack } from '@chakra-ui/react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
-  Controls,
-  Background,
-  applyNodeChanges,
-  applyEdgeChanges,
-  addEdge,
-  Node,
-  Edge,
-  NodeChange,
-  EdgeChange,
-  Connection,
+  Background, Controls, Edge, Node
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import TextUpdaterNode, { StatementKind, NodeData, NodeType, StatementType, listField } from './TextUpdaterNode';
-
-import './TextUpdaterNode.css';
-import './Flow.css';
-import { CloseIcon } from '@chakra-ui/icons';
-import { evaluate } from '../parser/fol-parser';
-
-import ImplicationEdge from './edges/ImplicationEdge';
-import CheckedEdge from './edges/CheckedEdge';
-import InvalidEdge from './edges/InvalidEdge';
-import { ASTSMTLIB2, Line } from '../parser/AST';
-import Declarations from './Declarations';
+import { makeDeclarationCallbacks } from '../callbacks/declarationsCallbacks';
+import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
+import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../solver/Solver';
+import { ErrorLocation } from '../types/ErrorLocation';
+import { NodeData, NodeType } from '../types/Node';
+import { StatementType } from '../types/Statement';
+import Declarations from './Declarations';
+import CheckedEdge from './edges/CheckedEdge';
+import ImplicationEdge from './edges/ImplicationEdge';
+import InvalidEdge from './edges/InvalidEdge';
+import './Flow.css';
+import TextUpdaterNode from './TextUpdaterNode';
+import './TextUpdaterNode.css';
 
-type ErrorPosition = {
-  columnBegin: number;
-  statement: StatementType
-}
-
-const initialNodes: Node<NodeData>[] = [];
-
-const initialEdges: Edge[] = [];
 const nodeTypes = { textUpdater: TextUpdaterNode };
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge};
 
 function Flow() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+  const [nodes, setNodes] = useState<Node<NodeData>[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
-  const [syntaxError, setSyntaxError] = useState(false);
-  const [parseSuccessful, setParseSuccessful] = useState(false);
-  const [errorPosition, setErrorPosition] = useState<ErrorPosition | undefined>(undefined);
+  const [error, setError] = useState<ErrorLocation | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const localZ3Solver = new Z3Solver.Z3Prover("");
 
-  const forNodeWithId = async (nodeId: string, callback: (node: Node<NodeData>, nodes: Node<NodeData>[]) => Node<NodeData>) => {
-    setNodes(nds => nds.map((nd) => nd.id === nodeId ? callback(nd, nds) : nd));
-  }
+  // update refs everytime this hook runs
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const edgesRef = useRef(edges);
+  edgesRef.current = edges;
+  const declarationsRef = useRef(declarations);  
+  declarationsRef.current = declarations;
 
-  const modifyStatementsForNode = (nodeId: string, k: StatementKind, callback: (statements: StatementType[]) => StatementType[]) => {
-    forNodeWithId(nodeId, node => {
-      const fieldName = listField(k);
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          [fieldName]: callback(node.data[fieldName])
-        }
-      }
-    });
-  }
+  const resetError = () => setError(undefined);
 
-  const getResults = (node: Node<NodeData>): StatementType[] => {
-    switch (node.data.type) {
-      case "given": return node.data.givens;
-      case "statement": return node.data.goals;
-      case "goal": return [];
-    }
-  }
+  const nextId = useCallback(() => {
+    setCount(count + 1);
+    return count;
+  }, [count]);
 
-  const collided = (node1: Node, node2: Node): boolean => {
-    const a: number = node1.position.x - node2.position.x;
-    const b: number = node1.position.y - node2.position.y;
-    return Math.sqrt(a * a + b * b) < 100;
-  }
+  const makeThisNode = useCallback(makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
 
-  const nodeCallbacks = {
-    deleteNode: (nodeId: string) => {
-      setNodes(nds => nds.filter(node => node.id !== nodeId));
-    },
-    updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => {
-      modifyStatementsForNode(nodeId, k, statements => {
-        statements[statementIndex].value = statement;
-        statements[statementIndex].parsed = undefined;
-        return statements;
-      });
-    },
-    addReasonsToStatement: (nodeId: string, k: StatementKind, statementIndex: number, reasons?: number[]) => {
-      modifyStatementsForNode(nodeId, k, statements => {
-        statements[statementIndex].reasons = reasons;
-        return statements;
-      });
-    },
-    addStatement: (nodeId: string, k: StatementKind) => {
-      modifyStatementsForNode(nodeId, k, statements => [...statements, {value: ""}]);
-    },
-    addStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => {
-      modifyStatementsForNode(nodeId, k, statements => {
-        statements.splice(index, 0, { value: '' });
-        return statements;
-      });
-    },
-    deleteStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => {
-      modifyStatementsForNode(nodeId, k, statements => {
-        statements.splice(index, 1);
-        return statements;
-      });
-    },
-    checkSyntax: (nodeId: string) => {
-      forNodeWithId(nodeId, node => {
-        if (!node.data) return node;
+  const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
 
-        let errorDetected = false;
-        const updateWithParsed = (statement: StatementType) => {
-          const parsedOrError = evaluate(statement.value);
-          if(parsedOrError.kind === "Error") {
-            statement.syntaxCorrect = false;
-            errorDetected = true;
-            setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
-            setSyntaxError(true);
-            setParseSuccessful(false);
-          } else {
-            console.log(parsedOrError);
-            statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
-            statement.syntaxCorrect = true;
-          }
-          return statement;
-        };
+  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, setNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
 
-        if (!errorDetected) {
-          setSyntaxError(false);
-          setParseSuccessful(true);
-        }
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            givens: node.data.givens.map(updateWithParsed),
-            proofSteps: node.data.proofSteps.map(updateWithParsed),
-            goals: node.data.goals.map(updateWithParsed)
-          }
-        };
-      });
-    },
-    checkEdges: (nodeId: string) => {
-      // here we should get all incoming edges & nodes to nodeID
-      // use the proofSteps (maybe goals?) of the incoming nodes and the givens of nodeId
-      // to deduce whether the implication holds (using z3)
-      // if yes, set correctImplication = true and mark all edges + nodeId as true
-      let correctImplication = false;
-      // TODO: Fix this
-      let currEdges: Edge<any>[] = [];
-      setEdges(eds => {
-        currEdges = eds;
-        return eds;
-      })
-      let currNodes: Node<any>[] = [];
-      let node: Node<any> | undefined;
-      setNodes(nds => {
-        currNodes = nds;
-        node = currNodes.find((n) => n.id === nodeId);
-        return nds;
-      });
-      const incomingEdges = currEdges.filter((e) => e.target === nodeId);
-      // get all nodes that have incoming edge to nodeId
-      // should probably use getIncomers from reactflow
-      const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
-      const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
-      const givens = incomingNodes.map(node => getResults(node)).flat();
-      const exp_implications = node?.data.givens;
-      
-      // check that exp_implications follows from givens with z3
-      correctImplication = false;
-      console.log(node?.data.declarations);
-      const smtDeclarations = node?.data.declarations.map((declaration: StatementType) => {
-        return ASTSMTLIB2(declaration.parsed);
-      }).join("\n");
-      const smtReasons = givens.map(given => {
-        if (given.parsed?.kind === "FunctionDeclaration" || given.parsed?.kind === "VariableDeclaration") {
-          return ASTSMTLIB2(given.parsed);
-        }
-        return `(assert ${ASTSMTLIB2(given.parsed)})`
-      }).join("\n");
-      console.log(smtDeclarations);
-      console.log(smtReasons);
-      const smtConclusions = exp_implications.map((conclusion: StatementType) => {
-        return "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
-      }).join("\n");
-      console.log(smtConclusions);
-      localZ3Solver.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)").then((output: string) => {
-        if (output == "unsat\n") {
-          correctImplication = true;
-        } else {
-          correctImplication = false;
-        }
-        setEdges(eds => {
-          forNodeWithId(nodeId, (node, nds) => {
-            //set nodes
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                correctImplication
-              }
-            };
-          });
-  
-          //set edges
-          return eds.map((edge) => {
-            if (edge.target === nodeId) {
-              edge.type = correctImplication ? "checked" : "invalid";
-            }
-            return edge;
-          });
-        });
-      })
-    }
-  };
-
-  const declarationCallbacks = {
-    addDeclaration: (index: number) => {
-      setDeclarations(decl => [...decl.slice(0, index), {value: ''}, ...decl.slice(index)]);
-    },
-    deleteDeclaration: (index: number) => {
-      setDeclarations(decl => decl.filter((d, i) => i !== index))
-    },
-    updateDeclaration: (index: number, declaration: string) => {
-      setDeclarations((decls) => decls.map((decl, i) => {
-        if (i === index) {
-         decl.value = declaration
-         decl.parsed = undefined; 
-        }
-        return decl;
-      }));
-    },
-    checkSyntax: () => {
-      setDeclarations(decls => decls.map((declaration, index) => {
-        let errorDetected = false;
-        const updateWithParsed = (statement: StatementType) => {
-          const parsedOrError = evaluate(statement.value);
-          if(parsedOrError.kind === "Error") {
-            statement.syntaxCorrect = false;
-            errorDetected = true;
-            setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
-            setSyntaxError(true);
-            setParseSuccessful(false);
-          } else {
-            console.log(parsedOrError);
-            statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
-            statement.syntaxCorrect = true;
-          }
-          return statement;
-        };
-  
-        if (!errorDetected) {
-          setSyntaxError(false);
-          setParseSuccessful(true);
-        }
-        return updateWithParsed(declaration);
-      }))
-      setNodes(nds => nds.map(node => {
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            declarations: declarations
-          }
-        }
-      }));
-    }
-  }
-  
-  const flowCallbacks = {
-    onNodeDragStop: useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
-      if (node.data.type !== 'statement') return;
-
-      const other: Node<NodeData> | undefined = nodes
-        .filter((other) => other.data.type === 'statement')
-        .find((other) => other.id !== node.id && collided(node, other));
-
-      if (!other) return;
-
-      const [first, second] = node.position.y < other.position.y ? [node, other] : [other, node];
-      setNodes(nds => [...nds.filter(n => n.id !== node.id && n.id !== other.id), {
-        id: `${count}`,
-        data: {
-          label: `Node ${count}`,
-          id: count,
-          type: 'statement',
-          givens: first.data.givens,
-          proofSteps: [
-            ...first.data.proofSteps,
-            ...first.data.goals,
-            ...second.data.givens,
-            ...second.data.proofSteps
-          ],
-          goals: second.data.goals,
-          declarations: declarations,
-          ...nodeCallbacks
-        },
-        position: { x: other.position.x, y: other.position.y },
-        type: 'textUpdater',
-      }]);
-      setCount(count + 1);
-    }, [nodes, count]),
-    onNodesChange: useCallback(
-      (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
-      []
-    ),
-    onEdgesChange: useCallback(
-      (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-      []
-    ),
-    onConnect: useCallback((params: Connection) => {
-      setEdges((eds) => addEdge({...params, 
-        type:"implication", 
-        id: `${params.source}-${params.target}`,
-      }, eds));
-    }, []),
-    // onKeyDown: useCallback(() => {})
-  };
-
-  const addNode = (nodeType: NodeType) => {
+  const addNode = useCallback((nodeType: NodeType) => {
+    const count = nextId();
     setNodes(nds => [...nds, {
       id: `${count}`,
       data: {
@@ -334,46 +62,32 @@ function Flow() {
         type: nodeType,
         givens: nodeType === 'statement' ? [] : [{ value: '' }],
         proofSteps: [],
-        declarations: declarations,
         goals: nodeType === 'statement' ? [{ value: '' }] : [], 
-        ...nodeCallbacks
+        declarationsRef,
+        thisNode: makeThisNode(`${count}`)
       },
       position: { x: 300, y: 0 },
       type: 'textUpdater',
     }]);
-    setCount(count + 1);
-  };
+  }, [nextId]);
 
   return (
     <div style={{ position: 'relative' }}>
       <div className="alert-container">
-        {syntaxError && <Alert status='error' className="alert">
+        {error && <Alert status='error' className="alert">
           <AlertIcon />
           <AlertTitle>Error!</AlertTitle>
           <AlertDescription>
-            {errorPosition === undefined ?
-              "Parsing for the last node failed. Check your syntax!" :
-              `Parsing for the last node failed. Error begins at column ${errorPosition.columnBegin}, from "${errorPosition.statement.value}"`}
+            {error.column ?
+              `Parsing for the last node failed. Error begins at column ${error.column}, from "${error.statement.value}"` : 
+              "Parsing for the last node failed. Check your syntax!"
+            }
           </AlertDescription>
           <IconButton
             variant='outline'
             aria-label='Add given'
             size='xs'
-            onClick={() => { setSyntaxError(false) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-        {!syntaxError && parseSuccessful && <Alert status='success' className="alert">
-          <AlertIcon />
-          <AlertTitle>Success!</AlertTitle>
-          <AlertDescription>
-            Parsing for current node was successful!
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setParseSuccessful(false) }}
+            onClick={() => { resetError() }}
             icon={<CloseIcon />}
           />
         </Alert>}
@@ -385,9 +99,9 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
         </Stack>
       </div>
-      <Declarations 
+      <Declarations
         statements={declarations} 
-        {...declarationCallbacks}/>
+        {...declarationsCallbacks}/>
       <div style={{ height: '85vh', width: '100%' }}>
         <ReactFlow
           nodes={nodes}
