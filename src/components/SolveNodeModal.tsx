@@ -14,8 +14,8 @@ import {
 import { NodeData, StatementType } from './TextUpdaterNode';
 import './SolveNodeModal.css';
 import ModalStatement from './ModalStatement';
-import Z3Solver from './Solver';
-import { ASTNode, ASTSMTLIB2 } from './AST';
+import Z3Solver from '../solver/Solver';
+import { ASTNode, ASTSMTLIB2 } from '../parser/AST';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,

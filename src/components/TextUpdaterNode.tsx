@@ -11,9 +11,9 @@ import {
   PopoverCloseButton,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
-import Z3Solver from './Solver';
+import Z3Solver from '../solver/Solver';
 import Statement from './Statement';
-import { ASTSMTLIB2, Line } from './AST';
+import { ASTSMTLIB2, Line } from '../parser/AST';
 import SolveNodeModal from './SolveNodeModal';
 
 export type NodeType = "statement" | "given" | "goal";

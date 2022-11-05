@@ -18,14 +18,14 @@ import TextUpdaterNode, { StatementKind, NodeData, NodeType, StatementType, list
 import './TextUpdaterNode.css';
 import './Flow.css';
 import { CloseIcon } from '@chakra-ui/icons';
-import { evaluate } from './fol-parser';
+import { evaluate } from '../parser/fol-parser';
 
-import ImplicationEdge from './ImplicationEdge';
-import CheckedEdge from './CheckedEdge';
-import InvalidEdge from './InvalidEdge';
-import { ASTSMTLIB2, Line } from './AST';
+import ImplicationEdge from './edges/ImplicationEdge';
+import CheckedEdge from './edges/CheckedEdge';
+import InvalidEdge from './edges/InvalidEdge';
+import { ASTSMTLIB2, Line } from '../parser/AST';
 import Declarations from './Declarations';
-import Z3Solver from './Solver';
+import Z3Solver from '../solver/Solver';
 
 type ErrorPosition = {
   columnBegin: number;

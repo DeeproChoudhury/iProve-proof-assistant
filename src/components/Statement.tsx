@@ -13,7 +13,7 @@ import {
 import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
 import './Statement.css';
 import { useRef, useState } from "react";
-import { display } from "./AST";
+import { display } from "../parser/AST";
 
 export type StatementPropsType = {
   statement: StatementType;
