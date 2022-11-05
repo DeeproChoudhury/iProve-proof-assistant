@@ -28,7 +28,10 @@ export default function ImplicationEdge({
     <>
       <path
         id={id}
-        style={style}
+        style={{
+          stroke: "black",
+          strokeWidth : 5
+        }}
         className="react-flow__edge-path"
         d={edgePath}
         markerEnd={markerEnd}

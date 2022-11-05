@@ -398,7 +398,7 @@ function Flow() {
           nodeTypes={nodeTypes}
           edges={edges}
           edgeTypes={edgeTypes}
-          disableKeyboardA11y={true}
+          disableKeyboardA11y={true} // disable keyboard movemement
           {...flowCallbacks}
         >
           <Background />
