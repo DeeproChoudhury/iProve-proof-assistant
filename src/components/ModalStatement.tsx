@@ -1,4 +1,4 @@
-import { Box, Radio, RadioGroup, Stack } from '@chakra-ui/react'
+import { Box, Radio, RadioGroup } from '@chakra-ui/react';
 import { display } from "../parser/AST";
 import { StatementType } from '../types/Statement';
 

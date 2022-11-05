@@ -25,14 +25,14 @@ enum TokenKind {
 
 const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
-    [true, /^(\:\:\=)/g, TokenKind.DirEqToken],
+    [true, /^(::=)/g, TokenKind.DirEqToken],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
-    [true, /^(\:\:)/g, TokenKind.DoubleColon],
+    [true, /^(::)/g, TokenKind.DoubleColon],
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
     [true, /^(\w|\d)+/g, TokenKind.Symbol],
-    [true, /^(\+|\-|\=|\>|\<|\/|\.|\*|\!|\&|\||\~)+/g, TokenKind.InfixSymbol],
+    [true, /^(\+|-|=|>|<|\/|\.|\*|!|&|\||~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
 ]);
@@ -146,7 +146,7 @@ PREFIX_APPLY.setPattern(apply(
             kind: "FunctionApplication",
             fn: value[0].text,
             params: value[1],
-            appType: (value[0].kind == TokenKind.Symbol) ? "PrefixFunc" : "PrefixOp"
+            appType: (value[0].kind === TokenKind.Symbol) ? "PrefixFunc" : "PrefixOp"
          }
     }
 ));
@@ -227,7 +227,7 @@ TERM.setPattern(
                         while (stack_top) {
                             //console.log("HERE 2", stack_top);
                             let overrule = stack_top.precedence > token.precedence
-                                || (stack_top.precedence == token.precedence && token.left_assoc)
+                                || (stack_top.precedence === token.precedence && token.left_assoc)
                             if (!overrule) { op_stack.push(stack_top); break;}
                             //console.log("HERE", stack_top);
 
@@ -242,6 +242,7 @@ TERM.setPattern(
                                     let x = out_stack.pop();
                                     if (!x || !y) throw new Error("Syntax Error: Expected 2 arguments, got 1 or none");
                                     out_stack.push(stack_top.apply(x, y));
+                                    break;
                                 } case "End": { }
                             }
                             stack_top = op_stack.pop();
@@ -261,7 +262,7 @@ TERM.setPattern(
                     }
                 }
             }
-            if (out_stack.length != 1) throw new Error("Syntax Error: Cannot apply Term to Term");
+            if (out_stack.length !== 1) throw new Error("Syntax Error: Cannot apply Term to Term");
             return out_stack[0];
         })
 );
@@ -282,7 +283,7 @@ OPERATOR.setPattern(alt(
                 apply: (x: AST.Term, y: AST.Term): AST.Term => {
                     return {
                         kind: "FunctionApplication",
-                        appType: (value.kind == TokenKind.InfixSymbol) ? "InfixOp" : "InfixFunc",
+                        appType: (value.kind === TokenKind.InfixSymbol) ? "InfixOp" : "InfixFunc",
                         fn: value.text,
                         params: [x, y]
                     };
@@ -296,7 +297,7 @@ OPERATOR.setPattern(alt(
                 apply: (t: AST.Term): AST.Term => {
                     return {
                         kind: "FunctionApplication",
-                        appType: (value.kind == TokenKind.InfixSymbol) ? "UnaryOp" : "UnaryFunc",
+                        appType: (value.kind === TokenKind.InfixSymbol) ? "UnaryOp" : "UnaryFunc",
                         fn: value.text,
                         params: [t]
                     };
@@ -329,7 +330,7 @@ OPERATOR.setPattern(alt(
                         kind: "QuantifierApplication",
                         term: t,
                         vars: decs,
-                        quantifier: (value[0].text == "FA") ? "A" : "E"
+                        quantifier: (value[0].text === "FA") ? "A" : "E"
                     };
                 } }
         }

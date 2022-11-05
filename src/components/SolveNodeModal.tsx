@@ -1,22 +1,14 @@
-import React, { useState } from 'react';
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Text,
-  Button,
-  Tooltip,
+  Button, Modal, ModalBody,
+  ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Tooltip
 } from '@chakra-ui/react';
-import './SolveNodeModal.css';
-import ModalStatement from './ModalStatement';
+import { useState } from 'react';
+import { ASTSMTLIB2 } from '../parser/AST';
 import Z3Solver from '../solver/Solver';
-import { ASTNode, ASTSMTLIB2 } from '../parser/AST';
 import { NodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
+import ModalStatement from './ModalStatement';
+import './SolveNodeModal.css';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
@@ -31,7 +23,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
 
   const onChange = (v: string, index: number) => {
     setTags(tags => tags.map((t, i) => {
-      if (t == '2' && v === '2') {
+      if (t === '2' && v === '2') {
         return '0';
       }
       if (i === index) {
@@ -76,7 +68,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     const smtConclusion = "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
     console.log(smtConclusion);
     localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
-      if (output == "unsat\n") {
+      if (output === "unsat\n") {
         node.thisNode.statementList(conclusionType).addReason(conclusionIndex, reasonsIndexes);
       } else {
         node.thisNode.statementList(conclusionType).addReason(conclusionIndex, undefined);

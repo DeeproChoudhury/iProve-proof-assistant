@@ -46,7 +46,7 @@ function Flow() {
     return count;
   }, [count]);
 
-  const makeThisNode = useCallback(makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
 
@@ -69,7 +69,7 @@ function Flow() {
       position: { x: 300, y: 0 },
       type: 'textUpdater',
     }]);
-  }, [nextId]);
+  }, [nextId, makeThisNode]);
 
   return (
     <div style={{ position: 'relative' }}>

@@ -34,7 +34,6 @@ const App = () => {
               <div className='graph'>
                 <Flow />
               </div>
-              <Z3Solver.useZ3Button />
             </div>)
 
         }

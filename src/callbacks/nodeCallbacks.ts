@@ -84,7 +84,7 @@ export const makeNodeCallbacks = (
       }).join("\n");
       console.log(smtConclusions);
       z3.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)").then((output: string) => {
-        if (output == "unsat\n") {
+        if (output === "unsat\n") {
           correctImplication = true;
         } else {
           correctImplication = false;
