@@ -30,7 +30,10 @@ export default function CheckedEdge({
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        style={{stroke: "green"}}
+        style={{
+          stroke: "green",
+          strokeWidth: 5,
+        }}
         markerEnd={markerEnd}
       />
     </>

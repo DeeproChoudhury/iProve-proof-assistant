@@ -30,7 +30,10 @@ export default function InvalidEdge({
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        style={{stroke: "red"}}
+        style={{
+          stroke: "red",
+          strokeWidth: 5,
+        }}
         markerEnd={markerEnd}
       />
     </>
