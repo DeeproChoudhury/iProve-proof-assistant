@@ -271,7 +271,8 @@ function Flow() {
         type:"implication", 
         id: `${params.source}-${params.target}`,
       }, eds));
-    }, [])
+    }, []),
+    // onKeyDown: useCallback(() => {})
   };
 
   const addNode = (nodeType: NodeType) => {
@@ -400,6 +401,7 @@ function Flow() {
           nodeTypes={nodeTypes}
           edges={edges}
           edgeTypes={edgeTypes}
+          disableKeyboardA11y={true}
           {...flowCallbacks}
         >
           <Background />
