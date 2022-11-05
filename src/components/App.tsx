@@ -16,17 +16,7 @@ const App = () => {
   return (
     <ChakraProvider>
       <div className="graph_header_container">
-        {loading === false ? (
-          <div style={{ backgroundColor: '#B8CEFF' }}>
-            <div className='header'>
-              iProve
-            </div>
-            <div className='graph'>
-              <Flow />
-            </div>
-            <Z3Solver.useZ3Button />
-          </div>)
-          : (
+        {loading ? (
             <div className="loading">
               <Spinner
                 thickness='4px'
@@ -35,6 +25,16 @@ const App = () => {
                 color='#B8CEFF'
                 size='xl'
               />
+            </div>)
+          : (
+            <div style={{ backgroundColor: '#B8CEFF' }}>
+              <div className='header'>
+                iProve
+              </div>
+              <div className='graph'>
+                <Flow />
+              </div>
+              <Z3Solver.useZ3Button />
             </div>)
 
         }

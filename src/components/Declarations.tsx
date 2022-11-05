@@ -1,6 +1,6 @@
 import { AddIcon } from "@chakra-ui/icons";
 import { Box, Button, IconButton, Text } from "@chakra-ui/react";
-import { ReactNode, useCallback, useRef, useState } from "react";
+import { ReactNode } from "react";
 import Statement from "./Statement";
 import { StatementType } from "./TextUpdaterNode";
 import './Declarations.css';

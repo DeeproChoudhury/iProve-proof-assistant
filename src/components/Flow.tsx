@@ -221,6 +221,59 @@ function Flow() {
       })
     }
   };
+
+  const declarationCallbacks = {
+    addDeclaration: (index: number) => {
+      setDeclarations(decl => [...decl.slice(0, index), {value: ''}, ...decl.slice(index)]);
+    },
+    deleteDeclaration: (index: number) => {
+      setDeclarations(decl => decl.filter((d, i) => i !== index))
+    },
+    updateDeclaration: (index: number, declaration: string) => {
+      setDeclarations((decls) => decls.map((decl, i) => {
+        if (i === index) {
+         decl.value = declaration
+         decl.parsed = undefined; 
+        }
+        return decl;
+      }));
+    },
+    checkSyntax: () => {
+      setDeclarations(decls => decls.map((declaration, index) => {
+        let errorDetected = false;
+        const updateWithParsed = (statement: StatementType) => {
+          const parsedOrError = evaluate(statement.value);
+          if(parsedOrError.kind === "Error") {
+            statement.syntaxCorrect = false;
+            errorDetected = true;
+            setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
+            setSyntaxError(true);
+            setParseSuccessful(false);
+          } else {
+            console.log(parsedOrError);
+            statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
+            statement.syntaxCorrect = true;
+          }
+          return statement;
+        };
+  
+        if (!errorDetected) {
+          setSyntaxError(false);
+          setParseSuccessful(true);
+        }
+        return updateWithParsed(declaration);
+      }))
+      setNodes(nds => nds.map(node => {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            declarations: declarations
+          }
+        }
+      }));
+    }
+  }
   
   const flowCallbacks = {
     onNodeDragStop: useCallback((event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
@@ -291,60 +344,6 @@ function Flow() {
     setCount(count + 1);
   };
 
-  const addDeclaration = (index: number) => {
-    setDeclarations(decl => [...decl.slice(0, index), {value: ''}, ...decl.slice(index)]);
-  };
-
-  const deleteDeclaration = (index: number) => {
-    setDeclarations(decl => decl.filter((d, i) => i !== index))
-  };
-
-  const updateDeclaration = (index: number, declaration: string) => {
-    setDeclarations((decls) => decls.map((decl, i) => {
-      if (i === index) {
-       decl.value = declaration
-       decl.parsed = undefined; 
-      }
-      return decl;
-    }));
-  };
-
-  const checkDeclarationSyntax = () => {
-    setDeclarations(decls => decls.map((declaration, index) => {
-      let errorDetected = false;
-      const updateWithParsed = (statement: StatementType) => {
-        const parsedOrError = evaluate(statement.value);
-        if(parsedOrError.kind === "Error") {
-          statement.syntaxCorrect = false;
-          errorDetected = true;
-          setErrorPosition(parsedOrError.pos ? { columnBegin: parsedOrError.pos.columnBegin, statement: statement } : undefined);
-          setSyntaxError(true);
-          setParseSuccessful(false);
-        } else {
-          console.log(parsedOrError);
-          statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
-          statement.syntaxCorrect = true;
-        }
-        return statement;
-      };
-
-      if (!errorDetected) {
-        setSyntaxError(false);
-        setParseSuccessful(true);
-      }
-      return updateWithParsed(declaration);
-    }))
-    setNodes(nds => nds.map(node => {
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          declarations: declarations
-        }
-      }
-    }));
-  }
-
   return (
     <div style={{ position: 'relative' }}>
       <div className="alert-container">
@@ -388,10 +387,7 @@ function Flow() {
       </div>
       <Declarations 
         statements={declarations} 
-        addDeclaration={addDeclaration} 
-        deleteDeclaration={deleteDeclaration} 
-        updateDeclaration={updateDeclaration}
-        checkSyntax={checkDeclarationSyntax}/>
+        {...declarationCallbacks}/>
       <div style={{ height: '85vh', width: '100%' }}>
         <ReactFlow
           nodes={nodes}
