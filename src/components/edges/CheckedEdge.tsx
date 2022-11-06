@@ -1,9 +1,7 @@
-import { Button } from '@chakra-ui/react';
-import React from 'react';
 import { getBezierPath } from 'reactflow';
-import './ImplicationEdge.css';
+import './CheckedEdge.css';
 
-export default function ImplicationEdge({
+export default function CheckedEdge({
   id,
   sourceX,
   sourceY,
@@ -28,12 +26,12 @@ export default function ImplicationEdge({
     <>
       <path
         id={id}
-        style={{
-          stroke: "black",
-          strokeWidth : 5
-        }}
         className="react-flow__edge-path"
         d={edgePath}
+        style={{
+          stroke: "green",
+          strokeWidth: 5,
+        }}
         markerEnd={markerEnd}
       />
     </>

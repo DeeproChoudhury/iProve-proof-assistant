@@ -1,64 +1,20 @@
+import { AddIcon } from '@chakra-ui/icons';
+import {
+  Box, Button, Heading, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent,
+  PopoverHeader, PopoverTrigger, Text, useDisclosure
+} from '@chakra-ui/react';
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Box, Heading, Button, Text, IconButton, useDisclosure } from '@chakra-ui/react';
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverHeader,
-  PopoverBody,
-  PopoverArrow,
-  PopoverCloseButton,
-} from '@chakra-ui/react';
-import { AddIcon } from '@chakra-ui/icons';
-import Z3Solver from './Solver';
-import Statement from './Statement';
-import { ASTSMTLIB2, Line } from './AST';
+import { ASTSMTLIB2 } from '../parser/AST';
+import { NodeData } from '../types/Node';
+import { StatementKind, StatementType } from '../types/Statement';
 import SolveNodeModal from './SolveNodeModal';
-
-export type NodeType = "statement" | "given" | "goal";
-
-export type StatementType = {
-  value: string;
-  syntaxCorrect?: boolean;
-  parsed?: Line;
-  reasons?: number[] | undefined;
-};
-
-export type StatementKind = "given" | "proofStep" | "goal";
-
-export type NodeData = Readonly<{
-  label: string;
-  id: number;
-  type: NodeType;
-  givens: StatementType[];
-  proofSteps: StatementType[];
-  goals: StatementType[];
-  declarations: StatementType[];
-  correctImplication?: boolean;
-  deleteNode: (nodeId: string) => void;
-  updateStatement: (nodeId: string, k: StatementKind, statementIndex: number, statement: string) => void;
-  addReasonsToStatement: (nodeId: string, k: StatementKind, statementIndex: number, reasons?: number[]) => void;
-  addStatement: (nodeId: string, k: StatementKind) => void;
-  addStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => void;
-  deleteStatementAtIndex: (nodeId: string, k: StatementKind, index: number) => void;
-  checkSyntax: (nodeId: string) => void;
-  checkEdges: (nodeId: string) => void;
-}>;
-
-export type StatementListFieldName = "givens" | "proofSteps" | "goals";
-
-export function listField(k: StatementKind): StatementListFieldName {
-    switch (k) {
-        case "given": return "givens";
-        case "proofStep": return "proofSteps";
-        case "goal": return "goals";
-    }
-}
+import Statement from './Statement';
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
+  console.log("rendering node " + data.id);
   const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
-    data.updateStatement(`${data.id}`, k, updated, evt.target.value);
+    data.thisNode.statementList(k).update(updated, evt.target.value);
   }, [data]);
 
   const [isCollapsed, setCollapsed] = useState(false);
@@ -66,14 +22,12 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const { isOpen: isSolveNotReadyOpen, onOpen: onSolveNotReadyOpen, onClose: onSolveNotReadyClose } = useDisclosure();
   const { isOpen: isSolveModalOpen, onOpen: onSolveModalOpen, onClose: onSolveModalClose } = useDisclosure();
 
-  const localZ3Solver = new Z3Solver.Z3Prover("");
-
   const componentStyle = data.type + "-node";
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
-  const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.checkSyntax(`${data.id}`) }}>Check Syntax</Button>;
+  const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.checkSyntax() }}>Check Syntax</Button>;
   const checkSatButton: ReactNode = 
     <Button size='xs' 
       colorScheme='blackAlpha' 
@@ -97,13 +51,13 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <PopoverCloseButton />
         <PopoverHeader>Are you sure you want to delete?</PopoverHeader>
         <PopoverBody style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.deleteNode(`${data.id}`) }}>Yes, I'm sure!</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.delete() }}>Yes, I'm sure!</Button>
           <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
         </PopoverBody>
       </PopoverContent>
     </Popover>
     
-  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarations).every((s) => s.parsed !== undefined);
+  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarationsRef.current).every((s) => s.parsed !== undefined);
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
       <PopoverTrigger>
@@ -141,15 +95,15 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {targetHandle}
         <div style={{display: 'flex', justifyContent: 'center'}}>
         {data.correctImplication === undefined &&
-        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
           Check incoming implications
         </Button>}
         {data.correctImplication === true &&
-          <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+          <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
             Check passed. Check again?
           </Button>}
         {data.correctImplication === false &&
-          <Button colorScheme='red' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+          <Button colorScheme='red' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
             Check failed. Check again?
           </Button>}
         </div>
@@ -176,15 +130,15 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         node={data}/>
       <div style={{display: 'flex', justifyContent: 'center'}}>
       {data.correctImplication === undefined &&
-      <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+      <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
         Check incoming implications
       </Button>}
       {data.correctImplication === true &&
-        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
           Check passed. Check again?
         </Button>}
       {data.correctImplication === false &&
-        <Button colorScheme='red' size='xs' onClick={() => {data.checkEdges(`${data.id}`)}}>
+        <Button colorScheme='red' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
           Check failed. Check again?
         </Button>}
       </div>
@@ -194,7 +148,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           variant='outline'
           aria-label='Add given'
           size='xs'
-          onClick={() => { data.addStatement(`${data.id}`, "given") }}
+          onClick={() => { data.thisNode.givens.add() }}
           icon={<AddIcon />}
         />
       </div>
@@ -205,9 +159,9 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             statement={s}
             index={index}
             proofNode={true}
-            addAbove={() => { data.addStatementAtIndex(`${data.id}`, "given", index) }}
-            addBelow={() => { data.addStatementAtIndex(`${data.id}`, "given", index + 1) }} 
-            deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, "given", index)}}/>)}
+            addAbove={() => { data.thisNode.givens.add(index) }}
+            addBelow={() => { data.thisNode.givens.add(index + 1) }} 
+            deleteStatement = {() => {data.thisNode.givens.remove(index)}}/>)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -215,7 +169,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           variant='outline'
           aria-label='Add proof step'
           size='xs'
-          onClick={() => { data.addStatement(`${data.id}`, "proofStep") }}
+          onClick={() => { data.thisNode.proofSteps.add() }}
           icon={<AddIcon />}
         />
       </div>
@@ -230,18 +184,18 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 statement={data.proofSteps[0]}
                 index={data.givens.length}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", 0) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", 1) }}
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, "proofStep", 0) }} />
+                addAbove={() => { data.thisNode.proofSteps.add(0) }}
+                addBelow={() => { data.thisNode.proofSteps.add(1) }}
+                deleteStatement={() => { data.thisNode.proofSteps.remove(0) }} />
               <Text as='b'>. . .</Text>
               <Statement
                 onChange={e => onChange(e, "proofStep", data.proofSteps.length - 1)}
                 statement={data.proofSteps[data.proofSteps.length - 1]}
                 index={data.givens.length + data.proofSteps.length - 1}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", data.proofSteps.length - 1) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", data.proofSteps.length) }} 
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, "proofStep", data.proofSteps.length - 1) }}/>
+                addAbove={() => { data.thisNode.proofSteps.add(data.proofSteps.length - 1) }}
+                addBelow={() => { data.thisNode.proofSteps.add(data.proofSteps.length) }} 
+                deleteStatement={() => { data.thisNode.proofSteps.remove(data.proofSteps.length - 1) }}/>
             </> :
             data.proofSteps.map((s: StatementType, index: number) =>
               <Statement
@@ -249,9 +203,9 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 statement={s}
                 index={data.givens.length + index}
                 proofNode={true}
-                addAbove={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", index) }}
-                addBelow={() => { data.addStatementAtIndex(`${data.id}`, "proofStep", index + 1) }} 
-                deleteStatement={() => { data.deleteStatementAtIndex(`${data.id}`, "proofStep", index) }} />)
+                addAbove={() => { data.thisNode.proofSteps.add(index) }}
+                addBelow={() => { data.thisNode.proofSteps.add(index + 1) }} 
+                deleteStatement={() => { data.thisNode.proofSteps.remove(index) }} />)
         }
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
           <Text>Goals</Text>
@@ -259,7 +213,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             variant='outline'
             aria-label='Add goal'
             size='xs'
-            onClick={() => { data.addStatement(`${data.id}`, "goal") }}
+            onClick={() => { data.thisNode.goals.add() }}
             icon={<AddIcon />}
           />
         </div>
@@ -270,9 +224,9 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               statement={s}
               index={data.givens.length + data.proofSteps.length + index}
               proofNode={true}
-              addAbove={() => { data.addStatementAtIndex(`${data.id}`, "goal", index) }}
-              addBelow={() => { data.addStatementAtIndex(`${data.id}`, "goal", index + 1) }} 
-              deleteStatement = {() => {data.deleteStatementAtIndex(`${data.id}`, "goal", index)}}/>)}
+              addAbove={() => { data.thisNode.goals.add(index) }}
+              addBelow={() => { data.thisNode.goals.add(index + 1) }} 
+              deleteStatement = {() => {data.thisNode.goals.remove(index)}}/>)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}

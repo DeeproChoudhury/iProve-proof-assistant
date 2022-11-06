@@ -1,22 +1,22 @@
 import { AddIcon } from "@chakra-ui/icons";
 import { Box, Button, IconButton, Text } from "@chakra-ui/react";
-import { ReactNode, useCallback, useRef, useState } from "react";
+import { ReactNode } from "react";
 import Statement from "./Statement";
-import { StatementType } from "./TextUpdaterNode";
 import './Declarations.css';
+import { StatementType } from "../types/Statement";
 
 export type DeclarationsPropsType = {
   statements: StatementType[];
-  updateDeclaration: (index: number, declaration: string) => void;
-  addDeclaration: (index: number) => void;
-  deleteDeclaration: (index: number) => void;
+  update: (index: number, declaration: string) => void;
+  add: (index: number) => void;
+  remove: (index: number) => void;
   checkSyntax: () => void;
 }
 
 const Declarations = (props: DeclarationsPropsType) => {
-  const { statements, updateDeclaration, addDeclaration, deleteDeclaration, checkSyntax } = props;
+  const { statements, update, add, remove, checkSyntax } = props;
   const onChange = (evt: any, updated: number) => {
-    updateDeclaration(updated, evt.target.value);
+    update(updated, evt.target.value);
   }
   const checkSyntaxButton: ReactNode = 
     <Button size='xs' colorScheme='blackAlpha' onClick={() => { checkSyntax() }}>Check Syntax</Button>;
@@ -29,7 +29,7 @@ const Declarations = (props: DeclarationsPropsType) => {
           variant='outline'
           aria-label='Add proof step'
           size='xs'
-          onClick={() => { addDeclaration(statements.length) }}
+          onClick={() => { add(statements.length) }}
           icon={<AddIcon />}
         />
       </div>
@@ -40,9 +40,9 @@ const Declarations = (props: DeclarationsPropsType) => {
             statement={s}
             index={index}
             proofNode={true}
-            addAbove={() => { addDeclaration(index) }}
-            addBelow={() => { addDeclaration(index + 1) }}
-            deleteStatement={() => { deleteDeclaration(index) }} />)}
+            addAbove={() => { add(index) }}
+            addBelow={() => { add(index + 1) }}
+            deleteStatement={() => { remove(index) }} />)}
       </div>
       {checkSyntaxButton}
     </Box>

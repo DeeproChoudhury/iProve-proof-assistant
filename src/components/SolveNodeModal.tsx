@@ -1,21 +1,14 @@
-import React, { useState } from 'react';
 import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Text,
-  Button,
-  Tooltip,
+  Button, Modal, ModalBody,
+  ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Tooltip
 } from '@chakra-ui/react';
-import { NodeData, StatementType } from './TextUpdaterNode';
-import './SolveNodeModal.css';
+import { useState } from 'react';
+import { ASTSMTLIB2 } from '../parser/AST';
+import Z3Solver from '../solver/Solver';
+import { NodeData } from '../types/Node';
+import { StatementType } from '../types/Statement';
 import ModalStatement from './ModalStatement';
-import Z3Solver from './Solver';
-import { ASTNode, ASTSMTLIB2 } from './AST';
+import './SolveNodeModal.css';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
@@ -30,7 +23,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
 
   const onChange = (v: string, index: number) => {
     setTags(tags => tags.map((t, i) => {
-      if (t == '2' && v === '2') {
+      if (t === '2' && v === '2') {
         return '0';
       }
       if (i === index) {
@@ -61,7 +54,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
       setCheckFailed(true);
       return;
     }
-    const declarations = node.declarations.map(declaration => {
+    const declarations = node.declarationsRef.current.map(declaration => {
       return ASTSMTLIB2(declaration.parsed);
     }).join("\n");
     const smtReasons = reasons.map(reason => {
@@ -75,11 +68,11 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     const smtConclusion = "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
     console.log(smtConclusion);
     localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
-      if (output == "unsat\n") {
-        node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, reasonsIndexes)
+      if (output === "unsat\n") {
+        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, reasonsIndexes);
       } else {
-        node.addReasonsToStatement(`${node.id}`, conclusionType, conclusionIndex, undefined)
-        setCheckFailed(true)
+        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, undefined);
+        setCheckFailed(true);
       }
     })
   }

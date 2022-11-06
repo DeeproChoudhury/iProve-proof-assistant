@@ -1,15 +1,12 @@
-import { Arith, BoolCreation, ContextCtor, FuncDeclCreation, init, IntCreation, Z3_context } from 'z3-solver';
-import { Z3LowLevel } from 'z3-solver'; 
-import { Z3LowLevelType } from './Z3LowLevelType';
+import { init, Z3LowLevel } from 'z3-solver';
 
 export namespace Z3Solver {
     
-    var Z3EvalLib! : Z3LowLevelType ;
+    var Z3EvalLib! : Z3LowLevel["Z3"];
 
     export async function initZ3() {
         const {
-            Z3, // Low-level C-like API
-            Context, // High-level Z3Py-like API
+            Z3 // Low-level C-like API
         } = await init();
 
         if (Z3EvalLib === undefined) {
@@ -32,19 +29,6 @@ export namespace Z3Solver {
             return result;
         }
 
-    }
-
-    export function prove() {
-        const Z3 = new Z3Prover("");
-        Z3.solve("(declare-const x Int)\n(assert (not (= x x)))\n(check-sat)\n")
-    }
-
-    export function useZ3Button() {
-        return(
-            <button onClick={prove}>
-                Z3
-            </button>
-        )
     }
 }
 
