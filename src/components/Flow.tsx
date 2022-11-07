@@ -72,6 +72,25 @@ function Flow() {
     }]);
   }, [nextId, makeThisNode]);
 
+  
+  const addNodeData = useCallback((nodeType: NodeType, givens?: string[], proofs?: string[], goals?: string[]) => {
+    const count = nextId();
+    setNodes(nds => [...nds, {
+      id: `${count}`,
+      data: {
+        label: `Node ${count}`,
+        id: count,
+        type: nodeType,
+        givens: givens === undefined ? [] : givens.map((e) => { return { value: e } }),
+        proofSteps: proofs === undefined ? [] : proofs.map((e) => { return { value: e } }),
+        goals: goals === undefined ? [] : goals.map((e) => { return { value: e } }),
+        declarationsRef,
+        thisNode: makeThisNode(`${count}`)
+      },
+      position: { x: 300, y: 0 },
+      type: 'textUpdater',
+    }]);
+  }, [nextId, makeThisNode]);
   return (
     
     <div style={{ position: 'relative' }}>
@@ -83,7 +102,7 @@ function Flow() {
         <ModalHeader>Import Proof</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ModalImport addNode={addNode}/>
+          <ModalImport addNode={addNodeData}/>
         </ModalBody>
         </ModalContent>
       </Modal>

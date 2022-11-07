@@ -20,8 +20,8 @@ const ModalImport = (props: any) => {
     const parseJSONAddNode = () => {
         const json = JSON.parse(textAreaValue);
         
-        // console.log(json["data"]);
-        props.addNode(json["type"]);
+        console.log(json["type"]);
+        props.addNode(json["type"], json["givens"], json["proofs"], json["goals"]);
     }
 
     return (
