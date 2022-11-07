@@ -1,7 +1,7 @@
 import { Box, Button, Radio, RadioGroup, Textarea } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { display } from "../parser/AST";
-import { NodeType } from '../types/Node';
+import { NodeData, NodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 
 
@@ -14,9 +14,14 @@ const ModalImport = (props: any) => {
 
     const [textAreaValue, setTextAreaValue] = useState("");
 
+    /**
+     * Parse well formed JSON input into node and add to background 
+     */
     const parseJSONAddNode = () => {
-        // props.addNode();
-        console.log(textAreaValue);
+        const json = JSON.parse(textAreaValue);
+        
+        // console.log(json["data"]);
+        props.addNode(json["type"]);
     }
 
     return (
