@@ -83,7 +83,7 @@ function Flow() {
         <ModalHeader>Import Proof</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ModalImport/>
+          <ModalImport addNode={addNode}/>
         </ModalBody>
         </ModalContent>
       </Modal>
