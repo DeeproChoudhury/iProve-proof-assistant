@@ -18,10 +18,12 @@ const ModalImport = (props: any) => {
      * Parse well formed JSON input into node and add to background 
      */
     const parseJSONAddNode = () => {
-        const json = JSON.parse(textAreaValue);
+        // const json = JSON.parse(textAreaValue);
         
-        console.log(json["type"]);
-        props.addNode(json["type"], json["givens"], json["proofs"], json["goals"]);
+        // console.log(json["type"]);
+        // props.addNode(json["type"], json["givens"], json["proofs"], json["goals"]);
+        const jsonNodes = JSON.parse(textAreaValue);
+        props.addNodes(jsonNodes)
     }
 
     return (

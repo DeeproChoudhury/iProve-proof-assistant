@@ -12,7 +12,6 @@ import SolveNodeModal from './SolveNodeModal';
 import Statement from './Statement';
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
-  console.log("rendering node " + data.id);
   const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
     data.thisNode.statementList(k).update(updated, evt.target.value);
   }, [data]);

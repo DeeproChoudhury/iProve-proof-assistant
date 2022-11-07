@@ -91,9 +91,41 @@ function Flow() {
       type: 'textUpdater',
     }]);
   }, [nextId, makeThisNode]);
+
+  const addNodes = useCallback((jsonNodes: any[]) => {
+    const nodeData = jsonNodes.map(node => {
+      const newCount = nextId();
+      const id = Math.random();
+      return {
+        id: `${id}`,
+        data: {
+          label: `Node ${id}`,
+          id: id,
+          type: node.type,
+          givens: node.givens === undefined ? [] : node.givens.map((e: string) => { return { value: e } }),
+          proofSteps: node.proofs === undefined ? [] : node.proofs.map((e: string) => { return { value: e } }),
+          goals: node.goals === undefined ? [] : node.goals.map((e: string) => { return { value: e } }),
+          declarationsRef,
+          thisNode: makeThisNode(`${id}`)
+        },
+        position: { x: 300, y: 0 },
+        type: 'textUpdater',
+      }
+    });
+    setNodes(nodeData);
+  }, [nextId, makeThisNode]);
+
+
   return (
-    
     <div style={{ position: 'relative' }}>
+      <Button 
+        onClick={() => {
+          console.log(nodes); 
+          console.log(JSON.stringify(nodes.map(n => 
+            {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
+      )}}>
+        Test
+      </Button>
       <Modal isOpen={importModalShow}        
         onClose={() => {setImportModalShow(false)}}        // onAfterOpen={() => {}}
       >
@@ -102,7 +134,7 @@ function Flow() {
         <ModalHeader>Import Proof</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ModalImport addNode={addNodeData}/>
+          <ModalImport addNode={addNodeData} addNodes={addNodes}/>
         </ModalBody>
         </ModalContent>
       </Modal>
