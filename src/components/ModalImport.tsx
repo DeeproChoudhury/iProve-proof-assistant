@@ -1,4 +1,4 @@
-import { Box, Radio, RadioGroup } from '@chakra-ui/react';
+import { Box, Button, Radio, RadioGroup, Textarea } from '@chakra-ui/react';
 import { display } from "../parser/AST";
 import { StatementType } from '../types/Statement';
 
@@ -6,14 +6,19 @@ import { StatementType } from '../types/Statement';
 const ModalImport = () => {
 
     return (
-      <Box borderRadius='md' bg='whiteAlpha.300' color='white' my='1'>
+      <Box borderRadius='md' my='1'>
         <div style={{display: 'flex'}}>
-            <input type="textarea" 
+            <Textarea
                 name="textValue"
+                placeholder='Enter Proof'
+                size='sm'
             />        
         </div>
+        <div style={{display: 'flex'}}>
+            <Button color="blue">Import</Button>
+        </div>
       </Box>
-    )
+)
   }
   
   export default ModalImport;
