@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, IconButton, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -17,6 +17,7 @@ import CheckedEdge from './edges/CheckedEdge';
 import ImplicationEdge from './edges/ImplicationEdge';
 import InvalidEdge from './edges/InvalidEdge';
 import './Flow.css';
+import ModalImport from './ModalImport';
 import TextUpdaterNode from './TextUpdaterNode';
 import './TextUpdaterNode.css';
 
@@ -30,7 +31,7 @@ function Flow() {
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const localZ3Solver = new Z3Solver.Z3Prover("");
-
+  const [importModalShow, setImportModalShow] = useState(false);
   // update refs everytime this hook runs
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
@@ -71,8 +72,41 @@ function Flow() {
     }]);
   }, [nextId, makeThisNode]);
 
+  
+  const addNodeData = useCallback((nodeType: NodeType, givens?: string[], proofs?: string[], goals?: string[]) => {
+    const count = nextId();
+    setNodes(nds => [...nds, {
+      id: `${count}`,
+      data: {
+        label: `Node ${count}`,
+        id: count,
+        type: nodeType,
+        givens: givens === undefined ? [] : givens.map((e) => { return { value: e } }),
+        proofSteps: proofs === undefined ? [] : proofs.map((e) => { return { value: e } }),
+        goals: goals === undefined ? [] : goals.map((e) => { return { value: e } }),
+        declarationsRef,
+        thisNode: makeThisNode(`${count}`)
+      },
+      position: { x: 300, y: 0 },
+      type: 'textUpdater',
+    }]);
+  }, [nextId, makeThisNode]);
   return (
+    
     <div style={{ position: 'relative' }}>
+      <Modal isOpen={importModalShow}        
+        onClose={() => {setImportModalShow(false)}}        // onAfterOpen={() => {}}
+      >
+        <ModalImport/>
+        <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+        <ModalHeader>Import Proof</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <ModalImport addNode={addNodeData}/>
+        </ModalBody>
+        </ModalContent>
+      </Modal>
+      
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
           <AlertIcon />
@@ -83,20 +117,16 @@ function Flow() {
               "Parsing for the last node failed. Check your syntax!"
             }
           </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { resetError() }}
-            icon={<CloseIcon />}
-          />
+         
         </Alert>}
       </div>
+    
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
           <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
+          <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
         </Stack>
       </div>
       <Declarations
