@@ -7,6 +7,7 @@ import { ASTSMTLIB2 } from '../parser/AST';
 import Z3Solver from '../solver/Solver';
 import { NodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
+import { z3Reason } from '../util/reasons';
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
 
@@ -43,7 +44,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const localZ3Solver = new Z3Solver.Z3Prover("");
   const solveZ3 = async () => {
     setCheckFailed(false);
-    const reasonsIndexes = node.givens.concat(node.proofSteps, node.goals).map((g, i) => tags[i] === '1' ? i + 1 : -1).filter((i) => i > 0)
+    const reasonsIndexes = node.givens.concat(node.proofSteps, node.goals).map((g, i) => tags[i] === '1' ? i : -1).filter((i) => i >= 0)
     const reasons = node.givens.concat(node.proofSteps, node.goals).filter((g, i) => tags[i] === '1')
     const conclusionType = node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goal" : "proofStep";
     const conclusionIndex = conclusionType === "proofStep" ?
@@ -69,9 +70,9 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     console.log(smtConclusion);
     localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
       if (output === "unsat\n") {
-        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, reasonsIndexes);
+        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, z3Reason(reasonsIndexes));
       } else {
-        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, undefined);
+        node.thisNode.statementList(conclusionType).removeReason(conclusionIndex);
         setCheckFailed(true);
       }
     })
