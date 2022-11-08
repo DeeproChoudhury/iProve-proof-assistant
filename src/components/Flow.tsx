@@ -118,14 +118,6 @@ function Flow() {
 
   return (
     <div style={{ position: 'relative' }}>
-      <Button 
-        onClick={() => {
-          console.log(nodes); 
-          console.log(JSON.stringify(nodes.map(n => 
-            {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
-      )}}>
-        Test
-      </Button>
       <Modal isOpen={importModalShow}        
         onClose={() => {setImportModalShow(false)}}        // onAfterOpen={() => {}}
       >
@@ -149,7 +141,30 @@ function Flow() {
               "Parsing for the last node failed. Check your syntax!"
             }
           </AlertDescription>
-         
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setError(undefined) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+
+      <div className="alert-container">
+        {error === null && <Alert status='success' className="alert">
+          <AlertIcon />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            Parsing for current node was successful!
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setError(undefined) }}
+            icon={<CloseIcon />}
+          />
         </Alert>}
       </div>
     
@@ -159,6 +174,14 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
+          <Button 
+            onClick={() => {
+              console.log(nodes); 
+              console.log(JSON.stringify(nodes.map(n => 
+                {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
+          )}}>
+            Export proof
+          </Button>
         </Stack>
       </div>
       <Declarations

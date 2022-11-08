@@ -33,12 +33,12 @@ const ModalImport = (props: any) => {
                 name="textValue"
                 placeholder='Enter Proof'
                 size='sm'
+                focusBorderColor='gray.400'
+                _placeholder={{ color: 'gray.400'}}
                 onChange={(e) => {setTextAreaValue(e.target.value)}}
             />        
         </div>
-        <div style={{display: 'flex'}}>
-            <Button color="blue" onClick={parseJSONAddNode}>Import</Button>
-        </div>
+        <Button colorScheme="blackAlpha" onClick={parseJSONAddNode} style={{margin: '5px 0'}}>Import</Button>
       </Box>
 )
   }
