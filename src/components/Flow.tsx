@@ -17,6 +17,7 @@ import CheckedEdge from './edges/CheckedEdge';
 import ImplicationEdge from './edges/ImplicationEdge';
 import InvalidEdge from './edges/InvalidEdge';
 import './Flow.css';
+import ModalExport from './ModalExport';
 import ModalImport from './ModalImport';
 import TextUpdaterNode from './TextUpdaterNode';
 import './TextUpdaterNode.css';
@@ -31,7 +32,14 @@ function Flow() {
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const localZ3Solver = new Z3Solver.Z3Prover("");
-  const [importModalShow, setImportModalShow] = useState(false);
+
+  /**
+   * Modals
+   */
+  const [importModalShow, setImportModalShow] = useState(false); // show modal for importing proof (see ModalImport.tsx)
+  const [exportModalShow, setExportModalShow] = useState(false); // show modal for exporting proof (see ModalExport.tsx)
+  
+  
   // update refs everytime this hook runs
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
@@ -126,7 +134,22 @@ function Flow() {
         <ModalHeader>Import Proof</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ModalImport addNode={addNodeData} addNodes={addNodes}/>
+          <ModalImport addNodes={addNodes}/>
+        </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={exportModalShow}        
+        onClose={() => {setExportModalShow(false)}}        // onAfterOpen={() => {}}
+      >
+        <ModalImport/>
+        <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+        <ModalHeader>Export Proof</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody>
+          <ModalExport data={JSON.stringify(nodes.map(n => 
+                {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
+          }/>
         </ModalBody>
         </ModalContent>
       </Modal>
@@ -174,12 +197,7 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
-          <Button 
-            onClick={() => {
-              console.log(nodes); 
-              console.log(JSON.stringify(nodes.map(n => 
-                {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
-          )}}>
+          <Button onClick={() => {setExportModalShow(true)}}>
             Export proof
           </Button>
         </Stack>

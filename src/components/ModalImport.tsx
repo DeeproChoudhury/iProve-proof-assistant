@@ -34,6 +34,8 @@ const ModalImport = (props: any) => {
                 placeholder='Enter Proof'
                 size='sm'
                 focusBorderColor='gray.400'
+                background='gray.100'
+                textColor='blackAlpha.900'
                 _placeholder={{ color: 'gray.400'}}
                 onChange={(e) => {setTextAreaValue(e.target.value)}}
             />        
