@@ -126,6 +126,9 @@ function Flow() {
 
   return (
     <div style={{ position: 'relative' }}>
+
+      {/* Declare Modals */}
+      {/* Import Modal */}
       <Modal isOpen={importModalShow}        
         onClose={() => {setImportModalShow(false)}}        // onAfterOpen={() => {}}
       >
@@ -139,6 +142,7 @@ function Flow() {
         </ModalContent>
       </Modal>
 
+      {/* Export Modal */}
       <Modal isOpen={exportModalShow}        
         onClose={() => {setExportModalShow(false)}}        // onAfterOpen={() => {}}
       >

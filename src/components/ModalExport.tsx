@@ -24,10 +24,14 @@ const ModalExport = (props: any) => {
                 focusBorderColor='gray.400'
                 background='gray.100'
                 textColor='blackAlpha.900'
+                _placeholder={{ color: 'gray.400'}}
                 value={props.data}
                 isDisabled
-            ></Textarea>
+            />
         </div>
+        <Button colorScheme="blackAlpha" onClick={() => {navigator.clipboard.writeText(props.data)}} style={{margin: '5px 0'}}>
+            Copy to Clipboard
+        </Button>
       </Box>
     )
   }
