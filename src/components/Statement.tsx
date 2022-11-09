@@ -68,7 +68,7 @@ const Statement = (props: StatementPropsType) => {
       {statement.reason && <Tooltip label={reasonsLabel} fontSize='xs'>
         <CheckIcon style={{margin: 'auto 5px'}}/>
       </Tooltip>}
-      {proofNode && moreOptions}
+      {moreOptions}
     </div>
   )
 }

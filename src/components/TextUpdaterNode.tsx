@@ -73,9 +73,24 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     return (
       <Box className={componentStyle}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
+          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+            <Heading size='sm' >Given</Heading>
+            <IconButton
+                variant='outline'
+                aria-label='Add given'
+                size='xs'
+                onClick={() => { data.thisNode.givens.add() }}
+                icon={<AddIcon />}
+              />
+          </div>
           {data.givens.map((s: StatementType, index: number) =>
-            <Statement onChange={e => onChange(e, "given", index)} statement={s} index={index} />)}
+            <Statement 
+              onChange={e => onChange(e, "given", index)} 
+              statement={s} 
+              index={index} 
+              addAbove={() => { data.thisNode.givens.add(index) }}
+              addBelow={() => { data.thisNode.givens.add(index + 1) }} 
+              deleteStatement={() => { data.thisNode.givens.remove(index) }} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -107,9 +122,25 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           </Button>}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
+          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
+            <Heading size='sm' >Goal</Heading>
+            <IconButton
+                variant='outline'
+                aria-label='Add given'
+                size='xs'
+                onClick={() => { data.thisNode.givens.add() }}
+                icon={<AddIcon />}
+                style={{justifySelf: 'flex-end'}}
+              />
+          </div>
           {data.givens.map((s: StatementType, index: number) =>
-            <Statement onChange={e => onChange(e, "given", index)} statement={s} index={index} />)}
+            <Statement 
+              onChange={e => onChange(e, "given", index)} 
+              statement={s} 
+              index={index} 
+              addAbove={() => { data.thisNode.givens.add(index) }}
+              addBelow={() => { data.thisNode.givens.add(index + 1) }} 
+              deleteStatement={() => { data.thisNode.givens.remove(index) }} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
