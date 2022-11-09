@@ -206,21 +206,25 @@ function Flow() {
           </Button>
         </Stack>
       </div>
-      <Declarations
-        statements={declarations} 
-        {...declarationsCallbacks}/>
-      <div style={{ height: '85vh', width: '100%' }}>
-        <ReactFlow
-          nodes={nodes}
-          nodeTypes={nodeTypes}
-          edges={edges}
-          edgeTypes={edgeTypes}
-          disableKeyboardA11y={true} // disable keyboard movemement
-          {...flowCallbacks}
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
+      <div style={{display: 'flex', flexDirection: 'row'}}>
+        <div>
+          <Declarations
+            statements={declarations} 
+            {...declarationsCallbacks}/>
+        </div>
+        <div style={{ height: '85vh', width: '75%' }}>
+          <ReactFlow
+            nodes={nodes}
+            nodeTypes={nodeTypes}
+            edges={edges}
+            edgeTypes={edgeTypes}
+            disableKeyboardA11y={true} // disable keyboard movemement
+            {...flowCallbacks}
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
       </div>
     </div>
   );
