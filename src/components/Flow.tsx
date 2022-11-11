@@ -32,6 +32,7 @@ function Flow() {
   const [count, setCount] = useState(0);
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
+  const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
   const localZ3Solver = new Z3Solver.Z3Prover("");
 
   /**
@@ -258,13 +259,17 @@ function Flow() {
           <Button onClick={() => {checkProofValid(nodes, edges); setExportModalShow(true)}}>
             Export proof
           </Button>
+          <Button onClick={() => {setDeclarationSidebarVisible(!declarationSidebarVisible)}}>
+            Settings
+          </Button>
         </Stack>
       </div>
       <div style={{display: 'flex', flexDirection: 'row'}}>
         <div>
           <Declarations
             statements={declarations} 
-            {...declarationsCallbacks}/>
+            {...declarationsCallbacks}
+            visible={declarationSidebarVisible}/>
         </div>
         <div style={{ height: '85vh', width: '75%' }}>
           <ReactFlow
