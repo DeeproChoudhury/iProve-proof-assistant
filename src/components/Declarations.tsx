@@ -21,10 +21,8 @@ const Declarations = (props: DeclarationsPropsType) => {
   }
   const checkSyntaxButton: ReactNode = 
     <Button size='xs' colorScheme='blackAlpha' onClick={() => { checkSyntax() }}>Check Syntax</Button>;
-  
-  if (visible) {
     return (
-      <Box className="declarations">
+      <Box className="declarations" style = {{zIndex: "2", opacity: visible ? '100%' : '0%'}}>
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
           <Text>Declarations</Text>
           <IconButton
@@ -49,9 +47,6 @@ const Declarations = (props: DeclarationsPropsType) => {
         {checkSyntaxButton}
       </Box>
     )
-  } else {
-    return (<div></div>)
-  }
 }
 
 export default Declarations;
