@@ -26,6 +26,7 @@ const nodeTypes = { textUpdater: TextUpdaterNode };
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge};
 
 function Flow() {
+  const [proofValid, setProofValid] = useState(false);
   const [nodes, setNodes] = useState<Node<NodeData>[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
@@ -38,8 +39,7 @@ function Flow() {
    */
   const [importModalShow, setImportModalShow] = useState(false); // show modal for importing proof (see ModalImport.tsx)
   const [exportModalShow, setExportModalShow] = useState(false); // show modal for exporting proof (see ModalExport.tsx)
-  
-  
+
   // update refs everytime this hook runs
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
@@ -54,6 +54,42 @@ function Flow() {
     setCount(count + 1);
     return count;
   }, [count]);
+
+  const checkProofValid = (ns: Node[], es: Edge[]): void => {
+    const givens = ns.filter( node => node.data.type === "given");
+    const goals = ns.filter( node => node.data.type === "goal");
+    setProofValid(checkValid(ns, goals, givens, es, []));
+  }
+  
+  const checkValid = (ns: Node[], currs: Node[], givens: Node[], es: Edge[], visited: Node[]): boolean => {
+    // check that all paths into goals eventually start at givens and only use valid edges and do not cycle
+    const non_given_currs = currs.filter(node => !givens.includes(node));
+    const cycle_found = non_given_currs.some(n => visited.includes(n)); //check if any current node has already been found
+    if (cycle_found) {
+      console.log("here3");
+      return false;
+    }
+    const new_visited = visited.concat(non_given_currs);
+    const non_given_currs_ids = non_given_currs.map(node => node.id);
+    if (non_given_currs_ids.length === 0) {
+      return true
+    }
+    const valid_edges_to_non_given_currs: Edge[] = es.filter(e => non_given_currs_ids.includes(e.target));
+    const prev_ids = valid_edges_to_non_given_currs.map(e => e.source);
+    const hit_currs = valid_edges_to_non_given_currs.map(e => e.target);
+    const no_incoming_edges_non_givens = non_given_currs_ids.filter(id => !hit_currs.includes(id));
+    if (no_incoming_edges_non_givens.length > 0) {
+      console.log("here2");
+      return false; //path can't end at a non_given node
+    }
+    const prev_nodes = ns.filter(node => prev_ids.includes(node.id));
+    if (prev_nodes.length === 0) {
+      console.log("here1");
+      return false;
+    } else {
+      return checkValid(ns, prev_nodes, givens, es, new_visited);
+    }
+  }
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
 
@@ -143,7 +179,7 @@ function Flow() {
       </Modal>
 
       {/* Export Modal */}
-      <Modal isOpen={exportModalShow}        
+      <Modal isOpen={exportModalShow && proofValid}        
         onClose={() => {setExportModalShow(false)}}        // onAfterOpen={() => {}}
       >
         <ModalImport/>
@@ -157,6 +193,24 @@ function Flow() {
         </ModalBody>
         </ModalContent>
       </Modal>
+
+      {/* Export alert */}
+      <div className="alert-container">
+        {exportModalShow && !proofValid && <Alert status='error' className="alert">
+          <AlertIcon />
+          <AlertTitle>Error!</AlertTitle>
+          <AlertDescription>
+          Proof can not be printed as proof is not valid. For a proof graph to be valid, all paths into goal nodes must start at a given node, only use valid edges and be acyclical.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => {setExportModalShow(false)}}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
       
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
@@ -201,7 +255,7 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
-          <Button onClick={() => {setExportModalShow(true)}}>
+          <Button onClick={() => {checkProofValid(nodes, edges); setExportModalShow(true)}}>
             Export proof
           </Button>
         </Stack>
