@@ -160,8 +160,6 @@ function Flow() {
     setNodes(nodeData);
   }, [nextId, makeThisNode]);
 
-  const sidemenuStyle={width: declarationSidebarVisible ? '300px' : '0px'}
-
   return (
     <div style={{ position: 'relative' }}>
 
@@ -266,12 +264,10 @@ function Flow() {
         </Stack>
       </div>
       <div style={{display: 'flex', flexDirection: 'row'}}>
-        <div style = {sidemenuStyle}>
-          <Declarations
-            statements={declarations} 
-            {...declarationsCallbacks}
-            visible={declarationSidebarVisible}/>
-        </div>
+        <Declarations
+          statements={declarations} 
+          {...declarationsCallbacks}
+          visible={declarationSidebarVisible}/>
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
             nodes={nodes}

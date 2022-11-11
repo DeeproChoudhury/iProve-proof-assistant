@@ -19,34 +19,35 @@ const Declarations = (props: DeclarationsPropsType) => {
   const onChange = (evt: any, updated: number) => {
     update(updated, evt.target.value);
   }
+
   const checkSyntaxButton: ReactNode = 
     <Button size='xs' colorScheme='blackAlpha' onClick={() => { checkSyntax() }}>Check Syntax</Button>;
-    return (
-      <Box className="declarations" style = {{zIndex: "2", opacity: visible ? '100%' : '0%'}}>
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
-          <Text>Declarations</Text>
-          <IconButton
-            variant='outline'
-            aria-label='Add proof step'
-            size='xs'
-            onClick={() => { add(statements.length) }}
-            icon={<AddIcon />}
-          />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {statements.map((s: StatementType, index: number) =>
-            <Statement
-              onChange={e => onChange(e, index)}
-              statement={s}
-              index={index}
-              proofNode={true}
-              addAbove={() => { add(index) }}
-              addBelow={() => { add(index + 1) }}
-              deleteStatement={() => { remove(index) }} />)}
-        </div>
-        {checkSyntaxButton}
-      </Box>
-    )
+  return (
+    <Box className={"declarations " + (visible ? 'closed' : 'open')}>
+      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+        <Text>Declarations</Text>
+        <IconButton
+          variant='outline'
+          aria-label='Add proof step'
+          size='xs'
+          onClick={() => { add(statements.length) }}
+          icon={<AddIcon />}
+        />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {statements.map((s: StatementType, index: number) =>
+          <Statement
+            onChange={e => onChange(e, index)}
+            statement={s}
+            index={index}
+            proofNode={true}
+            addAbove={() => { add(index) }}
+            addBelow={() => { add(index + 1) }}
+            deleteStatement={() => { remove(index) }} />)}
+      </div>
+      {checkSyntaxButton}
+    </Box>
+  )
 }
 
 export default Declarations;
