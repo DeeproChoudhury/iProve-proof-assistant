@@ -90,7 +90,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               index={index} 
               addAbove={() => { data.thisNode.givens.add(index) }}
               addBelow={() => { data.thisNode.givens.add(index + 1) }} 
-              deleteStatement={() => { data.thisNode.givens.remove(index) }} />)}
+              deleteStatement={() => { data.thisNode.givens.remove(index) }}
+              setWrappers={() => {data.thisNode.setWrappers()}} />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -140,7 +141,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               index={index} 
               addAbove={() => { data.thisNode.givens.add(index) }}
               addBelow={() => { data.thisNode.givens.add(index + 1) }} 
-              deleteStatement={() => { data.thisNode.givens.remove(index) }} />)}
+              deleteStatement={() => { data.thisNode.givens.remove(index) }}
+              setWrappers={() => {data.thisNode.setWrappers()}}/>)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
@@ -191,7 +193,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             proofNode={true}
             addAbove={() => { data.thisNode.givens.add(index) }}
             addBelow={() => { data.thisNode.givens.add(index + 1) }} 
-            deleteStatement = {() => {data.thisNode.givens.remove(index)}}/>)}
+            deleteStatement = {() => {data.thisNode.givens.remove(index)}}
+            setWrappers={() => {data.thisNode.setWrappers()}}/>)}
       </div>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
@@ -214,18 +217,20 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 statement={data.proofSteps[0]}
                 index={data.givens.length}
                 proofNode={true}
-                addAbove={(wrappers) => { data.thisNode.proofSteps.add(0, wrappers) }}
-                addBelow={(wrappers) => { data.thisNode.proofSteps.add(1, wrappers) }}
-                deleteStatement={() => { data.thisNode.proofSteps.remove(0) }} />
+                addAbove={() => { data.thisNode.proofSteps.add(0) }}
+                addBelow={() => { data.thisNode.proofSteps.add(1) }}
+                deleteStatement={() => { data.thisNode.proofSteps.remove(0) }} 
+                setWrappers={() => {data.thisNode.setWrappers()}}/>
               <Text as='b'>. . .</Text>
               <Statement
                 onChange={e => onChange(e, "proofStep", data.proofSteps.length - 1)}
                 statement={data.proofSteps[data.proofSteps.length - 1]}
                 index={data.givens.length + data.proofSteps.length - 1}
                 proofNode={true}
-                addAbove={(wrappers) => { data.thisNode.proofSteps.add(data.proofSteps.length - 1, wrappers) }}
-                addBelow={(wrappers) => { data.thisNode.proofSteps.add(data.proofSteps.length, wrappers) }} 
-                deleteStatement={() => { data.thisNode.proofSteps.remove(data.proofSteps.length - 1) }}/>
+                addAbove={() => { data.thisNode.proofSteps.add(data.proofSteps.length - 1) }}
+                addBelow={() => { data.thisNode.proofSteps.add(data.proofSteps.length) }} 
+                deleteStatement={() => { data.thisNode.proofSteps.remove(data.proofSteps.length - 1) }}
+                setWrappers={() => {data.thisNode.setWrappers()}}/>
             </> :
             data.proofSteps.map((s: StatementType, index: number) =>
               <Statement
@@ -233,9 +238,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 statement={s}
                 index={data.givens.length + index}
                 proofNode={true}
-                addAbove={(wrappers) => { data.thisNode.proofSteps.add(index, wrappers) }}
-                addBelow={(wrappers) => { data.thisNode.proofSteps.add(index + 1, wrappers) }} 
-                deleteStatement={() => { data.thisNode.proofSteps.remove(index) }} />)
+                addAbove={() => { data.thisNode.proofSteps.add(index) }}
+                addBelow={() => { data.thisNode.proofSteps.add(index + 1) }} 
+                deleteStatement={() => { data.thisNode.proofSteps.remove(index) }}
+                setWrappers={() => {data.thisNode.setWrappers()}} />)
         }
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
           <Text>Goals</Text>
@@ -254,9 +260,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               statement={s}
               index={data.givens.length + data.proofSteps.length + index}
               proofNode={true}
-              addAbove={(wrappers) => { data.thisNode.goals.add(index, wrappers) }}
-              addBelow={(wrappers) => { data.thisNode.goals.add(index + 1, wrappers) }} 
-              deleteStatement = {() => {data.thisNode.goals.remove(index)}}/>)}
+              addAbove={() => { data.thisNode.goals.add(index) }}
+              addBelow={() => { data.thisNode.goals.add(index + 1) }} 
+              deleteStatement = {() => {data.thisNode.goals.remove(index)}}
+              setWrappers={() => {data.thisNode.setWrappers()}}/>)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}

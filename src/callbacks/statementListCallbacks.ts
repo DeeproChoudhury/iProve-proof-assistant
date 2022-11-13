@@ -4,9 +4,9 @@ import { StatementType } from "../types/Statement";
 import { Setter } from "../util/setters";
 
 export const makeStatementListCallbacks = (setStatements: Setter<StatementType[]>) => ({
-  add: (index?: number, wrappers: (VariableDeclaration | Assumption)[] = []) => setStatements(statements => {
+  add: (index?: number) => setStatements(statements => {
     const result = [...statements];
-    result.splice(index ?? result.length, 0, { value: "", wrappers: wrappers});
+    result.splice(index ?? result.length, 0, { value: "", wrappers: []});
     return result;
   }),
   update: (index: number, statementValue: string) => setStatements(statements => {

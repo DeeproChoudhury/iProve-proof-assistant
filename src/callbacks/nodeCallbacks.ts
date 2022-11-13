@@ -109,6 +109,37 @@ export const makeNodeCallbacks = (
           });
         });
       })
+    },
+    setWrappers: () => {
+      // sets the indentation level for each statement inside a node
+      // this is run whenever the user leaves the input field of a statement and sees if 
+      // any indentations can be updated (only goes through proofSteps and goals since no indendations 
+      // should be possible in givens (TODO: maybe not even in goals?))
+      // TODO: update the for loops so that they unindent when 'end' keyword is found
+      const node = nodesRef.current.find((n) => n.id === nodeId);
+      if (!node) return;
+      node.data.thisNode.checkSyntax();
+      for (let i = 1; i < node.data.proofSteps.length; i++) {
+        const prevStep = node.data.proofSteps[i - 1];
+        if (prevStep.parsed?.kind === "VariableDeclaration") {
+          node.data.proofSteps[i].wrappers = [...prevStep.wrappers, prevStep.parsed]
+        }
+      }
+      for (let i = 1; i < node.data.goals.length; i++) {
+        const prevStep = node.data.goals[i - 1];
+        if (prevStep.parsed?.kind === "VariableDeclaration") {
+          node.data.goals[i].wrappers = [...prevStep.wrappers, prevStep.parsed]
+        }
+      }
+      setNodeWithId(setNodes, nodeId)((n) => {
+        //set nodes
+        return {
+          ...n,
+          data: {
+            ...node.data,
+          }
+        };
+      });
     }
   };
 };
