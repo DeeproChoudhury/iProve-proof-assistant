@@ -17,7 +17,7 @@ export type VariableBinding = {
     type?: Type
 }
 
-export type Line = TypeExt | Declaration | Term
+export type Line = TypeExt | Declaration | Term | Assumption
 
 export type TypeExt = {
     kind: "TypeExt",
@@ -38,6 +38,11 @@ export type VariableDeclaration = {
     symbol: Variable,
     type?: Type
 }
+
+export type Assumption = {
+    kind: "Assumption",
+    term: Term
+} 
 
 export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm
 
@@ -156,6 +161,7 @@ function d(a: ASTNode): string {
         case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(d).join(",")}).${d(a.term)}`;
         case "EquationTerm": return `${d(a.lhs)} ::= ${d(a.rhs)}`;
         case "ParenTerm": return `[${d(a.term)}]`;
+        case "Assumption": return `assume ${d(a.term)}`
     }
 }
 
@@ -180,6 +186,7 @@ export function s(a: ASTNode | undefined) : string {
         case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
         case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
         case "ParenTerm": return s(a.term);
+        case "Assumption": return s(a.term);
     }
 }
 

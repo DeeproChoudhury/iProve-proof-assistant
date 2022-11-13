@@ -8,11 +8,12 @@ import {
   PopoverArrow,
   PopoverCloseButton,
   Tooltip,
+  Text,
 } from '@chakra-ui/react';
 import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
 import './Statement.css';
 import { useRef, useState } from "react";
-import { display } from "../parser/AST";
+import { Assumption, display, VariableDeclaration } from "../parser/AST";
 import { StatementType } from '../types/Statement';
 
 export type StatementPropsType = {
@@ -20,8 +21,8 @@ export type StatementPropsType = {
   index?: number;
   onChange: (e: any) => void;
   proofNode?: boolean;
-  addAbove?: () => void;
-  addBelow?: () => void;
+  addAbove?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
+  addBelow?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
   deleteStatement?: () => void;
 }
 
@@ -32,7 +33,7 @@ const Statement = (props: StatementPropsType) => {
   const [isFocused, setFocused] = useState<boolean>(false);
   const onFocus = () => setFocused(true);
   const onBlur = () => setFocused(false);
-
+  const belowWrappers = statement.parsed?.kind === "VariableDeclaration" ? [...statement.wrappers, statement.parsed] : statement.wrappers;
   const moreOptions = 
     <Popover isOpen={isOpen} onClose={onClose}>
       <PopoverTrigger>
@@ -50,8 +51,8 @@ const Statement = (props: StatementPropsType) => {
         <PopoverCloseButton />
         <PopoverHeader>More options</PopoverHeader>
         <PopoverBody style={{display: 'flex', flexDirection: 'column'}}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addAbove(); onClose();}} style={{margin: '5px'}}>Add row above</Button>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addBelow(); onClose();}} style={{margin: '5px'}}>Add row below</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addAbove(statement.wrappers); onClose();}} style={{margin: '5px'}}>Add row above</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addBelow(belowWrappers); onClose();}} style={{margin: '5px'}}>Add row below</Button>
           <Button size='xs' colorScheme='blackAlpha' onClick={() => {deleteStatement(); onClose();}} style={{margin: '5px'}}>Delete this row</Button>
         </PopoverBody>
       </PopoverContent>
@@ -60,10 +61,10 @@ const Statement = (props: StatementPropsType) => {
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
   const reasonsLabel = statement.reason && (statement.reason.length === 0 ? 'lemma' : `from ${statement.reason.map(r => `(${r})`).join(", ")}`)
-
+  const indentSize = 15 * statement.wrappers.length;
   return (
-    <div style={{display: 'flex'}}>
-      <div style={{margin: 'auto 5px'}}>({index + 1})</div>
+    <div style={{display: 'flex', marginLeft: `${indentSize}px` }}>
+      <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {statement.reason && <Tooltip label={reasonsLabel} fontSize='xs'>
         <CheckIcon style={{margin: 'auto 5px'}}/>

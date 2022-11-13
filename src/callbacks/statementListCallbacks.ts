@@ -1,11 +1,12 @@
+import { Assumption, VariableDeclaration } from "../parser/AST";
 import { Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { Setter } from "../util/setters";
 
 export const makeStatementListCallbacks = (setStatements: Setter<StatementType[]>) => ({
-  add: (index?: number) => setStatements(statements => {
+  add: (index?: number, wrappers: (VariableDeclaration | Assumption)[] = []) => setStatements(statements => {
     const result = [...statements];
-    result.splice(index ?? result.length, 0, { value: "" });
+    result.splice(index ?? result.length, 0, { value: "", wrappers: wrappers});
     return result;
   }),
   update: (index: number, statementValue: string) => setStatements(statements => {
