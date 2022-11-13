@@ -123,12 +123,16 @@ export const makeNodeCallbacks = (
         const prevStep = node.data.proofSteps[i - 1];
         if (prevStep.parsed?.kind === "VariableDeclaration") {
           node.data.proofSteps[i].wrappers = [...prevStep.wrappers, prevStep.parsed]
+        } else {
+          node.data.proofSteps[i].wrappers = prevStep.wrappers
         }
       }
       for (let i = 1; i < node.data.goals.length; i++) {
         const prevStep = node.data.goals[i - 1];
         if (prevStep.parsed?.kind === "VariableDeclaration") {
           node.data.goals[i].wrappers = [...prevStep.wrappers, prevStep.parsed]
+        } else {
+          node.data.goals[i].wrappers = prevStep.wrappers
         }
       }
       setNodeWithId(setNodes, nodeId)((n) => {
