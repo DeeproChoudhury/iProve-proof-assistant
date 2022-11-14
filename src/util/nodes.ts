@@ -48,6 +48,7 @@ export const getResults = (node: Node<NodeData>): StatementType[] => {
     case "given": return node.data.givens;
     case "statement": return node.data.goals;
     case "goal": return [];
+    case "induction": return [];
   }
 }
 

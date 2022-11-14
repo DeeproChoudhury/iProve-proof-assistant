@@ -69,6 +69,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       </PopoverContent>
     </Popover>
 
+
+  /**
+   * GIVEN NODE :
+   */
   if (data.type === "given") {
     return (
       <Box className={componentStyle}>
@@ -104,6 +108,9 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   }
 
 
+  /**
+   * GOAL NODE : 
+   */
   if (data.type === "goal") {
     return (
       <Box className={componentStyle}>
@@ -148,6 +155,25 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {deletePopover}
           {checkSyntaxButton}
           {checkSatButton}
+        </div>
+      </Box>
+    )
+  }
+
+  /**
+   * INDUCTION NODE
+   */
+  if( data.type === "induction" ) {
+    return (
+      <Box className={componentStyle}>
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text>Base Case(s)</Text>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            icon={<AddIcon />}
+          />
         </div>
       </Box>
     )

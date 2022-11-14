@@ -2,7 +2,7 @@ import { MutableRefObject } from "react";
 import { NodeCallbacks } from "../callbacks/nodeCallbacks";
 import { StatementType } from "./Statement";
 
-export type NodeType = "statement" | "given" | "goal";
+export type NodeType = "statement" | "given" | "goal" | "induction" ;
 
 export type NodeData = Readonly<{
   label: string;
