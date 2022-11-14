@@ -24,16 +24,15 @@ export type StatementPropsType = {
   addAbove?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
   addBelow?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
   deleteStatement?: () => void;
-  setWrappers?: () => void;
 }
 
 const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
-  const {statement, index = 0, onChange, addAbove = () => {}, addBelow = () => {}, deleteStatement = () => {}, proofNode = false, setWrappers = () => {}} = props;
+  const {statement, index = 0, onChange, addAbove = () => {}, addBelow = () => {}, deleteStatement = () => {}, proofNode = false} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isFocused, setFocused] = useState<boolean>(false);
   const onFocus = () => setFocused(true);
-  const onBlur = () => {setFocused(false); setWrappers()};
+  const onBlur = () => setFocused(false);
   const belowWrappers = statement.parsed?.kind === "VariableDeclaration" ? [...statement.wrappers, statement.parsed] : statement.wrappers;
   
   /**

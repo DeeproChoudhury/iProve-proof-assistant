@@ -161,25 +161,25 @@ ATOMIC_TERM.setPattern(apply(
         alt(PREFIX_APPLY, PAREN_TERM, VARIABLE),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
-            kmid(str("["), seq(apply(nil(), (_) => { return false; }), opt(TERM), kright(str(".."), opt(TERM))), str(")")),
+            kmid(str("["), seq(apply(nil(), (_) => { return false; }), TERM, kright(str(".."), opt(TERM))), str(")")),
             ))
     ),
-    (value: [AtomicTerm, [boolean, AST.Term?, AST.Term?][]]): AtomicTerm => {
+    (value: [AtomicTerm, [boolean, AST.Term, AST.Term?][]]): AtomicTerm => {
         let R : AtomicTerm = value[0];
         for (let i = 0; i < value[1].length; i++) {
             let prev : AST.Term = (R) ? R : value[0];
+            const arg1 = value[1][i][1];
+            const arg2 = value[1][i][2]; // Have to put this in a variable for narrowing to work
             // hack, find a more elegant way to structure in general
-            if (value[1][i][0])
+            if (arg1)
                 R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "select", params: [
                     // HACK - prev is returned in an error state, value should always be defined
                     prev, (value[1][i][1] ?? prev)
                 ] };
-            else
-                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
-                    prev, value[1][i][1], value[1][i][2]
-                ] };
-                
-                
+            else if (arg2)
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1, arg2] };
+            else 
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1] };
         }
         return R;
     }

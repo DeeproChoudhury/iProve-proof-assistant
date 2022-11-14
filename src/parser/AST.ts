@@ -17,7 +17,9 @@ export type VariableBinding = {
     type?: Type
 }
 
-export type Line = TypeExt | Declaration | Term | Assumption
+export type BlockStart = VariableDeclaration | Assumption;
+
+export type Line = TypeExt | Declaration | Term | Assumption | BlockEnd
 
 export type TypeExt = {
     kind: "TypeExt",
@@ -43,6 +45,10 @@ export type Assumption = {
     kind: "Assumption",
     term: Term
 } 
+
+export type BlockEnd = {
+    kind: "BlockEnd"
+}
 
 export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm
 
@@ -87,7 +93,7 @@ export type ArraySlice = {
     kind: "FunctionApplication",
     appType: "ArraySlice",
     fn: "???", // TODO
-    params: [Term, Term?, Term?]
+    params: [Term, Term] | [Term, Term, Term]
 }
 
 export type QuantifierApplication = {
@@ -162,6 +168,7 @@ function d(a: ASTNode): string {
         case "EquationTerm": return `${d(a.lhs)} ::= ${d(a.rhs)}`;
         case "ParenTerm": return `[${d(a.term)}]`;
         case "Assumption": return `assume ${d(a.term)}`
+        case "BlockEnd": return "end";
     }
 }
 
@@ -169,11 +176,7 @@ function d(a: ASTNode): string {
 export const display: (line: Line) => string = d
 
 
-export function s(a: ASTNode | undefined) : string {
-    if(a === undefined) {
-        return "NULL";
-    }
-
+export function s(a: ASTNode) : string {
     switch (a.kind) {
         case "Type": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
@@ -186,8 +189,47 @@ export function s(a: ASTNode | undefined) : string {
         case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
         case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
         case "ParenTerm": return s(a.term);
-        case "Assumption": return s(a.term);
+        case "Assumption": return "";
+        case "BlockEnd": return "";
     }
 }
 
-export const ASTSMTLIB2: (line: Line | undefined) => string = s;
+export const ASTSMTLIB2: (line: Line) => string = s;
+
+export const isBlockStart = (line: Line): line is BlockStart => {
+   return line.kind === "VariableDeclaration" || line.kind === "Assumption";
+}
+
+export const isBlockEnd = (line: Line): line is BlockEnd => {
+   return line.kind === "BlockEnd";
+}
+
+export const toWrapperFunc = (w: BlockStart): ((term: Term) => Term) => {
+  if (w.kind === "VariableDeclaration") {
+    return term => ({
+      kind: "QuantifierApplication",
+      quantifier: "A",
+      vars: [{
+        kind: "VariableBinding",
+        symbol: w.symbol,
+        type: w.type
+      }],
+      term
+    });
+  } else if (w.kind === "Assumption") {
+    return term => ({
+      kind: "FunctionApplication",
+      appType: "InfixOp",
+      fn: "=>",
+      params: [w.term, term]
+    });
+  } else throw "unsupported BlockStart"; // why isn't this unreachable
+}
+
+export const isTerm = (line: Line): line is Term => {
+  return line.kind === "Variable"
+    || line.kind === "FunctionApplication"
+    || line.kind === "QuantifierApplication"
+    || line.kind === "EquationTerm"
+    || line.kind === "ParenTerm"
+}

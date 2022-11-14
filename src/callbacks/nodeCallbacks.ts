@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 import { Edge, Node } from "reactflow";
-import { ASTSMTLIB2 } from "../parser/AST";
+import { ASTSMTLIB2, isBlockEnd, isBlockStart } from "../parser/AST";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { NodeData } from "../types/Node";
@@ -108,15 +108,21 @@ export const makeNodeCallbacks = (
       const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
       const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
       const givens = incomingNodes.map(node => getResults(node)).flat();
-      const exp_implications = node?.data.givens;
+      const expImplications = node.data.givens;
+      
+      if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
+        return; // TODO: show error message here
+      }
       
       // check that exp_implications follows from givens with z3
       correctImplication = false;
       console.log(declarationsRef.current);
       const smtDeclarations = declarationsRef.current.map((declaration: StatementType) => {
+        if (!declaration.parsed) return "";
         return ASTSMTLIB2(declaration.parsed);
       }).join("\n");
       const smtReasons = givens.map(given => {
+        if (!given.parsed) return "";
         if (given.parsed?.kind === "FunctionDeclaration" || given.parsed?.kind === "VariableDeclaration") {
           return ASTSMTLIB2(given.parsed);
         }
@@ -124,8 +130,9 @@ export const makeNodeCallbacks = (
       }).join("\n");
       console.log(smtDeclarations);
       console.log(smtReasons);
-      const smtConclusions = exp_implications.map((conclusion: StatementType) => {
-        return "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
+      const smtConclusions = expImplications.map((conclusion: StatementType) => {
+        if (!conclusion.parsed) return "";
+        return "(assert (not " + ASTSMTLIB2(conclusion.parsed) + "))";
       }).join("\n");
       console.log(smtConclusions);
       z3.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)").then((output: string) => {
@@ -158,34 +165,29 @@ export const makeNodeCallbacks = (
     setWrappers: () => {
       // sets the indentation level for each statement inside a node
       // this is run whenever the user leaves the input field of a statement and sees if 
-      // any indentations can be updated (only goes through proofSteps and goals since no indendations 
-      // should be possible in givens (TODO: maybe not even in goals?))
-      // TODO: update the for loops so that they unindent when 'end' keyword is found
-      const node = nodesRef.current.find((n) => n.id === nodeId);
-      if (!node) return;
-      node.data.thisNode.checkSyntax();
-      for (let i = 1; i < node.data.proofSteps.length; i++) {
-        const prevStep = node.data.proofSteps[i - 1];
-        if (prevStep.parsed?.kind === "VariableDeclaration") {
-          node.data.proofSteps[i].wrappers = [...prevStep.wrappers, prevStep.parsed]
-        } else {
-          node.data.proofSteps[i].wrappers = prevStep.wrappers
-        }
-      }
-      for (let i = 1; i < node.data.goals.length; i++) {
-        const prevStep = node.data.goals[i - 1];
-        if (prevStep.parsed?.kind === "VariableDeclaration") {
-          node.data.goals[i].wrappers = [...prevStep.wrappers, prevStep.parsed]
-        } else {
-          node.data.goals[i].wrappers = prevStep.wrappers
-        }
-      }
+      // any indentations can be updated (only goes through proofSteps since no indentations 
+      // should be possible in givens and goals
       setNodeWithId(setNodes, nodeId)((n) => {
+        const wrappers = [];
+        const proofSteps = [];
+        for (const oldStep of n.data.proofSteps) {
+          if (!oldStep.parsed) continue;
+          if (isBlockStart(oldStep.parsed)) {
+            wrappers.push(oldStep.parsed);
+          } else if (isBlockEnd(oldStep.parsed)) {
+            wrappers.pop();
+          }
+          proofSteps.push({
+            ...oldStep,
+            wrappers: [...wrappers]
+          })
+        }
         //set nodes
         return {
           ...n,
           data: {
-            ...node.data,
+            ...n.data,
+            proofSteps
           }
         };
       });
