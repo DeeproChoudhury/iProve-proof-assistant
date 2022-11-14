@@ -35,6 +35,10 @@ const Statement = (props: StatementPropsType) => {
   const onFocus = () => setFocused(true);
   const onBlur = () => {setFocused(false); setWrappers()};
   const belowWrappers = statement.parsed?.kind === "VariableDeclaration" ? [...statement.wrappers, statement.parsed] : statement.wrappers;
+  
+  /**
+   * Popout for adding/deleting statement lines
+   */
   const moreOptions = 
     <Popover isOpen={isOpen} onClose={onClose}>
       <PopoverTrigger>
@@ -58,6 +62,8 @@ const Statement = (props: StatementPropsType) => {
         </PopoverBody>
       </PopoverContent>
     </Popover>
+
+    
   console.log(statement.wrappers);
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
