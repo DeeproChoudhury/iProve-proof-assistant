@@ -12,6 +12,20 @@ export function listField(k: StatementKind): StatementListFieldName {
     }
 }
 
+export function localIndexToAbsolute(data: NodeData, k: StatementKind, index: number) {
+  switch (k) {
+    case "given": return index;
+    case "proofStep": return data.givens.length + index;
+    case "goal": return data.givens.length + data.proofSteps.length + index;
+  }
+}
+
+export function absoluteIndexToLocal(data: NodeData, index: number) {
+  if (index < data.givens.length) return ["given", index];
+  else if (index < data.givens.length + data.proofSteps.length) return ["proofStep", index - data.givens.length];
+  else return ["goal", index - data.givens.length - data.proofSteps.length];
+}
+
 export const setStatementsForNode = (
   setNode: Setter<Node<NodeData>>,
   k: StatementKind

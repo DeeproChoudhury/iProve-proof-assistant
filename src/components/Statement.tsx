@@ -13,7 +13,7 @@ import {
 import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
 import './Statement.css';
 import { useRef, useState } from "react";
-import { Assumption, display, VariableDeclaration } from "../parser/AST";
+import { display } from "../parser/AST";
 import { StatementType } from '../types/Statement';
 
 export type StatementPropsType = {
@@ -21,19 +21,26 @@ export type StatementPropsType = {
   index?: number;
   onChange: (e: any) => void;
   proofNode?: boolean;
-  addAbove?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
-  addBelow?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
-  deleteStatement?: () => void;
+  addAbove: () => void;
+  addBelow: () => void;
+  deleteStatement: () => void;
+  afterEdit?: () => void;
 }
 
 const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
-  const {statement, index = 0, onChange, addAbove = () => {}, addBelow = () => {}, deleteStatement = () => {}, proofNode = false} = props;
+  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {}} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isFocused, setFocused] = useState<boolean>(false);
-  const onFocus = () => setFocused(true);
-  const onBlur = () => setFocused(false);
-  const belowWrappers = statement.parsed?.kind === "VariableDeclaration" ? [...statement.wrappers, statement.parsed] : statement.wrappers;
+  const [oldValue, setOldValue] = useState<string>("");
+  const onFocus = () => {
+    setFocused(true);
+    setOldValue(statement.value);
+  };
+  const onBlur = () => {
+    setFocused(false);
+    if (statement.value !== oldValue) afterEdit();
+  };
   
   /**
    * Popout for adding/deleting statement lines
@@ -55,8 +62,8 @@ const Statement = (props: StatementPropsType) => {
         <PopoverCloseButton />
         <PopoverHeader>More options</PopoverHeader>
         <PopoverBody style={{display: 'flex', flexDirection: 'column'}}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addAbove(statement.wrappers); onClose();}} style={{margin: '5px'}}>Add row above</Button>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addBelow(belowWrappers); onClose();}} style={{margin: '5px'}}>Add row below</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addAbove(); onClose();}} style={{margin: '5px'}}>Add row above</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addBelow(); onClose();}} style={{margin: '5px'}}>Add row below</Button>
           <Button size='xs' colorScheme='blackAlpha' onClick={() => {deleteStatement(); onClose();}} style={{margin: '5px'}}>Delete this row</Button>
         </PopoverBody>
       </PopoverContent>

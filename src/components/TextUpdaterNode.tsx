@@ -7,15 +7,29 @@ import { ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
 import { NodeData } from '../types/Node';
 import { StatementKind, StatementType } from '../types/Statement';
+import { listField, localIndexToAbsolute } from '../util/nodes';
 import SolveNodeModal from './SolveNodeModal';
 import Statement from './Statement';
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
   const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
     data.thisNode.statementList(k).update(updated, evt.target.value);
+  }, [data]);
+
+  const afterStatementEdit = useCallback(() => {
     data.thisNode.checkSyntax();
     data.thisNode.setWrappers();
   }, [data]);
+
+  const makeStatementProps = useCallback((k: StatementKind, index: number) => ({
+    statement: data[listField(k)][index],
+    index: localIndexToAbsolute(data, k, index),
+    onChange: (e: any) => onChange(e, k, index),
+    addAbove: () => data.thisNode.statementList(k).add(index),
+    addBelow: () => data.thisNode.statementList(k).add(index + 1),
+    deleteStatement: () => data.thisNode.statementList(k).remove(index),
+    afterEdit: afterStatementEdit
+  }), [data]);
 
   const [isCollapsed, setCollapsed] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -82,12 +96,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           </div>
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
-              onChange={e => onChange(e, "given", index)} 
-              statement={s} 
-              index={index} 
-              addAbove={() => { data.thisNode.givens.add(index) }}
-              addBelow={() => { data.thisNode.givens.add(index + 1) }} 
-              deleteStatement={() => { data.thisNode.givens.remove(index) }}
+              {...makeStatementProps("given", index)}
             />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -133,12 +142,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           </div>
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
-              onChange={e => onChange(e, "given", index)} 
-              statement={s} 
-              index={index} 
-              addAbove={() => { data.thisNode.givens.add(index) }}
-              addBelow={() => { data.thisNode.givens.add(index + 1) }} 
-              deleteStatement={() => { data.thisNode.givens.remove(index) }}
+              {...makeStatementProps("given", index)}
             />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -188,13 +192,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {data.givens.map((s: StatementType, index: number) =>
           <Statement
-            onChange={e => onChange(e, "given", index)}
-            statement={s}
-            index={index}
             proofNode={true}
-            addAbove={() => { data.thisNode.givens.add(index) }}
-            addBelow={() => { data.thisNode.givens.add(index + 1) }} 
-            deleteStatement = {() => {data.thisNode.givens.remove(index)}}
+            {...makeStatementProps("given", index)}
           />)}
       </div>
       {/* END: Given Statements */}
@@ -221,34 +220,19 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           isCollapsed ?
             <>
               <Statement
-                onChange={e => onChange(e, "proofStep", 0)}
-                statement={data.proofSteps[0]}
-                index={data.givens.length}
                 proofNode={true}
-                addAbove={() => { data.thisNode.proofSteps.add(0) }}
-                addBelow={() => { data.thisNode.proofSteps.add(1) }}
-                deleteStatement={() => { data.thisNode.proofSteps.remove(0) }} 
+                {...makeStatementProps("proofStep", 0)}
               />
               <Text as='b'>. . .</Text>
               <Statement
-                onChange={e => onChange(e, "proofStep", data.proofSteps.length - 1)}
-                statement={data.proofSteps[data.proofSteps.length - 1]}
-                index={data.givens.length + data.proofSteps.length - 1}
                 proofNode={true}
-                addAbove={() => { data.thisNode.proofSteps.add(data.proofSteps.length - 1) }}
-                addBelow={() => { data.thisNode.proofSteps.add(data.proofSteps.length) }} 
-                deleteStatement={() => { data.thisNode.proofSteps.remove(data.proofSteps.length - 1) }}
+                {...makeStatementProps("proofStep", data.proofSteps.length - 1)}
               />
             </> :
             data.proofSteps.map((s: StatementType, index: number) =>
               <Statement
-                onChange={e => onChange(e, "proofStep", index)}
-                statement={s}
-                index={data.givens.length + index}
                 proofNode={true}
-                addAbove={() => { data.thisNode.proofSteps.add(index) }}
-                addBelow={() => { data.thisNode.proofSteps.add(index + 1) }} 
-                deleteStatement={() => { data.thisNode.proofSteps.remove(index) }}
+                {...makeStatementProps("proofStep", index)}
               />)
         }
         {/* END: Proof Statements*/}
