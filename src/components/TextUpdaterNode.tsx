@@ -167,6 +167,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     return (
       <Box className={componentStyle}>
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+          {/* BEGIN : Base Case */}
           <Text>Base Case(s)</Text>
           <IconButton
             variant='outline'
@@ -174,8 +175,31 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             size='xs'
             icon={<AddIcon />}
           />
+          {/* END : Base Case */}
         </div>
+        
+        {/* BEGIN : Induction Case */}
+        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Text>Inductive Case(s)</Text>
+            <IconButton
+              variant='outline'
+              aria-label='Add given'
+              size='xs'
+              icon={<AddIcon />}
+            />
+        </div>
+        {/* END : Induction Case */}
+      
+        {/* BEGIN : Bottom Buttons */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
+          {deletePopover}
+          {checkSyntaxButton}
+          {checkSatButton}
+        </div>
+        {/* END : Bottom Buttons */}
+
       </Box>
+
     )
   }
 
