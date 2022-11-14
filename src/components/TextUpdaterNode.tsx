@@ -69,7 +69,17 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       </PopoverContent>
     </Popover>
 
+  const NodeBottomButtons = () => {
+    return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
+      {deletePopover}
+      {checkSyntaxButton}
+      {checkSatButton}
+    </div>
+    );
+  }
 
+  
   /**
    * GIVEN NODE :
    */
@@ -97,15 +107,15 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               deleteStatement={() => { data.thisNode.givens.remove(index) }}
               setWrappers={() => {data.thisNode.setWrappers()}} />)}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          {deletePopover}
-          {checkSyntaxButton}
-          {checkSatButton}
-        </div>
+
+        {/* START : Node Bottom Buttons */}
+        <NodeBottomButtons/>
+        {/* END : Node Bottom Buttons */}
+        
         {sourceHandle}
       </Box>
-    )
-  }
+    );
+  };
 
 
   /**
@@ -151,11 +161,11 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               deleteStatement={() => { data.thisNode.givens.remove(index) }}
               setWrappers={() => {data.thisNode.setWrappers()}}/>)}
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          {deletePopover}
-          {checkSyntaxButton}
-          {checkSatButton}
-        </div>
+        
+        {/* START : Node Bottom Buttons */}
+        <NodeBottomButtons/>
+        {/* END : Node Bottom Buttons */}
+
       </Box>
     )
   }
@@ -190,14 +200,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         </div>
         {/* END : Induction Case */}
       
-        {/* BEGIN : Bottom Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          {deletePopover}
-          {checkSyntaxButton}
-          {checkSatButton}
-        </div>
-        {/* END : Bottom Buttons */}
-
+        {/* START : Node Bottom Buttons */}
+        <NodeBottomButtons/>
+        {/* END : Node Bottom Buttons */}
+        
       </Box>
 
     )
@@ -349,6 +355,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       {componentStyle !== "goal-node" && sourceHandle}
     </Box>
   );
+
 }
 
 export default TextUpdaterNode;
