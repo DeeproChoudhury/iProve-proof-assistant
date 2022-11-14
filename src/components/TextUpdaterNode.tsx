@@ -174,6 +174,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           Check failed. Check again?
         </Button>}
       </div>
+      
+      {/* Begin: Givens */}
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text>Givens</Text>
         <IconButton
@@ -184,6 +186,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           icon={<AddIcon />}
         />
       </div>
+
+      {/* Begin: Given Statements */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {data.givens.map((s: StatementType, index: number) =>
           <Statement
@@ -196,6 +200,11 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             deleteStatement = {() => {data.thisNode.givens.remove(index)}}
             setWrappers={() => {data.thisNode.setWrappers()}}/>)}
       </div>
+      {/* END: Given Statements */}
+      {/* END: Givens */}
+
+
+      {/* BEGIN: Proof */}
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Proof Steps</Text>
         <IconButton
@@ -206,6 +215,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           icon={<AddIcon />}
         />
       </div>
+
+      {/* BEGIN: Proof Statements */}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {componentStyle === "given-node" && givenTitle}
         {componentStyle === "goal-node" && goalTitle}
@@ -243,6 +254,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 deleteStatement={() => { data.thisNode.proofSteps.remove(index) }}
                 setWrappers={() => {data.thisNode.setWrappers()}} />)
         }
+        {/* END: Proof Statements*/}
+        {/* END: Proof */}
+
+        {/* BEGIN: Goals */}
         <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
           <Text>Goals</Text>
           <IconButton
@@ -253,6 +268,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             icon={<AddIcon />}
           />
         </div>
+
+        {/* BEGIN: Proof Statements */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {data.goals.map((s: StatementType, index: number) =>
             <Statement
@@ -265,6 +282,10 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               deleteStatement = {() => {data.thisNode.goals.remove(index)}}
               setWrappers={() => {data.thisNode.setWrappers()}}/>)}
         </div>
+        {/* END: Proof Statements */}
+        {/* END: Goals */}
+
+        {/* BEGIN: Node End Buttons */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
           {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
@@ -272,6 +293,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {checkSyntaxButton}
           {checkSolveReady ? checkSatButton : solveNotReadyPopover}
         </div>
+        {/* END: Node End Buttons */}
+
       </div>
       {componentStyle !== "goal-node" && sourceHandle}
     </Box>
