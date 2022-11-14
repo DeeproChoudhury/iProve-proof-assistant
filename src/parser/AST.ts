@@ -1,5 +1,22 @@
 export type ASTNode = Type | FunctionType | VariableBinding | Line
 
+export type Tactic = Assumption | Skolemize | BeginScope | EndScope
+export type Assumption = {
+    kind: "Assumption",
+    arg: Term
+}
+export type Skolemize = {
+    kind: "Skolemize",
+    arg: string
+}
+export type BeginScope = {
+    kind: "BeginScope"
+}
+export type EndScope = {
+    kind: "EndScope"
+}
+
+
 export type Type = { 
     kind: "Type",
     ident: string
@@ -17,7 +34,7 @@ export type VariableBinding = {
     type?: Type
 }
 
-export type Line = TypeExt | Declaration | Term
+export type Line = TypeExt | Declaration | Term | Tactic
 
 export type TypeExt = {
     kind: "TypeExt",
@@ -156,6 +173,11 @@ function d(a: ASTNode): string {
         case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(d).join(",")}).${d(a.term)}`;
         case "EquationTerm": return `${d(a.lhs)} ::= ${d(a.rhs)}`;
         case "ParenTerm": return `[${d(a.term)}]`;
+        
+        case "BeginScope": return "begin";
+        case "EndScope": return "end";
+        case "Assumption": return `assume ${d(a.arg)}`;
+        case "Skolemize": return `skolem ${a.arg}`;
     }
 }
 
@@ -180,6 +202,12 @@ export function s(a: ASTNode | undefined) : string {
         case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
         case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
         case "ParenTerm": return s(a.term);
+
+        case "BeginScope":
+        case "EndScope":
+        case "Assumption":
+        case "Skolemize":
+            return "";
     }
 }
 
