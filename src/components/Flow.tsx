@@ -10,24 +10,32 @@ import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../solver/Solver';
 import { ErrorLocation } from '../types/ErrorLocation';
-import { NodeData, NodeType } from '../types/Node';
+import { GeneralNodeData, InductionData, NodeData, NodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
 import ImplicationEdge from './edges/ImplicationEdge';
 import InvalidEdge from './edges/InvalidEdge';
 import './Flow.css';
+import InductionNode from './nodes/InductionNode';
 import ModalExport from './ModalExport';
 import ModalImport from './ModalImport';
-import TextUpdaterNode from './TextUpdaterNode';
-import './TextUpdaterNode.css';
+import GeneralNode from './nodes/GeneralNode';
+// import TextUpdaterNode from './nodes/TextUpdaterNode';
+import './nodes/TextUpdaterNode.css';
 
-const nodeTypes = { textUpdater: TextUpdaterNode };
+const nodeTypes = { 
+  generalNode: GeneralNode
+};
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge};
 
 function Flow() {
   const [proofValid, setProofValid] = useState(false);
+  
   const [nodes, setNodes] = useState<Node<NodeData>[]>([]);
+  const [inductionNodes, setInductionNodes] = useState<Node<InductionData>[]>([]);
+  
+
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
@@ -100,21 +108,44 @@ function Flow() {
 
   const addNode = useCallback((nodeType: NodeType) => {
     const count = nextId();
-    setNodes(nds => [...nds, {
-      id: `${count}`,
-      data: {
-        label: `Node ${count}`,
-        id: count,
-        type: nodeType,
-        givens: nodeType === 'statement' ? [] : [{ value: '', wrappers: []}],
-        proofSteps: [],
-        goals: nodeType === 'statement' ? [{ value: '', wrappers: []}, ] : [], 
-        declarationsRef,
-        thisNode: makeThisNode(`${count}`)
-      },
-      position: { x: 300, y: 0 },
-      type: 'textUpdater',
-    }]);
+    
+    if (nodeType === "induction") {
+      setInductionNodes(nds => [...nds, {
+        id: `${count}`,
+        data: {
+          label: `Node ${count}`,
+          id: count,
+          type: nodeType,
+          types: [],
+          predicate: [],
+          inductiveCase: [],
+          baseCases: [],
+          inductiveHypotheses: [],
+          declarationsRef,
+          thisNode: makeThisNode(`${count}`)
+        },
+        position: { x: 300, y: 0 },
+        type: 'generalNode',
+      }]);
+    }
+    else {
+      setNodes(nds => [...nds, {
+        id: `${count}`,
+        data: {
+          label: `Node ${count}`,
+          id: count,
+          type: nodeType,
+          givens: nodeType === 'statement' ? [] : [{ value: '', wrappers: []}],
+          proofSteps: [],
+          goals: nodeType === 'statement' ? [{ value: '', wrappers: []}, ] : [], 
+          declarationsRef,
+          thisNode: makeThisNode(`${count}`)
+        },
+        position: { x: 300, y: 0 },
+        type: 'generalNode',
+      }]);
+    }
+    
   }, [nextId, makeThisNode]);
 
   
@@ -133,7 +164,7 @@ function Flow() {
         thisNode: makeThisNode(`${count}`)
       },
       position: { x: 300, y: 0 },
-      type: 'textUpdater',
+      type: 'generalNode',
     }]);
   }, [nextId, makeThisNode]);
 
@@ -154,7 +185,7 @@ function Flow() {
           thisNode: makeThisNode(`${id}`)
         },
         position: { x: 300, y: 0 },
-        type: 'textUpdater',
+        type: 'generalNode',
       }
     });
     setNodes(nodeData);
@@ -271,7 +302,7 @@ function Flow() {
           visible={declarationSidebarVisible}/>
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
-            nodes={nodes}
+            nodes={(nodes as Node<GeneralNodeData>[]).concat(inductionNodes as Node<GeneralNodeData>[])}
             nodeTypes={nodeTypes}
             edges={edges}
             edgeTypes={edgeTypes}
