@@ -119,7 +119,7 @@ export type VariableDeclaration = {
     type?: Type
 }
 
-export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm
+export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm | ArrayLiteral
 
 export type FunctionApplication = PrefixApplication | UnaryApplication | InfixApplication | ArrayElem | ArraySlice
 
@@ -128,6 +128,11 @@ export type AppType = FunctionApplication["appType"]
 export type Variable = { 
     kind: "Variable",
     ident: string
+}
+
+export type ArrayLiteral = {
+    kind: "ArrayLiteral",
+    elems: Term[]
 }
 
 export type PrefixApplication = {
@@ -259,6 +264,8 @@ function d(a: ASTNode): string {
         case "ParamType": return `${a.ident}<${a.params.map(d).join(",")}>`
         case "ListType": return `[${d(a.param)}]`
         case "TupleType": return `(${a.params.map(d).join(", ")})`
+
+        case "ArrayLiteral": return `{ ${a.elems.map(d).join(", ")} }`
     }
 }
 
@@ -306,6 +313,9 @@ export function s(a: ASTNode | undefined) : string {
         case "ParamType":
         case "ListType":
         case "TupleType":
+            return "";
+        
+        case "ArrayLiteral":
             return "";
     }
 }

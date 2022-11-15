@@ -29,7 +29,8 @@ enum TokenKind {
     EmptyArray,
     Paren,
     Guard,
-    TypeKW
+    TypeKW,
+    CurlyBrace
 }
 
 const lexer = buildLexer([
@@ -40,6 +41,7 @@ const lexer = buildLexer([
     [true, /^(::)/g, TokenKind.DoubleColon],
     [true, /^(\[\])/g, TokenKind.EmptyArray],
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
+    [true, /^(\}|\{)/g, TokenKind.CurlyBrace],
     [true, /^(\)|\()/g, TokenKind.Paren],
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
@@ -67,8 +69,9 @@ const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
 
 const VAR_BIND = rule<TokenKind, AST.VariableBinding>();
 
-type AtomicTerm = AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable
+type AtomicTerm = AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.ArraySlice | AST.Variable | AST.ArrayLiteral
 const ATOMIC_TERM = rule<TokenKind, AtomicTerm>();
+const ARRAY_LITERAL = rule<TokenKind, AST.ArrayLiteral>();
 const PREFIX_APPLY = rule<TokenKind, AST.PrefixApplication>();
 const PAREN_TERM = rule<TokenKind, AST.ParenTerm>();
 
@@ -218,7 +221,7 @@ PAREN_TERM.setPattern(apply(
 ));
 ATOMIC_TERM.setPattern(apply(
     seq(
-        alt(PREFIX_APPLY, PAREN_TERM, VARIABLE),
+        alt(PREFIX_APPLY, PAREN_TERM, VARIABLE, ARRAY_LITERAL),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
             kmid(str("["), seq(apply(nil(), (_) => { return false; }), opt(TERM), kright(str(".."), opt(TERM))), str(")")),
@@ -237,12 +240,14 @@ ATOMIC_TERM.setPattern(apply(
             else
                 R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
                     prev, value[1][i][1], value[1][i][2]
-                ] };
-                
-                
+                ] };   
         }
         return R;
     }
+));
+ARRAY_LITERAL.setPattern(apply(
+    kmid(str("{"), list_sc(TERM, str(",")), str("}")),
+    (v): AST.ArrayLiteral => ({ kind: "ArrayLiteral", elems: v })
 ));
 
 // PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC 
@@ -308,11 +313,7 @@ TERM.setPattern(
                         op_stack.push(token);
                         break;
                     }
-                    case "FunctionApplication":
-                    case "ParenTerm":
-                    case "EquationTerm":
-                    case "Variable":
-                    case "QuantifierApplication": {
+                    default: {
                         if (prev_atom) throw new Error("Syntax Error: Cannot apply Term to Term");
                         prev_atom = true;
                         out_stack.push(token);
@@ -320,7 +321,8 @@ TERM.setPattern(
                     }
                 }
             }
-            if (out_stack.length !== 1) throw new Error("Syntax Error: Cannot apply Term to Term");
+            if (out_stack.length > 1) throw new Error("Syntax Error: Cannot apply Term to Term");
+            if (out_stack.length < 1) throw new Error("Syntax Error: Malformed Term");
             return out_stack[0];
         })
 );
