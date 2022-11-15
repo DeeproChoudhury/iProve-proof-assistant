@@ -1,7 +1,7 @@
 module.exports = function(app) {
   // app.use(sslRedirect());
   app.use('/', (req, res, next) => {
-    if (process.env.NODE_ENV === 'production' && req.header('x-forwarded-proto') !== 'https') {
+    if (process.env.ENV === 'production' && req.header('x-forwarded-proto') !== 'https') {
       res.redirect(`https://${req.header('host')}${req.url}`)
     }
     else {
