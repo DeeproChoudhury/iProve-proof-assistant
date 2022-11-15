@@ -474,11 +474,12 @@ TYPE_CONSTRUCTOR.setPattern(apply(
 const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
 TYPE_DEF.setPattern(apply(
     seq(
-        kmid(tok(TokenKind.TypeKW), VARIABLE, tok(TokenKind.DirEqToken)),
+        kmid(tok(TokenKind.TypeKW), 
+        seq(VARIABLE, rep_sc(VARIABLE)), tok(TokenKind.DirEqToken)),
         list_sc(TYPE_CONSTRUCTOR, str("|"))
     ),
     (value): AST.TypeDef =>
-        ({ kind: "TypeDef", ident: value[0].ident, cases: value[1] })
+        ({ kind: "TypeDef", ident: value[0][0].ident, params: value[0][1].map(x => x.ident), cases: value[1] })
 ))
 
 const LANG = rule<TokenKind, AST.Line>();
