@@ -3,6 +3,7 @@ export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | G
 export type TypeDef = {
     kind: "TypeDef",
     ident: string,
+    params: string[],
     cases: TypeConstructor[]
 }
 
@@ -65,10 +66,23 @@ export type TuplePattern = {
     params: Pattern[]
 }
 
-
-export type Type = { 
-    kind: "Type",
+export type Type = PrimitiveType | ParamType | ListType | TupleType
+export type PrimitiveType = { 
+    kind: "PrimitiveType",
     ident: string
+}
+export type ParamType = { 
+    kind: "ParamType",
+    ident: string,
+    params: Type[]
+}
+export type ListType = { 
+    kind: "ListType",
+    param: Type
+}
+export type TupleType = {
+    kind: "TupleType",
+    params: Type[]
 }
 
 export type FunctionType = {
@@ -195,7 +209,7 @@ function fnSMT(fn: string): string {
 
 function d(a: ASTNode): string {
     switch (a.kind) {
-        case "Type": return a.ident;
+        case "PrimitiveType": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
         case "TypeExt": return `${d(a.subType)} ⊆ ${d(a.superType)}`;
         case "VariableBinding": return s(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
@@ -241,6 +255,10 @@ function d(a: ASTNode): string {
         
         case "TypeDef": return `type ${a.ident} ::= ${a.cases.map(d).join(" | ")}`
         case "TypeConstructor": return `${a.ident} ${a.params.map(d).join(" ")}` 
+
+        case "ParamType": return `${a.ident}<${a.params.map(d).join(",")}>`
+        case "ListType": return `[${d(a.param)}]`
+        case "TupleType": return `(${a.params.map(d).join(", ")})`
     }
 }
 
@@ -254,7 +272,7 @@ export function s(a: ASTNode | undefined) : string {
     }
 
     switch (a.kind) {
-        case "Type": return a.ident;
+        case "PrimitiveType": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
         case "VariableBinding": return `(${s(a.symbol)} ${a.type ? s(a.type) : "Int"})`;
         case "TypeExt": return `${s(a.subType)} ⊆ ${s(a.superType)}`;
@@ -283,6 +301,11 @@ export function s(a: ASTNode | undefined) : string {
         
         case "TypeDef":
         case "TypeConstructor":
+            return "";
+
+        case "ParamType":
+        case "ListType":
+        case "TupleType":
             return "";
     }
 }

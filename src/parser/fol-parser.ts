@@ -108,9 +108,50 @@ const OPERATOR = rule<TokenKind, TermOperator>();
 VARIABLE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
     return { kind: "Variable", ident: s.text }
 }));
-TYPE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Type => {
-    return { kind: "Type", ident: s.text }
-}));
+
+const PRIMITIVE_TYPE = rule<TokenKind, AST.PrimitiveType>();
+const PARAM_TYPE = rule<TokenKind, AST.ParamType>();
+const LIST_TYPE = rule<TokenKind, AST.ListType>();
+const TUPLE_TYPE = rule<TokenKind, AST.TupleType>();
+
+
+PRIMITIVE_TYPE.setPattern(apply(
+    tok(TokenKind.Symbol),
+    (s: Token<TokenKind.Symbol>): AST.PrimitiveType =>
+        ({ kind: "PrimitiveType", ident: s.text })
+));
+
+PARAM_TYPE.setPattern(apply(
+    seq(
+        tok(TokenKind.Symbol),
+        kmid(str("<"), list_sc(TYPE, str(",")), str(">")),
+    ),
+    (value): AST.ParamType =>
+        ({ kind: "ParamType", ident: value[0].text, params: value[1] })
+));
+
+LIST_TYPE.setPattern(apply(
+    kmid(str("["), TYPE, str("]")),
+    (t): AST.ListType =>
+        ({ kind: "ListType", param: t })
+));
+
+TUPLE_TYPE.setPattern(apply(
+    kmid(str("("), list_sc(TYPE, str(",")), str(")")),
+    (value): AST.TupleType =>
+        ({ kind: "TupleType", params: value })
+));
+
+TYPE.setPattern(alt(
+    PRIMITIVE_TYPE,
+    PARAM_TYPE,
+    LIST_TYPE,
+    TUPLE_TYPE
+))
+
+
+
+
 FN_TYPE.setPattern(apply(
     seq(
         kmid(opt(str("(")), list_sc(TYPE, str(",")), opt(str(")"))),
