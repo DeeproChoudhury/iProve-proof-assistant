@@ -1,5 +1,4 @@
-import { countReset } from 'console';
-import { Token } from 'typescript-parsec';
+import { opt_sc, Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule, ParseError } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, rep_sc, nil } from 'typescript-parsec';
 import * as AST from './AST'
@@ -25,23 +24,31 @@ enum TokenKind {
     Assume,
     End,
     Begin,
-    Skolem
+    Skolem,
+    FunDefToken,
+    EmptyArray,
+    Paren,
+    Guard
 }
 
 const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^(::=)/g, TokenKind.DirEqToken],
+    [true, /^(:=)/g, TokenKind.FunDefToken],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(::)/g, TokenKind.DoubleColon],
+    [true, /^(\[\])/g, TokenKind.EmptyArray],
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
+    [true, /^(\)|\()/g, TokenKind.Paren],
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
     [true, /^(assume)/g, TokenKind.Assume],
     [true, /^(skolem)/g, TokenKind.Skolem],
     [true, /^(begin)/g, TokenKind.Begin],
     [true, /^(end)/g, TokenKind.End],
+    [true, /^(\|)/g, TokenKind.Guard],
 
-    [true, /^(\w|\d)+/g, TokenKind.Symbol],
+    [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
     [true, /^(\+|-|=|>|<|\/|\.|\*|!|&|\||~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
@@ -214,8 +221,6 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
 
     "->": [4, true, true],
     "<->": [4, true, true],
-
-    "::=": [3, true, true],
 }
 
 TERM.setPattern(
@@ -280,7 +285,6 @@ TERM.setPattern(
 OPERATOR.setPattern(alt(
     apply(
         alt(
-            tok(TokenKind.DirEqToken),
             tok(TokenKind.InfixSymbol),
             kmid(str("`"), tok(TokenKind.Symbol), str("`"))
         ), (value: Token<TokenKind.DirEqToken | TokenKind.InfixSymbol | TokenKind.Symbol>): UnaryOperator | InfixOperator => {
@@ -368,6 +372,85 @@ END_SCOPE.setPattern(apply(
     (_): AST.EndScope => ({ kind: "EndScope" })
 ))
 
+const CONS_PARAM = rule<TokenKind, AST.ConsParam>();
+CONS_PARAM.setPattern(apply(
+    seq(
+        VARIABLE,
+        kright(tok(TokenKind.DoubleColon), VARIABLE)
+    ),
+    (value): AST.ConsParam => 
+        ({ kind: "ConsParam", A: value[0].ident, B: value[1].ident })
+));
+const CONSTRUCTED_TYPE = rule<TokenKind, AST.ConstructedType>();
+// below
+const TUPLE_PATTERN = rule<TokenKind, AST.TuplePattern>();
+// below
+const EMPTY_LIST = rule<TokenKind, AST.EmptyList>();
+EMPTY_LIST.setPattern(apply(
+    str("[]"),
+    (_): AST.EmptyList => 
+        ({ kind: "EmptyList" })
+));
+const SIMPLE_PARAM = rule<TokenKind, AST.SimpleParam>();
+SIMPLE_PARAM.setPattern(apply(
+    VARIABLE,
+    (value): AST.SimpleParam => 
+        ({ kind: "SimpleParam", ident: value.ident })
+));
+
+const GUARD = rule<TokenKind, AST.Guard>();
+
+const PATTERN = rule<TokenKind, AST.Pattern>();
+PATTERN.setPattern(alt(
+    kmid(str("("), CONS_PARAM, str(")")),
+    kmid(str("("), CONSTRUCTED_TYPE, str(")")),
+    kmid(str("("), TUPLE_PATTERN, str(")")),
+    EMPTY_LIST,
+    SIMPLE_PARAM
+))
+
+CONSTRUCTED_TYPE.setPattern(apply(
+    seq(
+        VARIABLE,
+        rep_sc(PATTERN)
+    ),
+    (value): AST.ConstructedType => 
+        ({ kind: "ConstructedType", c: value[0].ident, params: value[1] })
+));
+
+TUPLE_PATTERN.setPattern(apply(
+    list_sc(PATTERN, str(",")),
+    (value): AST.TuplePattern => 
+        ({ kind: "TuplePattern", params: value })
+));
+
+const GUARD_TERM = rule<TokenKind, AST.Guard | AST.Term>();
+GUARD_TERM.setPattern(alt(
+    GUARD,
+    TERM
+))
+
+GUARD.setPattern(apply(
+    seq(
+        kright(str("|"), TERM),
+        kright(str(":="), TERM),
+        opt_sc(GUARD)
+    ),
+    (value): AST.Guard => 
+        ({ kind: "Guard", cond: value[0], res: value[1], next: value[2] })
+));
+
+
+const FN_DEF = rule<TokenKind, AST.FunctionDefinition>();
+FN_DEF.setPattern(apply(
+    seq(
+        VARIABLE,
+        rep_sc(PATTERN),
+        kright(tok(TokenKind.DirEqToken), GUARD_TERM)
+    ),
+    (value): AST.FunctionDefinition => 
+        ({ kind: "FunctionDefinition", ident: value[0].ident, params: value[1], def: value[2] })
+));
 
 TACTIC.setPattern(alt(
     ASSUMPTION,
@@ -379,6 +462,7 @@ TACTIC.setPattern(alt(
 
 CORE.setPattern(alt(
     FN_DEC,
+    FN_DEF,
     VAR_DEC,
     TYPE_EXT,
     TERM
@@ -394,7 +478,7 @@ PROOF_LINE.setPattern(alt(
 
 export function evaluate(line: string): AST.ASTNode | ParseError {
     try {
-        let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
+        let A = expectEOF(FN_DEF.parse(lexer.parse(line)));
         if (!A.successful) return A.error;
         return expectSingleResult(A);
     } catch (E) {

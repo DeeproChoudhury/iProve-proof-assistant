@@ -1,4 +1,4 @@
-export type ASTNode = Type | FunctionType | VariableBinding | Line
+export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | Guard
 
 export type Tactic = Assumption | Skolemize | BeginScope | EndScope
 export type Assumption = {
@@ -14,6 +14,43 @@ export type BeginScope = {
 }
 export type EndScope = {
     kind: "EndScope"
+}
+
+export type FunctionDefinition = {
+    kind: "FunctionDefinition",
+    ident: string,
+    params: Pattern[],
+    def: Guard | Term
+}
+
+export type Guard = {
+    kind: "Guard",
+    cond: Term,
+    res: Term,
+    next: Guard | undefined
+}
+
+export type Pattern = SimpleParam | ConsParam | EmptyList | ConstructedType | TuplePattern
+export type SimpleParam = {
+    kind: "SimpleParam",
+    ident: string
+}
+export type ConsParam = {
+    kind: "ConsParam",
+    A: string,
+    B: string
+}
+export type EmptyList = {
+    kind: "EmptyList"
+}
+export type ConstructedType = {
+    kind: "ConstructedType",
+    c: string,
+    params: Pattern[]
+}
+export type TuplePattern = {
+    kind: "TuplePattern",
+    params: Pattern[]
 }
 
 
@@ -34,7 +71,7 @@ export type VariableBinding = {
     type?: Type
 }
 
-export type Line = TypeExt | Declaration | Term | Tactic
+export type Line = TypeExt | Declaration | Term | Tactic | FunctionDefinition
 
 export type TypeExt = {
     kind: "TypeExt",
@@ -178,6 +215,17 @@ function d(a: ASTNode): string {
         case "EndScope": return "end";
         case "Assumption": return `assume ${d(a.arg)}`;
         case "Skolemize": return `skolem ${a.arg}`;
+
+        case "FunctionDefinition":
+            return `${a.ident} ${a.params.map(d).join(" ")} ::= ${d(a.def)}` 
+        case "Guard": return `\n  | ${a.cond} := ${a.res}`
+        case "SimpleParam": return `${a.ident}`
+        case "ConsParam": return `(${a.A}::${a.B})`
+        case "EmptyList": return "[]"
+        case "ConstructedType": 
+            return `(${a.c} ${a.params.map(d).join(" ")})` 
+        case "TuplePattern":
+            return `(${a.params.map(d).join(", ")})` 
     }
 }
 
@@ -208,6 +256,15 @@ export function s(a: ASTNode | undefined) : string {
         case "Assumption":
         case "Skolemize":
             return "";
+
+        case "FunctionDefinition":
+        case "Guard":
+        case "SimpleParam":
+        case "ConsParam":
+        case "EmptyList":
+        case "ConstructedType":
+        case "TuplePattern":
+            return ""
     }
 }
 
