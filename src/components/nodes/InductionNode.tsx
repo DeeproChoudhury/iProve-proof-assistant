@@ -55,17 +55,27 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 			{/* BEGIN : Type */}
 			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
 				<Text>Type</Text>
-				<IconButton
-					variant='outline'
-					aria-label='Add Type'
-					size='xs'
-					icon={<AddIcon />}
-				/>
 			</div>
+			<Statement
+				onChange={e => onChange(e, "type", 0)}
+				statement={nodeData.types[0]}
+				index={0}
+				proofNode={false}/>
 			{/* END : Type */}
 
-			{/* BEGIN : Base Case */}
+			{/* BEGIN : Predicate */}
 			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+				<Text>Predicate</Text>
+			</div>
+			<Statement
+				onChange={e => onChange(e, "predicate", 0)}
+				statement={nodeData.predicate[0]}
+				index={0}
+				proofNode={false}/>
+			{/* END : Predicate */}
+
+			{/* BEGIN : Base Case */}
+			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
 				<Text>Base Case(s)</Text>
 				<IconButton
 					variant='outline'
