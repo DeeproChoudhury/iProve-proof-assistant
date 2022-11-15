@@ -28,7 +28,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     addAbove: () => data.thisNode.statementList(k).add(index),
     addBelow: () => data.thisNode.statementList(k).add(index + 1),
     deleteStatement: () => data.thisNode.statementList(k).remove(index),
-    afterEdit: afterStatementEdit
+    afterEdit: () => afterStatementEdit(),
   }), [data]);
 
   const [isCollapsed, setCollapsed] = useState(false);
@@ -212,7 +212,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         />
       </div>
 
-      {/* BEGIN: Proof Statements */}
+      {/* BEGIN: Proof Statements collapsed*/}
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {componentStyle === "given-node" && givenTitle}
         {componentStyle === "goal-node" && goalTitle}
@@ -235,7 +235,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
                 {...makeStatementProps("proofStep", index)}
               />)
         }
-        {/* END: Proof Statements*/}
+        {/* END: Proof Statements collapsed*/}
         {/* END: Proof */}
 
         {/* BEGIN: Goals */}
@@ -254,13 +254,8 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {data.goals.map((s: StatementType, index: number) =>
             <Statement
-              onChange={e => onChange(e, "goal", index)}
-              statement={s}
-              index={data.givens.length + data.proofSteps.length + index}
               proofNode={true}
-              addAbove={() => { data.thisNode.goals.add(index) }}
-              addBelow={() => { data.thisNode.goals.add(index + 1) }} 
-              deleteStatement = {() => {data.thisNode.goals.remove(index)}}
+              {...makeStatementProps("goal", index)}
             />)}
         </div>
         {/* END: Proof Statements */}

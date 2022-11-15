@@ -171,16 +171,19 @@ export const makeNodeCallbacks = (
         const wrappers = [];
         const proofSteps = [];
         for (const oldStep of n.data.proofSteps) {
-          if (!oldStep.parsed) continue;
-          if (isBlockStart(oldStep.parsed)) {
-            wrappers.push(oldStep.parsed);
-          } else if (isBlockEnd(oldStep.parsed)) {
-            wrappers.pop();
+          if (!oldStep.parsed) {
+            proofSteps.push(oldStep);
+            continue;
           }
           proofSteps.push({
             ...oldStep,
             wrappers: [...wrappers]
           })
+          if (isBlockStart(oldStep.parsed)) {
+            wrappers.push(oldStep.parsed);
+          } else if (isBlockEnd(oldStep.parsed)) {
+            wrappers.pop();
+          }
         }
         //set nodes
         return {

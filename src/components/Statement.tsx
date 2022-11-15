@@ -29,7 +29,7 @@ export type StatementPropsType = {
 
 const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
-  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {}} = props;
+  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {console.log("not present in props")}} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isFocused, setFocused] = useState<boolean>(false);
   const [oldValue, setOldValue] = useState<string>("");
@@ -69,8 +69,6 @@ const Statement = (props: StatementPropsType) => {
       </PopoverContent>
     </Popover>
 
-    
-  console.log(statement.wrappers);
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
   const indentSize = 15 * statement.wrappers.length;
