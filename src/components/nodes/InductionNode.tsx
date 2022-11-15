@@ -4,13 +4,20 @@ import {
 	Box, Button, Heading, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent,
 	PopoverHeader, PopoverTrigger, Text, useDisclosure
 } from '@chakra-ui/react';
-import { ReactElement } from "react";
+import { ReactElement, ReactNode } from "react";
+import "./InductionNode.css"
+import { Handle, Position } from "reactflow";
 
 function InductionNode({ data }: { data: InductionData }) : ReactElement {
 	const componentStyle = data.type + "-node";
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const deletePopover =
+  const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
+  const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
+  const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
+  const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
+  
+	const deletePopover =
     <Popover isOpen={isOpen} onClose={onClose}>
       <PopoverTrigger>
         <Button size='xs' colorScheme='blackAlpha' onClick={onOpen}>Delete</Button>
