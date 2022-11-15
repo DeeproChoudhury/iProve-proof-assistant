@@ -70,7 +70,7 @@ const Statement = (props: StatementPropsType) => {
   const reasonsLabel = statement.reason && (statement.reason.length === 0 ? 'lemma' : `from ${statement.reason.map(r => `(${r})`).join(", ")}`)
   const indentSize = 15 * statement.wrappers.length;
   return (
-    <div style={{display: 'flex', marginLeft: `${indentSize}px` }}>
+    <div style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
       <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {statement.reason && <Tooltip label={reasonsLabel} fontSize='xs'>

@@ -23,6 +23,7 @@ import ModalImport from './ModalImport';
 import GeneralNode from './nodes/GeneralNode';
 // import TextUpdaterNode from './nodes/TextUpdaterNode';
 import './nodes/TextUpdaterNode.css';
+import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 
 const nodeTypes = { 
   generalNode: GeneralNode
@@ -52,6 +53,8 @@ function Flow() {
   // update refs everytime this hook runs
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
+  const inductionNodesRef = useRef(inductionNodes);
+  inductionNodesRef.current = inductionNodes;
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
   const declarationsRef = useRef(declarations);  
@@ -101,6 +104,7 @@ function Flow() {
   }
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
+  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), []);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
 
@@ -122,7 +126,7 @@ function Flow() {
           baseCases: [],
           inductiveHypotheses: [],
           declarationsRef,
-          thisNode: makeThisNode(`${count}`)
+          thisNode: makeThisInductionNode(`${count}`)
         },
         position: { x: 300, y: 0 },
         type: 'generalNode',

@@ -31,7 +31,7 @@ export const makeNodeCallbacks = (
   return {
     delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     ...statementLists,
-    statementList: (k: StatementKind) => statementLists[listField(k)],
+    statementList: (k: StatementKind) => statementLists[listField(k) as keyof typeof statementLists],
     checkSyntax: (): void => setNode(node => {
       setError(undefined);
 
