@@ -1,4 +1,16 @@
-export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | Guard
+export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | Guard | TypeConstructor
+
+export type TypeDef = {
+    kind: "TypeDef",
+    ident: string,
+    cases: TypeConstructor[]
+}
+
+export type TypeConstructor = {
+    kind: "TypeConstructor",
+    ident: string,
+    params: Type[]
+}
 
 export type Tactic = Assumption | Skolemize | BeginScope | EndScope
 export type Assumption = {
@@ -71,7 +83,7 @@ export type VariableBinding = {
     type?: Type
 }
 
-export type Line = TypeExt | Declaration | Term | Tactic | FunctionDefinition
+export type Line = TypeExt | Declaration | Term | Tactic | FunctionDefinition | TypeDef
 
 export type TypeExt = {
     kind: "TypeExt",
@@ -226,6 +238,9 @@ function d(a: ASTNode): string {
             return `(${a.c} ${a.params.map(d).join(" ")})` 
         case "TuplePattern":
             return `(${a.params.map(d).join(", ")})` 
+        
+        case "TypeDef": return `type ${a.ident} ::= ${a.cases.map(d).join(" | ")}`
+        case "TypeConstructor": return `${a.ident} ${a.params.map(d).join(" ")}` 
     }
 }
 
@@ -265,6 +280,10 @@ export function s(a: ASTNode | undefined) : string {
         case "ConstructedType":
         case "TuplePattern":
             return ""
+        
+        case "TypeDef":
+        case "TypeConstructor":
+            return "";
     }
 }
 

@@ -28,7 +28,8 @@ enum TokenKind {
     FunDefToken,
     EmptyArray,
     Paren,
-    Guard
+    Guard,
+    TypeKW
 }
 
 const lexer = buildLexer([
@@ -46,6 +47,7 @@ const lexer = buildLexer([
     [true, /^(skolem)/g, TokenKind.Skolem],
     [true, /^(begin)/g, TokenKind.Begin],
     [true, /^(end)/g, TokenKind.End],
+    [true, /^(type)/g, TokenKind.TypeKW],
     [true, /^(\|)/g, TokenKind.Guard],
 
     [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
@@ -459,18 +461,42 @@ TACTIC.setPattern(alt(
     END_SCOPE
 ));
 
+const TYPE_CONSTRUCTOR = rule<TokenKind, AST.TypeConstructor>();
+TYPE_CONSTRUCTOR.setPattern(apply(
+    seq(
+        VARIABLE,
+        rep_sc(TYPE)
+    ),
+    (value): AST.TypeConstructor =>
+        ({ kind: "TypeConstructor", ident: value[0].ident, params: value[1] })
+))
+
+const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
+TYPE_DEF.setPattern(apply(
+    seq(
+        kmid(tok(TokenKind.TypeKW), VARIABLE, tok(TokenKind.DirEqToken)),
+        list_sc(TYPE_CONSTRUCTOR, str("|"))
+    ),
+    (value): AST.TypeDef =>
+        ({ kind: "TypeDef", ident: value[0].ident, cases: value[1] })
+))
+
+const LANG = rule<TokenKind, AST.Line>();
+LANG.setPattern(alt(
+    FN_DEC,
+    VAR_DEC,
+    TYPE_DEF
+))
 
 CORE.setPattern(alt(
-    FN_DEC,
     FN_DEF,
-    VAR_DEC,
-    TYPE_EXT,
     TERM
 ));
 
 
 PROOF_LINE.setPattern(alt(
     CORE,
+    LANG,
     TACTIC
 ));
 
@@ -478,7 +504,7 @@ PROOF_LINE.setPattern(alt(
 
 export function evaluate(line: string): AST.ASTNode | ParseError {
     try {
-        let A = expectEOF(FN_DEF.parse(lexer.parse(line)));
+        let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
         if (!A.successful) return A.error;
         return expectSingleResult(A);
     } catch (E) {
