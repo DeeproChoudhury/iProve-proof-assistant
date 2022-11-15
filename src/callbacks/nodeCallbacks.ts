@@ -175,15 +175,21 @@ export const makeNodeCallbacks = (
             proofSteps.push(oldStep);
             continue;
           }
+          if (isBlockStart(oldStep.parsed)) {
+            // new scope so I want first line to not be wrapped in itself
+            proofSteps.push({
+              ...oldStep,
+              wrappers: [...wrappers]
+            })
+            wrappers.push(oldStep.parsed);
+            continue;
+          } else if (isBlockEnd(oldStep.parsed)) {
+            wrappers.pop();
+          }
           proofSteps.push({
             ...oldStep,
             wrappers: [...wrappers]
           })
-          if (isBlockStart(oldStep.parsed)) {
-            wrappers.push(oldStep.parsed);
-          } else if (isBlockEnd(oldStep.parsed)) {
-            wrappers.pop();
-          }
         }
         //set nodes
         return {

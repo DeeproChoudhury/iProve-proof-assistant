@@ -1,5 +1,21 @@
 export type ASTNode = Type | FunctionType | VariableBinding | Line
 
+export type Tactic = Assumption | Skolemize | BeginScope | EndScope
+export type Assumption = {
+    kind: "Assumption",
+    arg: Term
+}
+export type Skolemize = {
+    kind: "Skolemize",
+    arg: string
+}
+export type BeginScope = {
+    kind: "BeginScope"
+}
+export type EndScope = {
+    kind: "EndScope"
+}
+
 export type Type = { 
     kind: "Type",
     ident: string
@@ -16,10 +32,8 @@ export type VariableBinding = {
     symbol: Variable,
     type?: Type
 }
-
-export type BlockStart = VariableDeclaration | Assumption;
-
-export type Line = TypeExt | Declaration | Term | Assumption | BlockEnd
+export type BlockStart = VariableDeclaration | Assumption | BeginScope;
+export type Line = TypeExt | Declaration | Term | Tactic;
 
 export type TypeExt = {
     kind: "TypeExt",
@@ -39,15 +53,6 @@ export type VariableDeclaration = {
     kind: "VariableDeclaration",
     symbol: Variable,
     type?: Type
-}
-
-export type Assumption = {
-    kind: "Assumption",
-    term: Term
-} 
-
-export type BlockEnd = {
-    kind: "BlockEnd"
 }
 
 export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm
@@ -167,8 +172,11 @@ function d(a: ASTNode): string {
         case "QuantifierApplication": return `${a.quantifier === "E" ? "∃" : "∀"}(${a.vars.map(d).join(",")}).${d(a.term)}`;
         case "EquationTerm": return `${d(a.lhs)} ::= ${d(a.rhs)}`;
         case "ParenTerm": return `[${d(a.term)}]`;
-        case "Assumption": return `assume ${d(a.term)}`
-        case "BlockEnd": return "end";
+        
+        case "BeginScope": return "begin";
+        case "EndScope": return "end";
+        case "Assumption": return `assume ${d(a.arg)}`;
+        case "Skolemize": return `skolem ${a.arg}`;
     }
 }
 
@@ -189,19 +197,23 @@ export function s(a: ASTNode) : string {
         case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
         case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
         case "ParenTerm": return s(a.term);
-        case "Assumption": return "";
-        case "BlockEnd": return "";
+
+        case "BeginScope":
+        case "EndScope":
+        case "Assumption":
+        case "Skolemize":
+            return "";
     }
 }
 
 export const ASTSMTLIB2: (line: Line) => string = s;
 
 export const isBlockStart = (line: Line): line is BlockStart => {
-   return line.kind === "VariableDeclaration" || line.kind === "Assumption";
+   return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";
 }
 
-export const isBlockEnd = (line: Line): line is BlockEnd => {
-   return line.kind === "BlockEnd";
+export const isBlockEnd = (line: Line): line is EndScope => {
+   return line.kind === "EndScope";
 }
 
 export const toWrapperFunc = (w: BlockStart): ((term: Term) => Term) => {
@@ -221,9 +233,11 @@ export const toWrapperFunc = (w: BlockStart): ((term: Term) => Term) => {
       kind: "FunctionApplication",
       appType: "InfixOp",
       fn: "=>",
-      params: [w.term, term]
+      params: [w.arg, term]
     });
-  } else throw "unsupported BlockStart"; // why isn't this unreachable
+  } else if (w.kind === "BeginScope") {
+    return term => term
+} throw "unsupported BlockStart"; // why isn't this unreachable
 }
 
 export const isTerm = (line: Line): line is Term => {
@@ -233,3 +247,4 @@ export const isTerm = (line: Line): line is Term => {
     || line.kind === "EquationTerm"
     || line.kind === "ParenTerm"
 }
+
