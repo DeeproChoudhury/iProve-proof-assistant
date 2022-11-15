@@ -11,7 +11,7 @@ export function listField(k: StatementKind): StatementListFieldName {
         case "goal": return "goals";
         case "type": return "types";
         case "predicate": return "predicate";
-        case "inductiveCase": return "inductiveCase";
+        case "inductiveCase": return "inductiveCases";
         case "baseCase": return "baseCases";
         case "inductiveHypothesis": return "inductiveHypotheses"; 
     }

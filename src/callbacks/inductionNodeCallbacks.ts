@@ -27,7 +27,7 @@ export const makeInductionNodeCallbacks = (
     types: makeStatementListCallbacks(setInductionStatementsForNode(setNode, "type")),
     predicate: makeStatementListCallbacks(setInductionStatementsForNode(setNode, "predicate")),
     baseCases: makeStatementListCallbacks(setInductionStatementsForNode(setNode, "baseCase")),
-    inductiveCase: makeStatementListCallbacks(setInductionStatementsForNode(setNode, "inductiveCase")),
+    inductiveCases: makeStatementListCallbacks(setInductionStatementsForNode(setNode, "inductiveCase")),
     inductiveHypotheses: makeStatementListCallbacks(setInductionStatementsForNode(setNode, "inductiveHypothesis")),
   };
   return {
@@ -44,7 +44,7 @@ export const makeInductionNodeCallbacks = (
           types: node.data.types.map(updateWithParsed(setError)),
           predicate: node.data.predicate.map(updateWithParsed(setError)),
           baseCases: node.data.baseCases.map(updateWithParsed(setError)),
-          inductiveCase: node.data.inductiveCase.map(updateWithParsed(setError)),
+          inductiveCase: node.data.inductiveCases.map(updateWithParsed(setError)),
           inductiveHypotheses: node.data.inductiveHypotheses.map(updateWithParsed(setError)),
         }
       };

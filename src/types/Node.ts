@@ -23,10 +23,10 @@ export type NodeData = GeneralNodeData & Readonly<{
 export type InductionData = GeneralNodeData & Readonly<{
   types: StatementType[];
   predicate: StatementType[];
-  inductiveCase: StatementType[];
+  inductiveCases: StatementType[];
   baseCases: StatementType[];
   inductiveHypotheses: StatementType[];
   thisNode: InductionNodeCallbacks;
 }>; 
 
-export type StatementListFieldName = "givens" | "proofSteps" | "goals" | "types" | "baseCases" | "inductiveCase" | "predicate" | "inductiveHypotheses";
+export type StatementListFieldName = "givens" | "proofSteps" | "goals" | "types" | "baseCases" | "inductiveCases" | "predicate" | "inductiveHypotheses";

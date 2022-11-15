@@ -122,9 +122,9 @@ function Flow() {
           type: nodeType,
           types: [{value: '', wrappers: []}],
           predicate: [{value: '', wrappers: []}],
-          inductiveCase: [],
+          inductiveCases: [],
           baseCases: [],
-          inductiveHypotheses: [],
+          inductiveHypotheses: [{value: '', wrappers: []}],
           declarationsRef,
           thisNode: makeThisInductionNode(`${count}`)
         },

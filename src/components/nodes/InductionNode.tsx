@@ -100,16 +100,41 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 			{/* END : Base Case */}
 
 			{/* BEGIN : Induction Case */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
 				<Text>Inductive Case(s)</Text>
 				<IconButton
 					variant='outline'
 					aria-label='Add given'
 					size='xs'
 					icon={<AddIcon />}
+					onClick={() => { nodeData.thisNode.inductiveCases.add() }}
 				/>
 			</div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {nodeData.inductiveCases.map((s: StatementType, index: number) =>
+          <Statement
+            onChange={e => onChange(e, "inductiveCase", index)}
+            statement={s}
+            index={index}
+            proofNode={true}
+            addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
+            addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }} 
+            deleteStatement = {() => {nodeData.thisNode.inductiveCases.remove(index)}}
+						key={index}/>)}
+      </div>
 			{/* END : Induction Case */}
+
+
+			{/* BEGIN : Inductive Hypothesis */}
+			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
+				<Text>Inductive Hypothesis</Text>
+			</div>
+			<Statement
+				onChange={e => onChange(e, "inductiveHypothesis", 0)}
+				statement={nodeData.inductiveHypotheses[0]}
+				index={0}
+				proofNode={false}/>
+			{/* END : Inductive Hypothesis */}
 
 			{/* START : Node Bottom Buttons */}
 			<NodeBottomButtons />
