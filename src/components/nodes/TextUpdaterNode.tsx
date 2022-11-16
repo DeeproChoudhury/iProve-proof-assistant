@@ -5,11 +5,11 @@ import {
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { NodeData } from '../types/Node';
-import { StatementKind, StatementType } from '../types/Statement';
-import { listField, localIndexToAbsolute } from '../util/nodes';
-import SolveNodeModal from './SolveNodeModal';
-import Statement from './Statement';
+import { NodeData } from '../../types/Node';
+import { StatementKind, StatementType } from '../../types/Statement';
+import { listField, localIndexToAbsolute } from '../../util/nodes';
+import SolveNodeModal from '../SolveNodeModal';
+import Statement from '../Statement';
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
   const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
@@ -21,8 +21,16 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     data.thisNode.setWrappers();
   }, [data]);
 
+  const getStatementFromIndex = (k: StatementKind, index: number) => {
+    switch(k) {
+      case "given": return data.givens[index];
+      case "goal": return data.goals[index];
+      default: return data.proofSteps[index];
+      // default: return data.proofSteps[index];
+    }
+  }
   const makeStatementProps = useCallback((k: StatementKind, index: number) => ({
-    statement: data[listField(k)][index],
+    statement: getStatementFromIndex(k, index),
     index: localIndexToAbsolute(data, k, index),
     onChange: (e: any) => onChange(e, k, index),
     addAbove: () => data.thisNode.statementList(k).add(index),
@@ -67,7 +75,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       </PopoverContent>
     </Popover>
     
-  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarationsRef.current).every((s) => s.parsed !== undefined);
+  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarationsRef.current).every((s: StatementType) => s.parsed !== undefined);
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
       <PopoverTrigger>
@@ -97,6 +105,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
               {...makeStatementProps("given", index)}
+              key={index}
             />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -143,6 +152,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
               {...makeStatementProps("given", index)}
+              key={index}
             />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -194,6 +204,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           <Statement
             proofNode={true}
             {...makeStatementProps("given", index)}
+            key={index}
           />)}
       </div>
       {/* END: Given Statements */}
@@ -233,6 +244,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 proofNode={true}
                 {...makeStatementProps("proofStep", index)}
+                key={index}
               />)
         }
         {/* END: Proof Statements collapsed*/}
@@ -256,6 +268,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             <Statement
               proofNode={true}
               {...makeStatementProps("goal", index)}
+              key={index}
             />)}
         </div>
         {/* END: Proof Statements */}

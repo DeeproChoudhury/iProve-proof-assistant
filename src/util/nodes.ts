@@ -1,6 +1,6 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { NodeData, StatementListFieldName } from "../types/Node";
+import { InductionData, NodeData, StatementListFieldName } from "../types/Node";
 import { StatementKind, StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
 
@@ -9,6 +9,11 @@ export function listField(k: StatementKind): StatementListFieldName {
         case "given": return "givens";
         case "proofStep": return "proofSteps";
         case "goal": return "goals";
+        case "type": return "types";
+        case "predicate": return "predicate";
+        case "inductiveCase": return "inductiveCases";
+        case "baseCase": return "baseCases";
+        case "inductiveHypothesis": return "inductiveHypotheses"; 
     }
 }
 
@@ -38,7 +43,7 @@ export const setStatementsForNode = (
       ...node,
       data: {
         ...node.data,
-        [fieldName]: applyAction(action, node.data[fieldName])
+        [fieldName]: applyAction(action as SetStateAction<any>, node.data[fieldName as keyof NodeData])
       }
     }
   });
@@ -48,6 +53,32 @@ export const setNodeWithId = (
   setNodes: Setter<Node<NodeData>[]>,
   nodeId: string
 ) => (action: SetStateAction<Node<NodeData>>) => {
+  setNodes(nds => nds.map((nd) => nd.id === nodeId ? applyAction(action, nd) : nd));
+};
+
+
+export const setInductionStatementsForNode = (
+  setNode: Setter<Node<InductionData>>,
+  k: StatementKind
+) => (
+  action: SetStateAction<StatementType[]>
+) => {
+  setNode(node => {
+    const fieldName = listField(k);
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        [fieldName]: applyAction(action as SetStateAction<any>, node.data[fieldName as keyof InductionData])
+      }
+    }
+  });
+};
+
+export const setInductionNodeWithId = (
+  setNodes: Setter<Node<InductionData>[]>,
+  nodeId: string
+) => (action: SetStateAction<Node<InductionData>>) => {
   setNodes(nds => nds.map((nd) => nd.id === nodeId ? applyAction(action, nd) : nd));
 };
 
@@ -62,6 +93,7 @@ export const getResults = (node: Node<NodeData>): StatementType[] => {
     case "given": return node.data.givens;
     case "statement": return node.data.goals;
     case "goal": return [];
+    case "induction": return [];
   }
 }
 

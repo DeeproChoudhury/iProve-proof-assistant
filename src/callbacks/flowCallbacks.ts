@@ -1,12 +1,12 @@
 import { MutableRefObject } from "react";
 import { Edge, NodeChange, applyNodeChanges, EdgeChange, applyEdgeChanges, Connection, addEdge, Node } from "reactflow";
-import { NodeData } from "../types/Node";
+import { InductionData, NodeData } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { collided } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { NodeCallbacks } from "./nodeCallbacks";
 
-export const makeFlowCallbacks = (nodes: Node<NodeData>[], setNodes: Setter<Node<NodeData>[]>, setEdges: Setter<Edge[]>, declarationsRef: MutableRefObject<StatementType[]>, nextId: () => number, makeThisNode: (id: string) => NodeCallbacks) => ({
+export const makeFlowCallbacks = (nodes: Node<NodeData>[], inductionNodes: Node<InductionData>[], setNodes: Setter<Node<NodeData>[]>, setInductionNodes: Setter<Node<InductionData>[]>, setEdges: Setter<Edge[]>, declarationsRef: MutableRefObject<StatementType[]>, nextId: () => number, makeThisNode: (id: string) => NodeCallbacks) => ({
   onNodeDragStop: (event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
     if (node.data.type !== 'statement') return;
 
@@ -39,7 +39,10 @@ export const makeFlowCallbacks = (nodes: Node<NodeData>[], setNodes: Setter<Node
       type: 'textUpdater',
     }]);
   },
-  onNodesChange: (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+  onNodesChange: (changes: NodeChange[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+    setInductionNodes((nds) => applyNodeChanges(changes, nds));
+  },
   onEdgesChange: (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
   onConnect: (params: Connection) => {
     setEdges((eds) => addEdge({...params, 
