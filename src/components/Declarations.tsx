@@ -11,18 +11,19 @@ export type DeclarationsPropsType = {
   add: (index: number) => void;
   remove: (index: number) => void;
   checkSyntax: () => void;
+  visible: boolean;
 }
 
 const Declarations = (props: DeclarationsPropsType) => {
-  const { statements, update, add, remove, checkSyntax } = props;
+  const { statements, update, add, remove, checkSyntax, visible } = props;
   const onChange = (evt: any, updated: number) => {
     update(updated, evt.target.value);
   }
+
   const checkSyntaxButton: ReactNode = 
     <Button size='xs' colorScheme='blackAlpha' onClick={() => { checkSyntax() }}>Check Syntax</Button>;
-  
   return (
-    <Box className="declarations">
+    <Box className={"declarations " + (visible ? 'closed' : 'open')}>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
         <Text>Declarations</Text>
         <IconButton

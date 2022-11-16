@@ -16,7 +16,6 @@ export type EndScope = {
     kind: "EndScope"
 }
 
-
 export type Type = { 
     kind: "Type",
     ident: string
@@ -33,8 +32,8 @@ export type VariableBinding = {
     symbol: Variable,
     type?: Type
 }
-
-export type Line = TypeExt | Declaration | Term | Tactic
+export type BlockStart = VariableDeclaration | Assumption | BeginScope;
+export type Line = TypeExt | Declaration | Term | Tactic;
 
 export type TypeExt = {
     kind: "TypeExt",
@@ -99,7 +98,7 @@ export type ArraySlice = {
     kind: "FunctionApplication",
     appType: "ArraySlice",
     fn: "???", // TODO
-    params: [Term, Term?, Term?]
+    params: [Term, Term] | [Term, Term, Term]
 }
 
 export type QuantifierApplication = {
@@ -185,11 +184,7 @@ function d(a: ASTNode): string {
 export const display: (line: Line) => string = d
 
 
-export function s(a: ASTNode | undefined) : string {
-    if(a === undefined) {
-        return "NULL";
-    }
-
+export function s(a: ASTNode) : string {
     switch (a.kind) {
         case "Type": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
@@ -211,4 +206,45 @@ export function s(a: ASTNode | undefined) : string {
     }
 }
 
-export const ASTSMTLIB2: (line: Line | undefined) => string = s;
+export const ASTSMTLIB2: (line: Line) => string = s;
+
+export const isBlockStart = (line: Line): line is BlockStart => {
+   return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";
+}
+
+export const isBlockEnd = (line: Line): line is EndScope => {
+   return line.kind === "EndScope";
+}
+
+export const toWrapperFunc = (w: BlockStart): ((term: Term) => Term) => {
+  if (w.kind === "VariableDeclaration") {
+    return term => ({
+      kind: "QuantifierApplication",
+      quantifier: "A",
+      vars: [{
+        kind: "VariableBinding",
+        symbol: w.symbol,
+        type: w.type
+      }],
+      term
+    });
+  } else if (w.kind === "Assumption") {
+    return term => ({
+      kind: "FunctionApplication",
+      appType: "InfixOp",
+      fn: "=>",
+      params: [w.arg, term]
+    });
+  } else if (w.kind === "BeginScope") {
+    return term => term
+} throw "unsupported BlockStart"; // why isn't this unreachable
+}
+
+export const isTerm = (line: Line): line is Term => {
+  return line.kind === "Variable"
+    || line.kind === "FunctionApplication"
+    || line.kind === "QuantifierApplication"
+    || line.kind === "EquationTerm"
+    || line.kind === "ParenTerm"
+}
+
