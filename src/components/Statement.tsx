@@ -25,11 +25,12 @@ export type StatementPropsType = {
   addBelow: () => void;
   deleteStatement: () => void;
   afterEdit?: () => void;
+  setWrappers?: () => void;
 }
 
 const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
-  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {console.log("not present in props")}} = props;
+  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {console.log("not present in props")}, setWrappers = () => {}} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isFocused, setFocused] = useState<boolean>(false);
   const [oldValue, setOldValue] = useState<string>("");
@@ -74,13 +75,13 @@ const Statement = (props: StatementPropsType) => {
   const indentSize = 15 * statement.wrappers.length;
   const reasonsLabel = statement.reason && (statement.reason.dependencies.length === 0 ? 'lemma' : `from ${statement.reason.dependencies.map(r => `(${r + 1})`).join(", ")}`)
   return (
-    <div style={{display: 'flex', marginLeft: `${indentSize}px` }}>
+    <div style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
       <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {statement.reason && <Tooltip label={reasonsLabel} fontSize='xs'>
         <CheckIcon style={{margin: 'auto 5px'}}/>
       </Tooltip>}
-      {moreOptions}
+      {proofNode && moreOptions}
     </div>
   )
 }

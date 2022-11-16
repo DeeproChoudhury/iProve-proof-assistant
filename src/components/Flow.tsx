@@ -10,24 +10,33 @@ import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../solver/Solver';
 import { ErrorLocation } from '../types/ErrorLocation';
-import { NodeData, NodeType } from '../types/Node';
+import { GeneralNodeData, InductionData, NodeData, NodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
 import ImplicationEdge from './edges/ImplicationEdge';
 import InvalidEdge from './edges/InvalidEdge';
 import './Flow.css';
+import InductionNode from './nodes/InductionNode';
 import ModalExport from './ModalExport';
 import ModalImport from './ModalImport';
-import TextUpdaterNode from './TextUpdaterNode';
-import './TextUpdaterNode.css';
+import GeneralNode from './nodes/GeneralNode';
+// import TextUpdaterNode from './TextUpdaterNode';
+import './nodes/TextUpdaterNode.css';
+import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 
-const nodeTypes = { textUpdater: TextUpdaterNode };
+const nodeTypes = { 
+  generalNode: GeneralNode
+};
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge};
 
 function Flow() {
   const [proofValid, setProofValid] = useState(false);
+  
   const [nodes, setNodes] = useState<Node<NodeData>[]>([]);
+  const [inductionNodes, setInductionNodes] = useState<Node<InductionData>[]>([]);
+  
+
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
@@ -44,12 +53,12 @@ function Flow() {
   // update refs everytime this hook runs
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
+  const inductionNodesRef = useRef(inductionNodes);
+  inductionNodesRef.current = inductionNodes;
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
   const declarationsRef = useRef(declarations);  
   declarationsRef.current = declarations;
-
-  const resetError = () => setError(undefined);
 
   const nextId = useCallback(() => {
     setCount(count + 1);
@@ -93,28 +102,52 @@ function Flow() {
   }
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
+  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), []);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
 
-  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, setNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
+  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
 
   const addNode = useCallback((nodeType: NodeType) => {
     const count = nextId();
-    setNodes(nds => [...nds, {
-      id: `${count}`,
-      data: {
-        label: `Node ${count}`,
-        id: count,
-        type: nodeType,
-        givens: nodeType === 'statement' ? [] : [{ value: '', wrappers: []}],
-        proofSteps: [],
-        goals: nodeType === 'statement' ? [{ value: '', wrappers: []}, ] : [], 
-        declarationsRef,
-        thisNode: makeThisNode(`${count}`)
-      },
-      position: { x: 300, y: 0 },
-      type: 'textUpdater',
-    }]);
+    
+    if (nodeType === "induction") {
+      setInductionNodes(nds => [...nds, {
+        id: `${count}`,
+        data: {
+          label: `Node ${count}`,
+          id: count,
+          type: nodeType,
+          types: [{value: '', wrappers: []}],
+          predicate: [{value: '', wrappers: []}],
+          inductiveCases: [],
+          baseCases: [],
+          inductiveHypotheses: [{value: '', wrappers: []}],
+          declarationsRef,
+          thisNode: makeThisInductionNode(`${count}`)
+        },
+        position: { x: 300, y: 0 },
+        type: 'generalNode',
+      }]);
+    }
+    else {
+      setNodes(nds => [...nds, {
+        id: `${count}`,
+        data: {
+          label: `Node ${count}`,
+          id: count,
+          type: nodeType,
+          givens: nodeType === 'statement' ? [] : [{ value: '', wrappers: []}],
+          proofSteps: [],
+          goals: nodeType === 'statement' ? [{ value: '', wrappers: []}, ] : [], 
+          declarationsRef,
+          thisNode: makeThisNode(`${count}`)
+        },
+        position: { x: 300, y: 0 },
+        type: 'generalNode',
+      }]);
+    }
+    
   }, [nextId, makeThisNode]);
 
   
@@ -133,7 +166,7 @@ function Flow() {
         thisNode: makeThisNode(`${count}`)
       },
       position: { x: 300, y: 0 },
-      type: 'textUpdater',
+      type: 'generalNode',
     }]);
   }, [nextId, makeThisNode]);
 
@@ -154,7 +187,7 @@ function Flow() {
           thisNode: makeThisNode(`${id}`)
         },
         position: { x: 300, y: 0 },
-        type: 'textUpdater',
+        type: 'generalNode',
       }
     });
     setNodes(nodeData);
@@ -254,6 +287,7 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('induction')}>Add Induction Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
           <Button onClick={() => {checkProofValid(nodes, edges); setExportModalShow(true)}}>
             Export proof
@@ -275,7 +309,7 @@ function Flow() {
         </div>
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
-            nodes={nodes}
+            nodes={(nodes as Node<GeneralNodeData>[]).concat(inductionNodes as Node<GeneralNodeData>[])}
             nodeTypes={nodeTypes}
             edges={edges}
             edgeTypes={edgeTypes}

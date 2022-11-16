@@ -5,11 +5,11 @@ import {
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { NodeData } from '../types/Node';
-import { StatementKind, StatementType } from '../types/Statement';
-import { listField, localIndexToAbsolute } from '../util/nodes';
-import SolveNodeModal from './SolveNodeModal';
-import Statement from './Statement';
+import { NodeData } from '../../types/Node';
+import { StatementKind, StatementType } from '../../types/Statement';
+import { listField, localIndexToAbsolute } from '../../util/nodes';
+import SolveNodeModal from '../SolveNodeModal';
+import Statement from '../Statement';
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
   const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
@@ -76,7 +76,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       </PopoverContent>
     </Popover>
     
-  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarationsRef.current).every((s) => s.parsed !== undefined);
+  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarationsRef.current).every((s: StatementType) => s.parsed !== undefined);
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
       <PopoverTrigger>

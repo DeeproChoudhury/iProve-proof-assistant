@@ -1,19 +1,32 @@
 import { MutableRefObject } from "react";
+import { InductionNodeCallbacks } from "../callbacks/inductionNodeCallbacks";
 import { NodeCallbacks } from "../callbacks/nodeCallbacks";
 import { StatementType } from "./Statement";
 
-export type NodeType = "statement" | "given" | "goal";
+export type NodeType = "statement" | "given" | "goal" | "induction" ;
 
-export type NodeData = Readonly<{
+export type GeneralNodeData = Readonly<{
   label: string;
   id: number;
   type: NodeType;
+  declarationsRef: MutableRefObject<StatementType[]>;
+  correctImplication?: boolean;
+}>;
+
+export type NodeData = GeneralNodeData & Readonly<{
   givens: StatementType[];
   proofSteps: StatementType[];
   goals: StatementType[];
-  declarationsRef: MutableRefObject<StatementType[]>;
-  correctImplication?: boolean;
-  thisNode: NodeCallbacks
+  thisNode: NodeCallbacks;
 }>;
 
-export type StatementListFieldName = "givens" | "proofSteps" | "goals";
+export type InductionData = GeneralNodeData & Readonly<{
+  types: StatementType[];
+  predicate: StatementType[];
+  inductiveCases: StatementType[];
+  baseCases: StatementType[];
+  inductiveHypotheses: StatementType[];
+  thisNode: InductionNodeCallbacks;
+}>; 
+
+export type StatementListFieldName = "givens" | "proofSteps" | "goals" | "types" | "baseCases" | "inductiveCases" | "predicate" | "inductiveHypotheses";

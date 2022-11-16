@@ -1,0 +1,7 @@
+.induction-node {
+    border: 2px solid black;
+    border-radius: 5px;
+    background: rgb(107, 247, 107);
+    padding: 5px;
+    width: 300px;
+  }
