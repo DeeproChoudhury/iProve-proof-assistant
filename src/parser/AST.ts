@@ -1,3 +1,5 @@
+import { render } from "@testing-library/react"
+
 export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | Guard | TypeConstructor
 
 export type TypeDef = {
@@ -10,7 +12,8 @@ export type TypeDef = {
 export type TypeConstructor = {
     kind: "TypeConstructor",
     ident: string,
-    params: Type[]
+    params: Type[],
+    selectors: string[]
 }
 
 export type Tactic = Assumption | Skolemize | BeginScope | EndScope
@@ -217,7 +220,7 @@ function d(a: ASTNode): string {
         case "PrimitiveType": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
         case "TypeExt": return `${d(a.subType)} ⊆ ${d(a.superType)}`;
-        case "VariableBinding": return s(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
+        case "VariableBinding": return d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
         case "Variable": return a.ident;
@@ -273,51 +276,103 @@ function d(a: ASTNode): string {
 export const display: (line: Line) => string = d
 
 
-export function s(a: ASTNode | undefined) : string {
-    if(a === undefined) {
-        return "NULL";
+export class LogicInterface {
+    deployedTuples: Set<number> = new Set();
+    listID: number = 0;
+
+    reset(): void {
+        this.deployedTuples = new Set();
+        this.listID = 0;
     }
 
-    switch (a.kind) {
-        case "PrimitiveType": return a.ident;
-        case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
-        case "VariableBinding": return `(${s(a.symbol)} ${a.type ? s(a.type) : "Int"})`;
-        case "TypeExt": return `${s(a.subType)} ⊆ ${s(a.superType)}`;
-        case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${s(a.type)})`;
-        case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `${s(a.type)}` : "Int"})`;
-        case "Variable": return a.ident;
-        case "FunctionApplication": return `(${fnSMT(a.fn)} ${a.params.map(s).join(" ")})`;
-        case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
-        case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
-        case "ParenTerm": return s(a.term);
+    createTuple(n: number, ancillae: string[]): void {
+        if (this.deployedTuples.has(n)) return;
 
-        case "BeginScope":
-        case "EndScope":
-        case "Assumption":
-        case "Skolemize":
-            return "";
+        let thisID = `IProveTuple${n}`
+        let elems: string[] = [];
+        let params: string[] = [];
+        for (let i = 0; i < n; i++) {
+            params.push(`PT${i}`)
+            elems.push(`(elem${i} PT${i})`)
+        }
 
-        case "FunctionDefinition":
-        case "Guard":
-        case "SimpleParam":
-        case "ConsParam":
-        case "EmptyList":
-        case "ConstructedType":
-        case "TuplePattern":
-            return ""
-        
-        case "TypeDef":
-        case "TypeConstructor":
-            return "";
+        ancillae.push(
+            `(declare-datatypes (${params.join(" ")}) ((${thisID} (mk-tuple ${elems.join(" ")}))))`
+        );
+        this.deployedTuples.add(n);
+    }
 
-        case "ParamType":
-        case "ListType":
-        case "TupleType":
-            return "";
-        
-        case "ArrayLiteral":
-            return "";
+    renderNode(a: ASTNode, ancillae: string[]): string {
+        let s = (x: ASTNode) => this.renderNode(x, ancillae);
+
+        switch (a.kind) {
+            case "PrimitiveType": return a.ident;
+            case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
+            case "VariableBinding": return `(${s(a.symbol)} ${a.type ? s(a.type) : "Int"})`;
+            case "TypeExt": return `${s(a.subType)} ⊆ ${s(a.superType)}`;
+            case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${s(a.type)})`;
+            case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `${s(a.type)}` : "Int"})`;
+            case "Variable": return a.ident;
+            case "FunctionApplication": return `(${fnSMT(a.fn)} ${a.params.map(s).join(" ")})`;
+            case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
+            case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
+            case "ParenTerm": return s(a.term);
+
+            case "BeginScope":
+            case "EndScope":
+            case "Assumption":
+            case "Skolemize":
+                return "";
+
+            case "FunctionDefinition":
+            case "Guard":
+            case "SimpleParam":
+            case "ConsParam":
+            case "EmptyList":
+            case "ConstructedType":
+            case "TuplePattern":
+                return ""
+            
+            case "TypeDef": {
+                let cons = a.cases.map(s).join(" ");
+                let type_params = a.params.join(" ");
+                return `(declare-datatypes (${type_params}) ((${a.ident} ${cons})))`
+            }
+            case "TypeConstructor": {
+                let params = a.params.map(
+                    (e, i) => (`(${a.selectors[i]} ${s(e)})`));
+                return `(${a.ident} ${params.join(" ")})`
+            }
+
+            case "ParamType":
+                return `(${a.ident} ${a.params.map(s).join(" ")})`
+            case "ListType":
+                return `(Seq ${s(a.param)})`
+            case "TupleType": {
+                let N = a.params.length;
+                this.createTuple(N, ancillae);
+                return `(IProveTuple${N} ${a.params.map(s).join(" ")})`;
+            }
+            
+            case "ArrayLiteral": {
+                let units = a.elems.map((e) => 
+                    (`(seq.unit ${s(e)})`));
+                return `(seq.++ ${units.join(" ")})`
+                
+            }
+        }
+    }
+
+    ast2smtlib(a: ASTNode | undefined) : string {
+        if(a === undefined) return "NULL"
+        var ancillae: string[] = []
+        let renderedNode: string = this.renderNode(a, ancillae)
+        let mapped = (ancillae.length)
+            ? `${ancillae.join("\n")}\n`
+            : "";
+        return `${mapped}${renderedNode}`
     }
 }
 
-export const ASTSMTLIB2: (line: Line | undefined) => string = s;
+export const LI = new LogicInterface();
+export const ASTSMTLIB2: (line: Line | undefined) => string = LI.ast2smtlib;
