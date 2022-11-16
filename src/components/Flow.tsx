@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -24,6 +24,7 @@ import GeneralNode from './nodes/GeneralNode';
 // import TextUpdaterNode from './TextUpdaterNode';
 import './nodes/TextUpdaterNode.css';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
+import TypeDeclarations from './TypeDeclarations';
 
 const nodeTypes = { 
   generalNode: GeneralNode
@@ -42,6 +43,10 @@ function Flow() {
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
+
+  const [typeDeclarations, setTypeDeclarations] = useState<StatementType[]>([]);
+
+  const [typeSidebarVisible, setTypeSidebarVisible] = useState(true);
   const localZ3Solver = new Z3Solver.Z3Prover("");
 
   /**
@@ -105,6 +110,7 @@ function Flow() {
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), []);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
+  const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
 
   const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
 
@@ -301,12 +307,31 @@ function Flow() {
       
       <div style={{display: 'flex', flexDirection: 'row'}}>
         {/* Move declarations to front */}
-        <div style={{zIndex: 20}}>
-          <Declarations
+        <Grid style={{zIndex: 20}} scrollPadding={2}>
+          <Grid>
+            <Declarations
               statements={declarations} 
               {...declarationsCallbacks}
               visible={declarationSidebarVisible}/>
+          </Grid>
+          
+          <Grid>
+            <TypeDeclarations
+              statements={typeDeclarations} 
+              {...typeDeclarationsCallbacks}
+              visible={declarationSidebarVisible}/>
+          </Grid>
+
+        </Grid>
+        
+        <div style={{display: 'block', flexDirection: 'column'}}>
+          
+          
         </div>
+        <div style={{zIndex: 20, display: 'block'}}>
+          
+        </div>
+        
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
             nodes={(nodes as Node<GeneralNodeData>[]).concat(inductionNodes as Node<GeneralNodeData>[])}
