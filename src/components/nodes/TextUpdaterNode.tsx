@@ -74,37 +74,7 @@ function TextUpdaterNode({ data: nodeData }: { data: NodeData }) : ReactElement 
    * GIVEN NODE :
    */
   if (nodeData.type === "given") {
-    return (
-      <Box className={componentStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-            <Heading size='sm' >Given</Heading>
-            <IconButton
-                variant='outline'
-                aria-label='Add given'
-                size='xs'
-                onClick={() => { nodeData.thisNode.givens.add() }}
-                icon={<AddIcon />}
-              />
-          </div>
-          {nodeData.givens.map((s: StatementType, index: number) =>
-            <Statement 
-              onChange={e => onChange(e, "given", index)} 
-              statement={s} 
-              index={index} 
-              addAbove={() => { nodeData.thisNode.givens.add(index) }}
-              addBelow={() => { nodeData.thisNode.givens.add(index + 1) }} 
-              deleteStatement={() => { nodeData.thisNode.givens.remove(index) }}
-              setWrappers={() => {nodeData.thisNode.setWrappers()}} />)}
-        </div>
-
-        {/* START : Node Bottom Buttons */}
-        <NodeBottomButtons/>
-        {/* END : Node Bottom Buttons */}
-        
-        {sourceHandle}
-      </Box>
-    );
+    return GivenNode(componentStyle, nodeData, onChange, NodeBottomButtons, sourceHandle);
   };
 
 
@@ -112,52 +82,7 @@ function TextUpdaterNode({ data: nodeData }: { data: NodeData }) : ReactElement 
    * GOAL NODE : 
    */
   if (nodeData.type === "goal") {
-    return (
-      <Box className={componentStyle}>
-        {targetHandle}
-        <div style={{display: 'flex', justifyContent: 'center'}}>
-        {nodeData.correctImplication === undefined &&
-        <Button colorScheme='whatsapp' size='xs' onClick={() => {nodeData.thisNode.checkEdges()}}>
-          Check incoming implications
-        </Button>}
-        {nodeData.correctImplication === true &&
-          <Button colorScheme='whatsapp' size='xs' onClick={() => {nodeData.thisNode.checkEdges()}}>
-            Check passed. Check again?
-          </Button>}
-        {nodeData.correctImplication === false &&
-          <Button colorScheme='red' size='xs' onClick={() => {nodeData.thisNode.checkEdges()}}>
-            Check failed. Check again?
-          </Button>}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
-            <Heading size='sm' >Goal</Heading>
-            <IconButton
-                variant='outline'
-                aria-label='Add given'
-                size='xs'
-                onClick={() => { nodeData.thisNode.givens.add() }}
-                icon={<AddIcon />}
-                style={{justifySelf: 'flex-end'}}
-              />
-          </div>
-          {nodeData.givens.map((s: StatementType, index: number) =>
-            <Statement 
-              onChange={e => onChange(e, "given", index)} 
-              statement={s} 
-              index={index} 
-              addAbove={() => { nodeData.thisNode.givens.add(index) }}
-              addBelow={() => { nodeData.thisNode.givens.add(index + 1) }} 
-              deleteStatement={() => { nodeData.thisNode.givens.remove(index) }}
-              setWrappers={() => {nodeData.thisNode.setWrappers()}}/>)}
-        </div>
-        
-        {/* START : Node Bottom Buttons */}
-        <NodeBottomButtons/>
-        {/* END : Node Bottom Buttons */}
-
-      </Box>
-    )
+    return GoalNode(componentStyle, targetHandle, nodeData, onChange, NodeBottomButtons)
   }
   
 
@@ -311,3 +236,78 @@ function TextUpdaterNode({ data: nodeData }: { data: NodeData }) : ReactElement 
 }
 
 export default TextUpdaterNode;
+function GoalNode(componentStyle: string, targetHandle: ReactNode, nodeData: NodeData, onChange: (evt: any, k: StatementKind, updated: number) => void, NodeBottomButtons: () => JSX.Element) {
+  return <Box className={componentStyle}>
+    {targetHandle}
+    <div style={{ display: 'flex', justifyContent: 'center' }}>
+      {nodeData.correctImplication === undefined &&
+        <Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges(); } }>
+          Check incoming implications
+        </Button>}
+      {nodeData.correctImplication === true &&
+        <Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges(); } }>
+          Check passed. Check again?
+        </Button>}
+      {nodeData.correctImplication === false &&
+        <Button colorScheme='red' size='xs' onClick={() => { nodeData.thisNode.checkEdges(); } }>
+          Check failed. Check again?
+        </Button>}
+    </div>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Heading size='sm'>Goal</Heading>
+        <IconButton
+          variant='outline'
+          aria-label='Add given'
+          size='xs'
+          onClick={() => { nodeData.thisNode.givens.add(); } }
+          icon={<AddIcon />}
+          style={{ justifySelf: 'flex-end' }} />
+      </div>
+      {nodeData.givens.map((s: StatementType, index: number) => <Statement
+        onChange={e => onChange(e, "given", index)}
+        statement={s}
+        index={index}
+        addAbove={() => { nodeData.thisNode.givens.add(index); } }
+        addBelow={() => { nodeData.thisNode.givens.add(index + 1); } }
+        deleteStatement={() => { nodeData.thisNode.givens.remove(index); } }
+        setWrappers={() => { nodeData.thisNode.setWrappers(); } } />)}
+    </div>
+
+    {/* START : Node Bottom Buttons */}
+    <NodeBottomButtons />
+    {/* END : Node Bottom Buttons */}
+
+  </Box>;
+}
+
+function GivenNode(componentStyle: string, nodeData: NodeData, onChange: (evt: any, k: StatementKind, updated: number) => void, NodeBottomButtons: () => JSX.Element, sourceHandle: ReactNode) {
+  return <Box className={componentStyle}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Heading size='sm'>Given</Heading>
+        <IconButton
+          variant='outline'
+          aria-label='Add given'
+          size='xs'
+          onClick={() => { nodeData.thisNode.givens.add(); } }
+          icon={<AddIcon />} />
+      </div>
+      {nodeData.givens.map((s: StatementType, index: number) => <Statement
+        onChange={e => onChange(e, "given", index)}
+        statement={s}
+        index={index}
+        addAbove={() => { nodeData.thisNode.givens.add(index); } }
+        addBelow={() => { nodeData.thisNode.givens.add(index + 1); } }
+        deleteStatement={() => { nodeData.thisNode.givens.remove(index); } }
+        setWrappers={() => { nodeData.thisNode.setWrappers(); } } />)}
+    </div>
+
+    {/* START : Node Bottom Buttons */}
+    <NodeBottomButtons />
+    {/* END : Node Bottom Buttons */}
+
+    {sourceHandle}
+  </Box>;
+}
+

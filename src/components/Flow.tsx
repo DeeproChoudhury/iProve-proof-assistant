@@ -60,8 +60,6 @@ function Flow() {
   const declarationsRef = useRef(declarations);  
   declarationsRef.current = declarations;
 
-  const resetError = () => setError(undefined);
-
   const nextId = useCallback(() => {
     setCount(count + 1);
     return count;
