@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -304,34 +304,34 @@ function Flow() {
         </Stack>
       </div>
 
-      
       <div style={{display: 'flex', flexDirection: 'row'}}>
-        {/* Move declarations to front */}
-        <Grid style={{zIndex: 20}} scrollPadding={2}>
-          <Grid>
+        {/* START : Column for declarations */}
+        <Grid style={{zIndex: 20 /* zIndex to move column to front*/}} 
+          templateRows='repeat(3, 1fr)' 
+          gap={3}>
+          
+          {/* START : General Declarations */}
+          <GridItem>
             <Declarations
               statements={declarations} 
               {...declarationsCallbacks}
               visible={declarationSidebarVisible}/>
-          </Grid>
+          </GridItem>
+          {/* END : General Declarations */}
           
-          <Grid>
+          {/* START : Type Declarations */}
+          <GridItem>
             <TypeDeclarations
               statements={typeDeclarations} 
               {...typeDeclarationsCallbacks}
               visible={declarationSidebarVisible}/>
-          </Grid>
+          </GridItem>
+          {/* END : Type Declarations */}
 
         </Grid>
-        
-        <div style={{display: 'block', flexDirection: 'column'}}>
-          
-          
-        </div>
-        <div style={{zIndex: 20, display: 'block'}}>
-          
-        </div>
-        
+        {/* END : Column for declarations */}
+
+
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
             nodes={(nodes as Node<GeneralNodeData>[]).concat(inductionNodes as Node<GeneralNodeData>[])}
