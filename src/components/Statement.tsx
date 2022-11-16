@@ -13,7 +13,7 @@ import {
 import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
 import './Statement.css';
 import { useRef, useState } from "react";
-import { Assumption, display, VariableDeclaration } from "../parser/AST";
+import { display } from "../parser/AST";
 import { StatementType } from '../types/Statement';
 
 export type StatementPropsType = {
@@ -21,20 +21,27 @@ export type StatementPropsType = {
   index?: number;
   onChange: (e: any) => void;
   proofNode?: boolean;
-  addAbove?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
-  addBelow?: (wrappers?: (VariableDeclaration | Assumption)[]) => void;
-  deleteStatement?: () => void;
+  addAbove: () => void;
+  addBelow: () => void;
+  deleteStatement: () => void;
+  afterEdit?: () => void;
   setWrappers?: () => void;
 }
 
 const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
-  const {statement, index = 0, onChange, addAbove = () => {}, addBelow = () => {}, deleteStatement = () => {}, proofNode = false, setWrappers = () => {}} = props;
+  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {console.log("not present in props")}} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isFocused, setFocused] = useState<boolean>(false);
-  const onFocus = () => setFocused(true);
-  const onBlur = () => {setFocused(false); setWrappers()};
-  const belowWrappers = statement.parsed?.kind === "VariableDeclaration" ? [...statement.wrappers, statement.parsed] : statement.wrappers;
+  const [oldValue, setOldValue] = useState<string>("");
+  const onFocus = () => {
+    setFocused(true);
+    setOldValue(statement.value);
+  };
+  const onBlur = () => {
+    setFocused(false);
+    if (statement.value !== oldValue) afterEdit();
+  };
   
   /**
    * Popout for adding/deleting statement lines
@@ -56,19 +63,17 @@ const Statement = (props: StatementPropsType) => {
         <PopoverCloseButton />
         <PopoverHeader>More options</PopoverHeader>
         <PopoverBody style={{display: 'flex', flexDirection: 'column'}}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addAbove(statement.wrappers); onClose();}} style={{margin: '5px'}}>Add row above</Button>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addBelow(belowWrappers); onClose();}} style={{margin: '5px'}}>Add row below</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addAbove(); onClose();}} style={{margin: '5px'}}>Add row above</Button>
+          <Button size='xs' colorScheme='blackAlpha' onClick={() => {addBelow(); onClose();}} style={{margin: '5px'}}>Add row below</Button>
           <Button size='xs' colorScheme='blackAlpha' onClick={() => {deleteStatement(); onClose();}} style={{margin: '5px'}}>Delete this row</Button>
         </PopoverBody>
       </PopoverContent>
     </Popover>
 
-    
-  console.log(statement.wrappers);
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
-  const reasonsLabel = statement.reason && (statement.reason.length === 0 ? 'lemma' : `from ${statement.reason.map(r => `(${r})`).join(", ")}`)
   const indentSize = 15 * statement.wrappers.length;
+  const reasonsLabel = statement.reason && (statement.reason.dependencies.length === 0 ? 'lemma' : `from ${statement.reason.dependencies.map(r => `(${r + 1})`).join(", ")}`)
   return (
     <div style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
       <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>

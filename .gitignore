@@ -12,7 +12,7 @@
 /build
 
 # build artefacts
-src/*.js
+src/**/*.js
 
 # misc
 .DS_Store

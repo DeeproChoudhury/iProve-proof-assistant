@@ -17,6 +17,20 @@ export function listField(k: StatementKind): StatementListFieldName {
     }
 }
 
+export function localIndexToAbsolute(data: NodeData, k: StatementKind, index: number) {
+  switch (k) {
+    case "given": return index;
+    case "proofStep": return data.givens.length + index;
+    case "goal": return data.givens.length + data.proofSteps.length + index;
+  }
+}
+
+export function absoluteIndexToLocal(data: NodeData, index: number) {
+  if (index < data.givens.length) return ["given", index];
+  else if (index < data.givens.length + data.proofSteps.length) return ["proofStep", index - data.givens.length];
+  else return ["goal", index - data.givens.length - data.proofSteps.length];
+}
+
 export const setStatementsForNode = (
   setNode: Setter<Node<NodeData>>,
   k: StatementKind
@@ -83,3 +97,81 @@ export const getResults = (node: Node<NodeData>): StatementType[] => {
   }
 }
 
+export const shiftReasonsForNode = (
+  setNode: Setter<Node<NodeData>>
+) => (
+  k: "proofStep" | "goal",
+  index: number | undefined,
+  offset: -1 | 1
+) => {
+  setNode(node => {
+    const {givens, proofSteps: oldProofSteps, goals: oldGoals} = node.data;
+    const proofSteps = [...oldProofSteps];
+    const goals = [...oldGoals];
+    const defaultIndex = k === "goal" ? goals.length : proofSteps.length;
+    const absI = (index ?? defaultIndex) + givens.length + (k === "goal" ? proofSteps.length : 0);
+    let start = absI;
+    for (let i = start; i < givens.length + proofSteps.length + goals.length; i++) {
+      const [statements, relI] = i < givens.length + proofSteps.length ? [proofSteps, i - givens.length] : [goals, i - givens.length - proofSteps.length];
+      const statement = statements[relI];
+      if (!statement.reason) continue;
+      const newDeps = [...statement.reason.dependencies];
+      for (let depIndex = 0; depIndex < newDeps.length; depIndex++) {
+        if (newDeps[depIndex] >= start) newDeps[depIndex] += offset;
+      }
+      statements[relI] = {
+        ...statement,
+        reason: {
+          ...statement.reason,
+          dependencies: newDeps
+        }
+      }
+    }
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        proofSteps,
+        goals
+      }
+    }
+  });
+};
+
+export const invalidateReasonForNode = (
+  setNode: Setter<Node<NodeData>>
+) => (
+  k: "proofStep" | "goal",
+  index: number
+) => {
+  setNode(node => {
+    const {givens, proofSteps: oldProofSteps, goals: oldGoals} = node.data;
+    const proofSteps = [...oldProofSteps];
+    const goals = [...oldGoals];
+    const absI = index + givens.length + (k === "goal" ? proofSteps.length : 0);
+    const removed = [absI];
+    for (let i = absI; i < givens.length + proofSteps.length + goals.length; i++) {
+      const [statements, relI] = i < givens.length + proofSteps.length ? [proofSteps, i - givens.length] : [goals, i - givens.length - proofSteps.length];
+      const statement = statements[relI];
+      if (!statement.reason) continue;
+
+      const deps = statement.reason.dependencies;
+
+      if (deps.some(x => removed.includes(x))) {
+        removed.push(i);
+        statements[relI] = {
+          ...statement,
+          reason: undefined
+        }
+      }
+    }
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        proofSteps,
+        goals
+      }
+    }
+  });
+};

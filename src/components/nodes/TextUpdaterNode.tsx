@@ -35,7 +35,12 @@ function TextUpdaterNode({ data: nodeData }: { data: NodeData }) : ReactElement 
         onSolveModalOpen();
         console.log(nodeData.proofSteps);
         console.log(nodeData.proofSteps.map(x => {
-          return (x.parsed?.kind !== "FunctionDeclaration") ? `(assert ${ASTSMTLIB2(x.parsed)})` : ASTSMTLIB2(x.parsed);
+          if(x.parsed !== undefined){
+            return (x.parsed.kind !== "FunctionDeclaration") ? 
+            `(assert ${ASTSMTLIB2(x.parsed)})` : ASTSMTLIB2(x.parsed);
+          } else {
+            return ""
+          }
         }).join("\n"));
       }}>
       Solve

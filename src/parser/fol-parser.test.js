@@ -5,6 +5,7 @@ test('Supervillain proof', () => {
   evaluate("FA x.[EX y.[childof(x,y) & supervillain(y)] -> supervillain(x)]");
   evaluate("FA x.[supervillain(x) -> rich(x)]");
   evaluate("FA x.[supervillain(x) -> person(x)]");
+
   evaluate("var Gru");
   evaluate("supervillain(Gru)");
   evaluate("person(Gru)");

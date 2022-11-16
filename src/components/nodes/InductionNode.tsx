@@ -48,6 +48,9 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 			<Statement
 				onChange={e => onChange(e, "type", 0)}
 				statement={nodeData.types[0]}
+				addAbove={() => {}}
+				addBelow={() => {}}
+				deleteStatement={() => {}}
 				index={0}
 				proofNode={false}/>
 			{/* END : Type */}
@@ -60,6 +63,9 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 				onChange={e => onChange(e, "predicate", 0)}
 				statement={nodeData.predicate[0]}
 				index={0}
+				addAbove={() => {}}
+				addBelow={() => {}}
+				deleteStatement={() => {}}
 				proofNode={false}/>
 			{/* END : Predicate */}
 
@@ -122,6 +128,9 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 				onChange={e => onChange(e, "inductiveHypothesis", 0)}
 				statement={nodeData.inductiveHypotheses[0]}
 				index={0}
+				addAbove={() => {}}
+				addBelow={() => {}}
+				deleteStatement={() => {}}
 				proofNode={false}/>
 			{/* END : Inductive Hypothesis */}
 

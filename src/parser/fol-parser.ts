@@ -1,3 +1,4 @@
+import { countReset } from 'console';
 import { Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule, ParseError } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, rep_sc, nil } from 'typescript-parsec';
@@ -20,7 +21,11 @@ enum TokenKind {
     Space,
     DirEqToken,
     SquareBrace,
-    FunToken
+    FunToken,
+    Assume,
+    End,
+    Begin,
+    Skolem
 }
 
 const lexer = buildLexer([
@@ -31,6 +36,11 @@ const lexer = buildLexer([
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
+    [true, /^(assume)/g, TokenKind.Assume],
+    [true, /^(skolem)/g, TokenKind.Skolem],
+    [true, /^(begin)/g, TokenKind.Begin],
+    [true, /^(end)/g, TokenKind.End],
+
     [true, /^(\w|\d)+/g, TokenKind.Symbol],
     [true, /^(\+|-|=|>|<|\/|\.|\*|!|&|\||~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
@@ -52,6 +62,13 @@ type AtomicTerm = AST.PrefixApplication | AST.ParenTerm | AST.ArrayElem | AST.Ar
 const ATOMIC_TERM = rule<TokenKind, AtomicTerm>();
 const PREFIX_APPLY = rule<TokenKind, AST.PrefixApplication>();
 const PAREN_TERM = rule<TokenKind, AST.ParenTerm>();
+
+const ASSUMPTION = rule<TokenKind, AST.Assumption>();
+const SKOLEM = rule<TokenKind, AST.Skolemize>();
+const BEGIN_SCOPE = rule<TokenKind, AST.BeginScope>();
+const END_SCOPE = rule<TokenKind, AST.EndScope>();
+const TACTIC = rule<TokenKind, AST.Tactic>();
+const CORE = rule<TokenKind, AST.Line>();
 
 const TERM = rule<TokenKind, AST.Term>();
 interface UnaryOperator {
@@ -94,13 +111,6 @@ FN_TYPE.setPattern(apply(
     }
 ));
 
-
-PROOF_LINE.setPattern(alt(
-    FN_DEC,
-    VAR_DEC,
-    TYPE_EXT,
-    TERM
-));
 FN_DEC.setPattern(apply(
     seq(
         kright(opt(str("fun")), tok(TokenKind.Symbol)),
@@ -161,25 +171,25 @@ ATOMIC_TERM.setPattern(apply(
         alt(PREFIX_APPLY, PAREN_TERM, VARIABLE),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
-            kmid(str("["), seq(apply(nil(), (_) => { return false; }), opt(TERM), kright(str(".."), opt(TERM))), str(")")),
+            kmid(str("["), seq(apply(nil(), (_) => { return false; }), TERM, kright(str(".."), opt(TERM))), str(")")),
             ))
     ),
-    (value: [AtomicTerm, [boolean, AST.Term?, AST.Term?][]]): AtomicTerm => {
+    (value: [AtomicTerm, [boolean, AST.Term, AST.Term?][]]): AtomicTerm => {
         let R : AtomicTerm = value[0];
         for (let i = 0; i < value[1].length; i++) {
             let prev : AST.Term = (R) ? R : value[0];
+            const arg1 = value[1][i][1];
+            const arg2 = value[1][i][2]; // Have to put this in a variable for narrowing to work
             // hack, find a more elegant way to structure in general
-            if (value[1][i][0])
+            if (arg1)
                 R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "select", params: [
                     // HACK - prev is returned in an error state, value should always be defined
                     prev, (value[1][i][1] ?? prev)
                 ] };
-            else
-                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [
-                    prev, value[1][i][1], value[1][i][2]
-                ] };
-                
-                
+            else if (arg2)
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1, arg2] };
+            else 
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1] };
         }
         return R;
     }
@@ -338,10 +348,58 @@ OPERATOR.setPattern(alt(
 ));
 
 
+ASSUMPTION.setPattern(apply(
+    kright(str("assume"), TERM),
+    (value: AST.Term): AST.Assumption => ({ kind: "Assumption", arg: value })
+))
+
+SKOLEM.setPattern(apply(
+    kright(str("skolem"), VARIABLE),
+    (value: AST.Variable): AST.Skolemize => ({ kind: "Skolemize", arg: value.ident })
+))
+
+BEGIN_SCOPE.setPattern(apply(
+    str("begin"),
+    (_): AST.BeginScope => ({ kind: "BeginScope" })
+))
+
+END_SCOPE.setPattern(apply(
+    str("end"),
+    (_): AST.EndScope => ({ kind: "EndScope" })
+))
+
+
+TACTIC.setPattern(alt(
+    ASSUMPTION,
+    SKOLEM,
+    BEGIN_SCOPE,
+    END_SCOPE
+));
+
+
+CORE.setPattern(alt(
+    FN_DEC,
+    VAR_DEC,
+    TYPE_EXT,
+    TERM
+));
+
+
+PROOF_LINE.setPattern(alt(
+    CORE,
+    TACTIC
+));
+
+
+
 export function evaluate(line: string): AST.ASTNode | ParseError {
-    let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
-    if (!A.successful) return A.error;
-    return expectSingleResult(A);
+    try {
+        let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
+        if (!A.successful) return A.error;
+        return expectSingleResult(A);
+    } catch (E) {
+        return { kind: "Error", message: (E as Error).message, pos: undefined }
+    }
 }
 
 export default evaluate;
