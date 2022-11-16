@@ -18,7 +18,6 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
 
   const afterStatementEdit = useCallback(() => {
     data.thisNode.checkSyntax();
-    console.log("RIP");
     data.thisNode.setWrappers();
   }, [data]);
 
@@ -106,6 +105,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
               {...makeStatementProps("given", index)}
+              key={index}
             />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -152,6 +152,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
               {...makeStatementProps("given", index)}
+              key={index}
             />)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -203,6 +204,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           <Statement
             proofNode={true}
             {...makeStatementProps("given", index)}
+            key={index}
           />)}
       </div>
       {/* END: Given Statements */}
@@ -242,6 +244,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
               <Statement
                 proofNode={true}
                 {...makeStatementProps("proofStep", index)}
+                key={index}
               />)
         }
         {/* END: Proof Statements collapsed*/}
@@ -265,6 +268,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             <Statement
               proofNode={true}
               {...makeStatementProps("goal", index)}
+              key={index}
             />)}
         </div>
         {/* END: Proof Statements */}
