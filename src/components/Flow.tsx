@@ -263,11 +263,16 @@ function Flow() {
           </Button>
         </Stack>
       </div>
+
+      
       <div style={{display: 'flex', flexDirection: 'row'}}>
-        <Declarations
-          statements={declarations} 
-          {...declarationsCallbacks}
-          visible={declarationSidebarVisible}/>
+        {/* Move declarations to front */}
+        <div style={{zIndex: 20}}>
+          <Declarations
+              statements={declarations} 
+              {...declarationsCallbacks}
+              visible={declarationSidebarVisible}/>
+        </div>
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
             nodes={nodes}
