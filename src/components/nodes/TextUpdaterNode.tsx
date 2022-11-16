@@ -6,10 +6,11 @@ import {
 import { ReactElement, ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
 import { ASTSMTLIB2 } from '../../parser/AST';
-import { NodeData } from '../../types/Node';
+import { GeneralNodeData, NodeData } from '../../types/Node';
 import { StatementKind, StatementType } from '../../types/Statement';
 import SolveNodeModal from '../SolveNodeModal';
 import Statement from '../Statement';
+import { deleteNodePopover } from './GeneralNode';
 
 function TextUpdaterNode({ data: nodeData }: { data: NodeData }) : ReactElement {
   const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
@@ -40,21 +41,10 @@ function TextUpdaterNode({ data: nodeData }: { data: NodeData }) : ReactElement 
       Solve
     </Button>;
   
+  // Delete Node button popover
   const deletePopover =
-    <Popover isOpen={isOpen} onClose={onClose}>
-      <PopoverTrigger>
-        <Button size='xs' colorScheme='blackAlpha' onClick={onOpen}>Delete</Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <PopoverArrow />
-        <PopoverCloseButton />
-        <PopoverHeader>Are you sure you want to delete?</PopoverHeader>
-        <PopoverBody style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { nodeData.thisNode.delete() }}>Yes, I'm sure!</Button>
-          <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
-        </PopoverBody>
-      </PopoverContent>
-    </Popover>
+    deleteNodePopover(isOpen, onClose, onOpen, nodeData)
+    
     
   const checkSolveReady = nodeData.givens.concat(nodeData.proofSteps, nodeData.goals, nodeData.declarationsRef.current).every((s) => s.parsed !== undefined);
   const solveNotReadyPopover =

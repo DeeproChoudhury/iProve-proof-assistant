@@ -1,4 +1,4 @@
-import { InductionData } from "../../types/Node";
+import { GeneralNodeData, InductionData } from "../../types/Node";
 import { AddIcon } from '@chakra-ui/icons';
 import {
 	Box, Button, Heading, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent,
@@ -9,6 +9,7 @@ import "./InductionNode.css"
 import { Handle, Position } from "reactflow";
 import Statement from "../Statement";
 import { StatementKind, StatementType } from "../../types/Statement";
+import { deleteNodePopover } from "./GeneralNode";
 
 function InductionNode({ data: nodeData }: { data: InductionData }) : ReactElement {
 	const componentStyle = nodeData.type + "-node";
@@ -22,21 +23,9 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
   
+  // Delete Node button popover
 	const deletePopover =
-    <Popover isOpen={isOpen} onClose={onClose}>
-      <PopoverTrigger>
-        <Button size='xs' colorScheme='blackAlpha' onClick={onOpen}>Delete</Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <PopoverArrow />
-        <PopoverCloseButton />
-        <PopoverHeader>Are you sure you want to delete?</PopoverHeader>
-        <PopoverBody style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { nodeData.thisNode.delete() }}>Yes, I'm sure!</Button>
-          <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
-        </PopoverBody>
-      </PopoverContent>
-    </Popover>
+    deleteNodePopover(isOpen, onClose, onOpen, nodeData)
 	
 	const NodeBottomButtons = () => {
 		return (
