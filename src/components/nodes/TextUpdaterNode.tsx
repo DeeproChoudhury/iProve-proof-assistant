@@ -159,58 +159,7 @@ function TextUpdaterNode({ data: nodeData }: { data: NodeData }) : ReactElement 
       </Box>
     )
   }
-
-  /**
-   * INDUCTION NODE
-   */
-  if( nodeData.type === "induction" ) {
-    return (
-      <Box className={componentStyle}>
-        
-        {/* BEGIN : Type */}
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text>Type</Text>
-          <IconButton
-            variant='outline'
-            aria-label='Add Type'
-            size='xs'
-            icon={<AddIcon />}
-          />
-        </div>
-        {/* END : Type */}
-        
-        {/* BEGIN : Base Case */}
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text>Base Case(s)</Text>
-          <IconButton
-            variant='outline'
-            aria-label='Add Base Case'
-            size='xs'
-            icon={<AddIcon />}
-          />
-        </div>
-        {/* END : Base Case */}
-        
-        {/* BEGIN : Induction Case */}
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Text>Inductive Case(s)</Text>
-            <IconButton
-              variant='outline'
-              aria-label='Add given'
-              size='xs'
-              icon={<AddIcon />}
-            />
-        </div>
-        {/* END : Induction Case */}
-      
-        {/* START : Node Bottom Buttons */}
-        <NodeBottomButtons/>
-        {/* END : Node Bottom Buttons */}
-        
-      </Box>
-
-    )
-  }
+  
 
   return (
     <Box className={componentStyle}>
