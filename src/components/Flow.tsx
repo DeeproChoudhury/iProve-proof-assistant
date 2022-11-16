@@ -180,9 +180,9 @@ function Flow() {
           label: `Node ${id}`,
           id: id,
           type: node.type,
-          givens: node.givens === undefined ? [] : node.givens.map((e: string) => { return { value: e } }),
-          proofSteps: node.proofs === undefined ? [] : node.proofs.map((e: string) => { return { value: e } }),
-          goals: node.goals === undefined ? [] : node.goals.map((e: string) => { return { value: e } }),
+          givens: node.givens === undefined ? [] : node.givens.map((e: string) => { return { value: e, wrappers: [] } }),
+          proofSteps: node.proofs === undefined ? [] : node.proofs.map((e: string) => { return { value: e, wrappers: [] } }),
+          goals: node.goals === undefined ? [] : node.goals.map((e: string) => { return { value: e, wrappers: [] } }),
           declarationsRef,
           thisNode: makeThisNode(`${id}`)
         },
