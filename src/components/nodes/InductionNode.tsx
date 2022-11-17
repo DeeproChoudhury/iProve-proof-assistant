@@ -22,7 +22,18 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
   const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
-  
+  const checkSatButton: ReactNode = 
+    <Button size='xs'
+      colorScheme='blackAlpha' 
+      onClick={() => { 
+        console.log(nodeData.baseCases);
+        console.log(nodeData.inductiveCases);
+        console.log(nodeData.inductiveHypotheses[0]);
+        console.log(nodeData.types[0]);
+        console.log(nodeData.predicate[0]);
+      }}>
+      Solve
+    </Button>;
   // Delete Node button popover
 	const deletePopover =
     deleteNodePopover(isOpen, onClose, onOpen, nodeData)
@@ -31,6 +42,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 		return (
 			<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
 				{deletePopover}
+				{checkSatButton}
 			</div>
 		);
 	}
