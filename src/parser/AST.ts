@@ -275,36 +275,127 @@ function d(a: ASTNode): string {
 
 export const display: (line: Line) => string = d
 
-
 export class LogicInterface {
-    deployedTuples: Set<number> = new Set();
+    // persist after reset
+    globals: Map<number, ASTNode> = new Map();
+    rendered_globals: Map<number, string> = new Map();
+    rendered_tuples: Map<number, string> = new Map();
+    insID: number = 0;
+
+    // change on reset
+    givens: ASTNode[] = [];
+    goal: ASTNode | undefined;
+    rendered_givens: string[] = [];
+    rendered_goal: string | undefined;
+
+
+    functionDefinitions: Map<string, string> = new Map();
     listID: number = 0;
 
-    reset(): void {
-        this.deployedTuples = new Set();
-        this.listID = 0;
+    // Call this method before setting givens and goal for the current
+    // proof
+    newProof(): void {
+        this.listID = 0
+        this.goal = undefined;
+        this.givens = [];
+
+        this.rendered_goal = undefined;
+        this.rendered_givens;
     }
 
-    createTuple(n: number, ancillae: string[]): void {
-        if (this.deployedTuples.has(n)) return;
+    // Add a global given. Returns the item ID (used for removing in future)
+    addGlobal(n: ASTNode): number | undefined {
+        let cID = this.insID++;
+        this.globals.set(cID, n);
+        this.renderGlobal(cID);
+        return cID;
+    }
+
+    // Remove a global given by ID. Returns true iff successfully removed
+    removeGlobal(n: number): boolean {
+        return this.globals.delete(n) && this.rendered_globals.delete(n);
+    }
+
+    // Add instance given
+    addGiven(n: ASTNode): boolean {
+        this.givens.push(n)
+        return true;
+    }
+
+    // Set the instance goal. Returns the previous one. Note that if we were
+    // to stack goals P, Q, by De Morgan this is exactly setting the goal to
+    // P || Q, so we force this instead to increase usability.
+    //
+    // For now, we do not allow function definitions as goals. This would
+    // be useful sugar in proving the equivalence of function definitions
+    // but also a bit trickier and not encountered in 1/2 year.
+    setGoal(n: Term): ASTNode | undefined {
+        let old = this.goal;
+        this.goal = n;
+        return old
+    }
+
+    // utility rec function which takes in an array of terms and returns their
+    // (left-associative) dis(/con)junction. See above comment to motivate existence.
+    combineTerms(ts: Term[], conjunct: boolean = false): Term | undefined {
+        let A = ts.shift();
+        if (!A) return undefined;
+        let tail = this.combineTerms(ts, conjunct);
+        if (!tail) return A;
+
+        return {
+            kind: "FunctionApplication",
+            appType: "InfixOp",
+            fn: conjunct ? "&" : "||",
+            params: [A, tail]
+        }
+    }
+    disjunct = this.combineTerms
+    conjunct = (ts: Term[]): Term | undefined => (this.combineTerms(ts, true))
+
+    // Adds tuples of particular length to the global context. Returns true
+    // iff the tuple length wasn't already handled
+    getSelector(n: number): string {
+        switch (n) {
+            case 1: return "fst";
+            case 2: return "snd";
+            default: return `elem${n}`;
+        }
+    }
+    createTuple(n: number): boolean {
+        if (this.rendered_tuples.has(n)) return false;
 
         let thisID = `IProveTuple${n}`
         let elems: string[] = [];
         let params: string[] = [];
-        for (let i = 0; i < n; i++) {
+        for (let i = 1; i <= n; i++) {
             params.push(`PT${i}`)
-            elems.push(`(elem${i} PT${i})`)
+            elems.push(`(${this.getSelector(i)} PT${i})`)
         }
 
-        ancillae.push(
+        this.rendered_tuples.set(n,
             `(declare-datatypes (${params.join(" ")}) ((${thisID} (mk-tuple ${elems.join(" ")}))))`
-        );
-        this.deployedTuples.add(n);
+        )
+        return true;
     }
 
-    renderNode(a: ASTNode, ancillae: string[]): string {
-        let s = (x: ASTNode) => this.renderNode(x, ancillae);
+    renderPattern(a: Pattern): string {
+        switch(a.kind) {
+            case "SimpleParam":
+            case "ConsParam":
+            case "EmptyList":
+            case "ConstructedType":
+                return "";
+            case "TuplePattern": {
+                
+            }
+        }
+    }
 
+    renderNode(a: ASTNode | undefined): string {
+        if (!a) return "NULL";
+
+        let s = this.renderNode;
         switch (a.kind) {
             case "PrimitiveType": return a.ident;
             case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
@@ -330,8 +421,10 @@ export class LogicInterface {
             case "ConsParam":
             case "EmptyList":
             case "ConstructedType":
-            case "TuplePattern":
-                return ""
+                return "";
+            case "TuplePattern": {
+                a.
+            }
             
             case "TypeDef": {
                 let cons = a.cases.map(s).join(" ");
@@ -350,7 +443,7 @@ export class LogicInterface {
                 return `(Seq ${s(a.param)})`
             case "TupleType": {
                 let N = a.params.length;
-                this.createTuple(N, ancillae);
+                this.createTuple(N);
                 return `(IProveTuple${N} ${a.params.map(s).join(" ")})`;
             }
             
@@ -363,10 +456,12 @@ export class LogicInterface {
         }
     }
 
+
+
     ast2smtlib(a: ASTNode | undefined) : string {
         if(a === undefined) return "NULL"
         var ancillae: string[] = []
-        let renderedNode: string = this.renderNode(a, ancillae)
+        let renderedNode: string = this.renderNode(a)
         let mapped = (ancillae.length)
             ? `${ancillae.join("\n")}\n`
             : "";
