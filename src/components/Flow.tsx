@@ -40,7 +40,8 @@ function Flow() {
 
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
-  const [error, setError] = useState<ErrorLocation | undefined>(undefined);
+  const [error, setError] = useState<ErrorLocation | undefined>(undefined);  
+  const [stopGlobalCheck, setStopGlobalCheck] = useState(false);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
 
@@ -108,7 +109,7 @@ function Flow() {
     }
   }
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), []);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), []);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
@@ -202,6 +203,25 @@ function Flow() {
     setNodes(nodeData);
   }, [nextId, makeThisNode]);
 
+  const verifyProofGlobal = async () => {
+    /* check all nodes have correct syntax */ 
+    setStopGlobalCheck(false);
+    for (const node of nodes) {
+      // check might not be necessary with the onBlur, but better make sure
+      await node.data.thisNode.checkSyntax();
+    }
+    for (const node of nodes) {
+      if (node.type === "statement") {
+        await node.data.thisNode.checkEdges();
+      }
+    }
+    for (const node of nodes) {
+      if (node.type === "statement") {
+        await node.data.thisNode.checkInternalAssertions();
+      }
+    }
+  }
+
   return (
     <div style={{ position: 'relative' }}>
 
@@ -257,6 +277,26 @@ function Flow() {
           />
         </Alert>}
       </div>
+
+
+      {/* START : Incorrect proof alert */}
+      <div className="alert-container">
+        {stopGlobalCheck && <Alert status='error' className="alert">
+          <AlertIcon />
+          <AlertTitle>Error!</AlertTitle>
+          <AlertDescription>
+            Proof is not valid.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => {setStopGlobalCheck(false)}}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      {/* END : Incorrect Proof */}
       
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
@@ -307,6 +347,9 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
           <Button onClick={() => {checkProofValid(nodes, edges); setExportModalShow(true)}}>
             Export proof
+          </Button>
+          <Button onClick={() => {verifyProofGlobal()}}>
+            Verify Entire Proof
           </Button>
           <Button onClick={() => {setDeclarationSidebarVisible(!declarationSidebarVisible)}}>
             Settings
