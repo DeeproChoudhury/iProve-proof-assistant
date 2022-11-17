@@ -275,12 +275,20 @@ function d(a: ASTNode): string {
 
 export const display: (line: Line) => string = d
 
+
+export type PatternData = {
+    conditions: string[],
+    bindings: string[]
+}
+
+
 export class LogicInterface {
     // persist after reset
     globals: Map<number, ASTNode> = new Map();
     rendered_globals: Map<number, string> = new Map();
     rendered_tuples: Map<number, string> = new Map();
     insID: number = 0;
+
 
     // change on reset
     givens: ASTNode[] = [];
@@ -301,6 +309,11 @@ export class LogicInterface {
 
         this.rendered_goal = undefined;
         this.rendered_givens;
+    }
+
+    renderGlobal(id: number): boolean {
+        // TODO
+        return false;
     }
 
     // Add a global given. Returns the item ID (used for removing in future)
@@ -379,17 +392,48 @@ export class LogicInterface {
         return true;
     }
 
-    renderPattern(a: Pattern): string {
+
+    renderPattern(a: Pattern, name: string): PatternData {
         switch(a.kind) {
             case "SimpleParam":
+                return { conditions: [], bindings: [] }
             case "ConsParam":
+                return {
+                    conditions: [`(> (seq.len ${name}) 0)`],
+                    bindings: [
+                        `(${a.A} (seq.nth ${name} 0))`,
+                        `(${a.B} (seq.extract ${name} 1 (- (seq.len ${name}) 1)))`]
+                }
             case "EmptyList":
+                return { conditions: [], bindings: [] }
             case "ConstructedType":
-                return "";
-            case "TuplePattern": {
-                
+                return { conditions: [], bindings: [] }
+            case "TuplePattern":
+                return { conditions: [], bindings: [] }
+        }
+    }
+
+    renderFnDef(a: FunctionDefinition): string {
+        let params: string[] = []
+        let pidx = 0;
+        for (let p of a.params) {
+            switch (p.kind) {
+                case "SimpleParam": params.push(p.ident);
+                break; case "ConsParam": {
+                    let pid = `IProveParameter${pidx++}`;
+                    let R = this.renderPattern(p, pid);
+                    params.push(pid);
+                    break;
+                }
+                case "EmptyList":
+                case "ConstructedType":
+                case "TuplePattern":
+                    params.push("[]");
             }
         }
+
+        // TODO: FINISH
+        return ""
     }
 
     renderNode(a: ASTNode | undefined): string {
@@ -409,22 +453,26 @@ export class LogicInterface {
             case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
             case "ParenTerm": return s(a.term);
 
+            // THESE CASES NEED TO BE HANDLED SOMEHOW?
             case "BeginScope":
             case "EndScope":
             case "Assumption":
             case "Skolemize":
                 return "";
+            // ^^
 
             case "FunctionDefinition":
+                return this.renderFnDef(a);
+            
+            // THESE CASES SHOULD NEVER BE ENCOUNTERED \/
             case "Guard":
             case "SimpleParam":
             case "ConsParam":
             case "EmptyList":
             case "ConstructedType":
-                return "";
-            case "TuplePattern": {
-                a.
-            }
+            case "TuplePattern":
+                return "NULL";
+            // THESE CASES SHOULD NEVER BE ENCOUNTERED ^^
             
             case "TypeDef": {
                 let cons = a.cases.map(s).join(" ");
@@ -457,7 +505,7 @@ export class LogicInterface {
     }
 
 
-
+    // LEGACY DONT USE
     ast2smtlib(a: ASTNode | undefined) : string {
         if(a === undefined) return "NULL"
         var ancillae: string[] = []
@@ -466,6 +514,11 @@ export class LogicInterface {
             ? `${ancillae.join("\n")}\n`
             : "";
         return `${mapped}${renderedNode}`
+    }
+
+    toString(): string {
+        // TODO
+        return "";
     }
 }
 
