@@ -1,0 +1,6 @@
+{
+"type":"statement",
+"givens":["who", "123"],
+"proofs":["proofs", "123"],
+"goals":["who", "123"]
+}

@@ -2,10 +2,10 @@ import { AddIcon } from "@chakra-ui/icons";
 import { Box, Button, IconButton, Text } from "@chakra-ui/react";
 import { ReactNode } from "react";
 import Statement from "./Statement";
-import './Declarations.css';
+import './TypeDeclarations.css';
 import { StatementType } from "../types/Statement";
 
-export type DeclarationsPropsType = {
+export type TypesPropsType = {
   statements: StatementType[];
   update: (index: number, declaration: string) => void;
   add: (index: number) => void;
@@ -14,7 +14,7 @@ export type DeclarationsPropsType = {
   visible: boolean;
 }
 
-const Declarations = (props: DeclarationsPropsType) => {
+const TypeDeclarations = (props: TypesPropsType) => {
   const { statements, update, add, remove, checkSyntax, visible } = props;
   const onChange = (evt: any, updated: number) => {
     update(updated, evt.target.value);
@@ -23,9 +23,9 @@ const Declarations = (props: DeclarationsPropsType) => {
   const checkSyntaxButton: ReactNode = 
     <Button size='xs' colorScheme='blackAlpha' onClick={() => { checkSyntax() }}>Check Syntax</Button>;
   return (
-    <Box className={"declarations " + (visible ? 'closed' : 'open')}>
+    <Box className={"types " + (visible ? 'closed' : 'open')}>
       <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
-        <Text>Declarations</Text>
+        <Text>Types</Text>
         <IconButton
           variant='outline'
           aria-label='Add proof step'
@@ -35,8 +35,7 @@ const Declarations = (props: DeclarationsPropsType) => {
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <Box overflowY="scroll" maxHeight="10em">
-
+        <Box overflowY="scroll" maxHeight="10em" >
           {statements.map((s: StatementType, index: number) =>
             <Statement
               onChange={e => onChange(e, index)}
@@ -45,12 +44,12 @@ const Declarations = (props: DeclarationsPropsType) => {
               proofNode={true}
               addAbove={() => { add(index) }}
               addBelow={() => { add(index + 1) }}
-              deleteStatement={() => { remove(index) }} />)}
-        </Box>
+              deleteStatement={() => { remove(index) }} />)}  
+        </Box>  
       </div>
       {checkSyntaxButton}
     </Box>
   )
 }
 
-export default Declarations;
+export default TypeDeclarations;

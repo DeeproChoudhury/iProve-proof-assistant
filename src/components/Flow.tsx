@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -24,6 +24,7 @@ import GeneralNode from './nodes/GeneralNode';
 // import TextUpdaterNode from './TextUpdaterNode';
 import './nodes/TextUpdaterNode.css';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
+import TypeDeclarations from './TypeDeclarations';
 
 const nodeTypes = { 
   generalNode: GeneralNode
@@ -42,6 +43,10 @@ function Flow() {
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
+
+  const [typeDeclarations, setTypeDeclarations] = useState<StatementType[]>([]);
+
+  const [typeSidebarVisible, setTypeSidebarVisible] = useState(true);
   const localZ3Solver = new Z3Solver.Z3Prover("");
 
   /**
@@ -105,6 +110,7 @@ function Flow() {
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), []);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
+  const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
 
   const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
 
@@ -196,8 +202,8 @@ function Flow() {
   return (
     <div style={{ position: 'relative' }}>
 
-      {/* Declare Modals */}
-      {/* Import Modal */}
+      {/* START : Modals */}
+      {/* START : Import Modal */}
       <Modal isOpen={importModalShow}        
         onClose={() => {setImportModalShow(false)}}        // onAfterOpen={() => {}}
       >
@@ -210,8 +216,9 @@ function Flow() {
         </ModalBody>
         </ModalContent>
       </Modal>
+      {/* END : Import Modal */}
 
-      {/* Export Modal */}
+      {/* START : Export Modal */}
       <Modal isOpen={exportModalShow && proofValid}        
         onClose={() => {setExportModalShow(false)}}        // onAfterOpen={() => {}}
       >
@@ -226,14 +233,17 @@ function Flow() {
         </ModalBody>
         </ModalContent>
       </Modal>
+      {/* END : Export Modal */}
 
-      {/* Export alert */}
+      {/* START : Export alert */}
       <div className="alert-container">
         {exportModalShow && !proofValid && <Alert status='error' className="alert">
           <AlertIcon />
           <AlertTitle>Error!</AlertTitle>
           <AlertDescription>
-          Proof can not be printed as proof is not valid. For a proof graph to be valid, all paths into goal nodes must start at a given node, only use valid edges and be acyclical.
+            Proof can not be printed as proof is not valid. 
+            For a proof graph to be valid, all paths into goal nodes must start at a given node, 
+            only use valid edges and be acyclical.
           </AlertDescription>
           <IconButton
             variant='outline'
@@ -266,7 +276,8 @@ function Flow() {
       </div>
 
       <div className="alert-container">
-        {error === null && <Alert status='success' className="alert">
+        {error === null && 
+        <Alert status='success' className="alert">
           <AlertIcon />
           <AlertTitle>Success!</AlertTitle>
           <AlertDescription>
@@ -281,7 +292,9 @@ function Flow() {
           />
         </Alert>}
       </div>
+      {/* END : Export alert */}
     
+      {/* START : Header Buttons */}
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
           <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
@@ -297,16 +310,40 @@ function Flow() {
           </Button>
         </Stack>
       </div>
+      {/* END : Header Buttons */}
 
-      
+
+      {/* START : Flow Graph */}
       <div style={{display: 'flex', flexDirection: 'row'}}>
-        {/* Move declarations to front */}
-        <div style={{zIndex: 20}}>
-          <Declarations
-              statements={declarations} 
-              {...declarationsCallbacks}
-              visible={declarationSidebarVisible}/>
-        </div>
+        {/* START : Column for declarations */}
+        <Grid style={{zIndex: 20 /* zIndex to move column to front*/}} 
+          // templateRows='repeat(3, 1fr)'
+          gap={3}
+          visibility={declarationSidebarVisible ? "visible" : "hidden"}
+        >
+          
+          {/* START : General Declarations */}
+          <GridItem >
+              <Declarations
+                statements={declarations} 
+                {...declarationsCallbacks}
+                visible={true}/>
+          </GridItem>
+          {/* END : General Declarations */}
+          
+          {/* START : Type Declarations */}
+          <GridItem>
+            <TypeDeclarations
+              statements={typeDeclarations} 
+              {...typeDeclarationsCallbacks}
+              visible={true}/>
+          </GridItem>
+          {/* END : Type Declarations */}
+
+        </Grid>
+        {/* END : Column for declarations */}
+
+
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
             nodes={(nodes as Node<GeneralNodeData>[]).concat(inductionNodes as Node<GeneralNodeData>[])}
@@ -317,10 +354,11 @@ function Flow() {
             {...flowCallbacks}
           >
             <Background />
-            <Controls />
+            <Controls position='bottom-right'/>
           </ReactFlow>
         </div>
       </div>
+
     </div>
   );
 }
