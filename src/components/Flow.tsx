@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -202,8 +202,8 @@ function Flow() {
   return (
     <div style={{ position: 'relative' }}>
 
-      {/* Declare Modals */}
-      {/* Import Modal */}
+      {/* START : Modals */}
+      {/* START : Import Modal */}
       <Modal isOpen={importModalShow}        
         onClose={() => {setImportModalShow(false)}}        // onAfterOpen={() => {}}
       >
@@ -216,8 +216,9 @@ function Flow() {
         </ModalBody>
         </ModalContent>
       </Modal>
+      {/* END : Import Modal */}
 
-      {/* Export Modal */}
+      {/* START : Export Modal */}
       <Modal isOpen={exportModalShow && proofValid}        
         onClose={() => {setExportModalShow(false)}}        // onAfterOpen={() => {}}
       >
@@ -232,14 +233,17 @@ function Flow() {
         </ModalBody>
         </ModalContent>
       </Modal>
+      {/* END : Export Modal */}
 
-      {/* Export alert */}
+      {/* START : Export alert */}
       <div className="alert-container">
         {exportModalShow && !proofValid && <Alert status='error' className="alert">
           <AlertIcon />
           <AlertTitle>Error!</AlertTitle>
           <AlertDescription>
-          Proof can not be printed as proof is not valid. For a proof graph to be valid, all paths into goal nodes must start at a given node, only use valid edges and be acyclical.
+            Proof can not be printed as proof is not valid. 
+            For a proof graph to be valid, all paths into goal nodes must start at a given node, 
+            only use valid edges and be acyclical.
           </AlertDescription>
           <IconButton
             variant='outline'
@@ -272,7 +276,8 @@ function Flow() {
       </div>
 
       <div className="alert-container">
-        {error === null && <Alert status='success' className="alert">
+        {error === null && 
+        <Alert status='success' className="alert">
           <AlertIcon />
           <AlertTitle>Success!</AlertTitle>
           <AlertDescription>
@@ -287,6 +292,7 @@ function Flow() {
           />
         </Alert>}
       </div>
+      {/* END : Export alert */}
     
       {/* START : Header Buttons */}
       <div>
@@ -311,16 +317,17 @@ function Flow() {
       <div style={{display: 'flex', flexDirection: 'row'}}>
         {/* START : Column for declarations */}
         <Grid style={{zIndex: 20 /* zIndex to move column to front*/}} 
-          templateRows='repeat(3, 1fr)' 
+          // templateRows='repeat(3, 1fr)'
           gap={3}
-          visibility={declarationSidebarVisible ? "visible" : "hidden"}>
+          visibility={declarationSidebarVisible ? "visible" : "hidden"}
+        >
           
           {/* START : General Declarations */}
-          <GridItem>
-            <Declarations
-              statements={declarations} 
-              {...declarationsCallbacks}
-              visible={true}/>
+          <GridItem >
+              <Declarations
+                statements={declarations} 
+                {...declarationsCallbacks}
+                visible={true}/>
           </GridItem>
           {/* END : General Declarations */}
           

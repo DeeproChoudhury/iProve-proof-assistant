@@ -35,15 +35,17 @@ const TypeDeclarations = (props: TypesPropsType) => {
         />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {statements.map((s: StatementType, index: number) =>
-          <Statement
-            onChange={e => onChange(e, index)}
-            statement={s}
-            index={index}
-            proofNode={true}
-            addAbove={() => { add(index) }}
-            addBelow={() => { add(index + 1) }}
-            deleteStatement={() => { remove(index) }} />)}
+        <Box overflowY="scroll" maxHeight="10em" >
+          {statements.map((s: StatementType, index: number) =>
+            <Statement
+              onChange={e => onChange(e, index)}
+              statement={s}
+              index={index}
+              proofNode={true}
+              addAbove={() => { add(index) }}
+              addBelow={() => { add(index + 1) }}
+              deleteStatement={() => { remove(index) }} />)}  
+        </Box>  
       </div>
       {checkSyntaxButton}
     </Box>
