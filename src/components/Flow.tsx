@@ -64,6 +64,8 @@ function Flow() {
   edgesRef.current = edges;
   const declarationsRef = useRef(declarations);  
   declarationsRef.current = declarations;
+  const typeDeclarationsRef = useRef(typeDeclarations);  
+  typeDeclarationsRef.current = typeDeclarations;
 
   const nextId = useCallback(() => {
     setCount(count + 1);
@@ -130,6 +132,7 @@ function Flow() {
           baseCases: [],
           inductiveHypotheses: [{value: '', wrappers: []}],
           declarationsRef,
+          typeDeclarationsRef,
           thisNode: makeThisInductionNode(`${count}`)
         },
         position: { x: 300, y: 0 },

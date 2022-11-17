@@ -45,7 +45,8 @@ const Declarations = (props: DeclarationsPropsType) => {
               proofNode={true}
               addAbove={() => { add(index) }}
               addBelow={() => { add(index + 1) }}
-              deleteStatement={() => { remove(index) }} />)}
+              deleteStatement={() => { remove(index) }} 
+              key={index}/>)}
         </Box>
       </div>
       {checkSyntaxButton}

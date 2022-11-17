@@ -30,7 +30,7 @@ export type StatementPropsType = {
 
 const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
-  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {console.log("not present in props")}, setWrappers = () => {}} = props;
+  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {}, setWrappers = () => {}} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isFocused, setFocused] = useState<boolean>(false);
   const [oldValue, setOldValue] = useState<string>("");

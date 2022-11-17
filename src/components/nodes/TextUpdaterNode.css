@@ -3,7 +3,7 @@
   border-radius: 5px;
   background: rgb(56, 119, 156);
   padding: 5px;
-  width: 300px;
+  width: 350px;
 }
 
 .given-node {
@@ -11,7 +11,7 @@
   border-radius: 5px;
   background: rgb(255, 173, 241);
   padding: 5px;
-  width: 300px;
+  width: 350px;
 }
 
 .goal-node {
@@ -19,6 +19,6 @@
   border-radius: 5px;
   background: rgb(241, 249, 130);
   padding: 5px;
-  width: 300px;
+  width: 350px;
 }
 

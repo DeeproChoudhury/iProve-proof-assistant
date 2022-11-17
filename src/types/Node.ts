@@ -21,6 +21,7 @@ export type NodeData = GeneralNodeData & Readonly<{
 }>;
 
 export type InductionData = GeneralNodeData & Readonly<{
+  typeDeclarationsRef: MutableRefObject<StatementType[]>;
   types: StatementType[];
   predicate: StatementType[];
   inductiveCases: StatementType[];

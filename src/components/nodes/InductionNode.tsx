@@ -31,6 +31,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
         console.log(nodeData.inductiveHypotheses[0]);
         console.log(nodeData.types[0]);
         console.log(nodeData.predicate[0]);
+				console.log('types: ', nodeData.typeDeclarationsRef.current);
       }}>
       Solve
     </Button>;
