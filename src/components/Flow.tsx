@@ -288,6 +288,7 @@ function Flow() {
         </Alert>}
       </div>
     
+      {/* START : Header Buttons */}
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
           <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
@@ -303,19 +304,23 @@ function Flow() {
           </Button>
         </Stack>
       </div>
+      {/* END : Header Buttons */}
 
+
+      {/* START : Flow Graph */}
       <div style={{display: 'flex', flexDirection: 'row'}}>
         {/* START : Column for declarations */}
         <Grid style={{zIndex: 20 /* zIndex to move column to front*/}} 
           templateRows='repeat(3, 1fr)' 
-          gap={3}>
+          gap={3}
+          visibility={declarationSidebarVisible ? "visible" : "hidden"}>
           
           {/* START : General Declarations */}
           <GridItem>
             <Declarations
               statements={declarations} 
               {...declarationsCallbacks}
-              visible={declarationSidebarVisible}/>
+              visible={true}/>
           </GridItem>
           {/* END : General Declarations */}
           
@@ -324,7 +329,7 @@ function Flow() {
             <TypeDeclarations
               statements={typeDeclarations} 
               {...typeDeclarationsCallbacks}
-              visible={declarationSidebarVisible}/>
+              visible={true}/>
           </GridItem>
           {/* END : Type Declarations */}
 
@@ -342,10 +347,11 @@ function Flow() {
             {...flowCallbacks}
           >
             <Background />
-            <Controls />
+            <Controls position='bottom-right'/>
           </ReactFlow>
         </div>
       </div>
+
     </div>
   );
 }
