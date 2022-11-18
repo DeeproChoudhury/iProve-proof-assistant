@@ -41,7 +41,7 @@ function Flow() {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);  
-  const [stopGlobalCheck, setStopGlobalCheck] = useState(false);
+  const [stopGlobalCheck, setStopGlobalCheck] = useState<boolean | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
 
@@ -205,16 +205,24 @@ function Flow() {
 
   const verifyProofGlobal = async () => {
     /* check all nodes have correct syntax */ 
+    setStopGlobalCheck(undefined);
     for await (const node of nodes) {
       // check might not be necessary with the onBlur, but better make sure
       await node.data.thisNode.checkSyntax();
     }
+    let correctEdges = true;
     for await (const node of nodes) {
-      await node.data.thisNode.checkEdges();
+      if (node.data.type !== "given") {
+        const output = await node.data.thisNode.checkEdges();
+        correctEdges = correctEdges && output;
+      }
     }
     for await (const node of nodes) {
       await node.data.thisNode.checkInternalAssertions();
     }
+    setStopGlobalCheck(stop => {
+      return !(stop === undefined && correctEdges);
+    })
   }
 
   return (
@@ -276,7 +284,7 @@ function Flow() {
 
       {/* START : Incorrect proof alert */}
       <div className="alert-container">
-        {stopGlobalCheck && <Alert status='error' className="alert">
+        {stopGlobalCheck === true && <Alert status='error' className="alert">
           <AlertIcon />
           <AlertTitle>Error!</AlertTitle>
           <AlertDescription>
@@ -286,7 +294,23 @@ function Flow() {
             variant='outline'
             aria-label='Add given'
             size='xs'
-            onClick={() => {setStopGlobalCheck(false)}}
+            onClick={() => {setStopGlobalCheck(undefined)}}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      <div className="alert-container">
+        {stopGlobalCheck === false && <Alert status='success' className="alert">
+          <AlertIcon />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            Proof is valid.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => {setStopGlobalCheck(undefined)}}
             icon={<CloseIcon />}
           />
         </Alert>}

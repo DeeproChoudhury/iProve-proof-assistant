@@ -18,7 +18,7 @@ export const makeNodeCallbacks = (
   setNodes: Setter<Node<NodeData>[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<ErrorLocation | undefined>,
-  setStopGlobalCheck: Setter<boolean>,
+  setStopGlobalCheck: Setter<boolean | undefined>,
   z3: Z3Solver.Z3Prover
 ) => (
   nodeId: string
@@ -148,7 +148,7 @@ export const makeNodeCallbacks = (
       const currEdges = edgesRef.current;
       const currNodes = nodesRef.current;
       const node = currNodes.find((n) => n.id === nodeId);
-      if (!node) return;
+      if (!node) return true;
 
       const incomingEdges = currEdges.filter((e) => e.target === nodeId);
       // get all nodes that have incoming edge to nodeId
@@ -159,7 +159,7 @@ export const makeNodeCallbacks = (
       const expImplications = node.data.givens;
       
       if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
-        return; // TODO: show error message here
+        return false; // TODO: show error message here
       }
       
       // check that exp_implications follows from givens with z3
@@ -208,6 +208,7 @@ export const makeNodeCallbacks = (
           return edge;
         });
       });
+      return correctImplication;
     },
     setWrappers: () => {
       // sets the indentation level for each statement inside a node
