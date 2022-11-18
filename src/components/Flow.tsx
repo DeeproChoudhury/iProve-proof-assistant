@@ -40,7 +40,8 @@ function Flow() {
 
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
-  const [error, setError] = useState<ErrorLocation | undefined>(undefined);
+  const [error, setError] = useState<ErrorLocation | undefined>(undefined);  
+  const [stopGlobalCheck, setStopGlobalCheck] = useState<boolean | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
 
@@ -108,7 +109,7 @@ function Flow() {
     }
   }
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), []);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), []);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), []);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
@@ -202,6 +203,28 @@ function Flow() {
     setNodes(nodeData);
   }, [nextId, makeThisNode]);
 
+  const verifyProofGlobal = async () => {
+    /* check all nodes have correct syntax */ 
+    setStopGlobalCheck(undefined);
+    for await (const node of nodes) {
+      // check might not be necessary with the onBlur, but better make sure
+      await node.data.thisNode.checkSyntax();
+    }
+    let correctEdges = true;
+    for await (const node of nodes) {
+      if (node.data.type !== "given") {
+        const output = await node.data.thisNode.checkEdges();
+        correctEdges = correctEdges && output;
+      }
+    }
+    for await (const node of nodes) {
+      await node.data.thisNode.checkInternalAssertions();
+    }
+    setStopGlobalCheck(stop => {
+      return !(stop === undefined && correctEdges);
+    })
+  }
+
   return (
     <div style={{ position: 'relative' }}>
 
@@ -257,6 +280,42 @@ function Flow() {
           />
         </Alert>}
       </div>
+
+
+      {/* START : Incorrect proof alert */}
+      <div className="alert-container">
+        {stopGlobalCheck === true && <Alert status='error' className="alert">
+          <AlertIcon />
+          <AlertTitle>Error!</AlertTitle>
+          <AlertDescription>
+            Proof is not valid.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => {setStopGlobalCheck(undefined)}}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      <div className="alert-container">
+        {stopGlobalCheck === false && <Alert status='success' className="alert">
+          <AlertIcon />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            Proof is valid.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => {setStopGlobalCheck(undefined)}}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      {/* END : Incorrect Proof */}
       
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
@@ -307,6 +366,9 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
           <Button onClick={() => {checkProofValid(nodes, edges); setExportModalShow(true)}}>
             Export proof
+          </Button>
+          <Button onClick={() => {verifyProofGlobal()}}>
+            Verify Entire Proof
           </Button>
           <Button onClick={() => {setDeclarationSidebarVisible(!declarationSidebarVisible)}}>
             Settings

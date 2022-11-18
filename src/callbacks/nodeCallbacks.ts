@@ -1,13 +1,13 @@
 import { MutableRefObject } from "react";
 import { Edge, Node } from "reactflow";
-import { ASTSMTLIB2, isBlockEnd, isBlockStart } from "../parser/AST";
+import { ASTSMTLIB2, isBlockEnd, isBlockStart, isTerm } from "../parser/AST";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { NodeData } from "../types/Node";
 import { StatementKind, StatementType } from "../types/Statement";
 import { getResults, invalidateReasonForNode, listField, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
-import { updateWithParsed } from "../util/statements";
+import { statementToZ3, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks, StatementListCallbacks } from "./statementListCallbacks";
 
 
@@ -18,6 +18,7 @@ export const makeNodeCallbacks = (
   setNodes: Setter<Node<NodeData>[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<ErrorLocation | undefined>,
+  setStopGlobalCheck: Setter<boolean | undefined>,
   z3: Z3Solver.Z3Prover
 ) => (
   nodeId: string
@@ -77,9 +78,8 @@ export const makeNodeCallbacks = (
     delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     ...statementLists,
     statementList: (k: StatementKind) => statementLists[listField(k) as keyof typeof statementLists],
-    checkSyntax: (): void => setNode(node => {
+    checkSyntax: async () => setNode(node => {
       setError(undefined);
-
       return {
         ...node,
         data: {
@@ -90,7 +90,60 @@ export const makeNodeCallbacks = (
         }
       };
     }),
-    checkEdges: () => {
+    checkInternalAssertions: async () => {
+      const localZ3Solver = new Z3Solver.Z3Prover("");
+      const node = nodesRef.current.find((n) => n.id === nodeId)?.data;
+      if (!node || node.type !== "statement") { 
+        /* only need to check internal assertions for proof nodes */
+        return;
+      }
+      let reasons = node.givens;
+      let goals = node.proofSteps.concat(node.goals);
+      const declarations = node.declarationsRef.current.map(declaration => {
+        return statementToZ3(declaration);
+      }).join("\n");
+      let smtReasons = reasons.map(reason => {
+        const reasonStr = statementToZ3(reason);
+        if (!reason.parsed) return "";
+        if (isTerm(reason.parsed)) return `(assert ${reasonStr})`;
+        else return reasonStr;
+      }).join("\n");
+      
+      const shouldProve = (s: StatementType) => {
+        if (!s.parsed) {
+          return false;
+        }
+        const parsed = s.parsed;
+        return !(parsed.kind === "VariableDeclaration" || 
+          parsed.kind === "EndScope" || 
+          parsed.kind == "BeginScope" || 
+          parsed.kind == "FunctionDeclaration" || 
+          parsed.kind == "Assumption"); 
+      }
+
+      for (const goal of goals) {
+        if (!goal.parsed || !shouldProve(goal)) {
+          if (!goal.parsed) {
+            setStopGlobalCheck(true);
+          }
+          if (goal.parsed?.kind === "VariableDeclaration" || goal.parsed?.kind === "FunctionDeclaration") {
+            smtReasons = smtReasons + `\n ${statementToZ3(goal)}\n`;
+          }
+          return;
+        }
+        const goalStr = statementToZ3(goal);
+        const smtConclusion = "(assert (not " + goalStr + "))";
+        const output = await localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)")
+        if (output === "unsat\n") {
+          // check passed so can add goal to reasons and move on to next goal 
+          smtReasons = smtReasons + `\n (assert ${goalStr})\n`;
+        } else {
+          setStopGlobalCheck(true);
+          return;
+        }
+      }
+    },
+    checkEdges: async () => {
       // here we should get all incoming edges & nodes to nodeID
       // use the proofSteps (maybe goals?) of the incoming nodes and the givens of nodeId
       // to deduce whether the implication holds (using z3)
@@ -100,7 +153,7 @@ export const makeNodeCallbacks = (
       const currEdges = edgesRef.current;
       const currNodes = nodesRef.current;
       const node = currNodes.find((n) => n.id === nodeId);
-      if (!node) return;
+      if (!node) return true;
 
       const incomingEdges = currEdges.filter((e) => e.target === nodeId);
       // get all nodes that have incoming edge to nodeId
@@ -111,7 +164,7 @@ export const makeNodeCallbacks = (
       const expImplications = node.data.givens;
       
       if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
-        return; // TODO: show error message here
+        return false; // TODO: show error message here
       }
       
       // check that exp_implications follows from givens with z3
@@ -135,32 +188,32 @@ export const makeNodeCallbacks = (
         return "(assert (not " + ASTSMTLIB2(conclusion.parsed) + "))";
       }).join("\n");
       console.log(smtConclusions);
-      z3.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)").then((output: string) => {
-        if (output === "unsat\n") {
-          correctImplication = true;
-        } else {
-          correctImplication = false;
-        }
-        setNodeWithId(setNodes, nodeId)((node) => {
-          //set nodes
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              correctImplication
-            }
-          };
+      const output = await z3.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)")
+      if (output === "unsat\n") {
+        correctImplication = true;
+      } else {
+        correctImplication = false;
+      }
+      setNodeWithId(setNodes, nodeId)((node) => {
+        //set nodes
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            correctImplication
+          }
+        };
+      });
+      setEdges(eds => {
+        //set edges
+        return eds.map((edge) => {
+          if (edge.target === nodeId) {
+            edge.type = correctImplication ? "checked" : "invalid";
+          }
+          return edge;
         });
-        setEdges(eds => {
-          //set edges
-          return eds.map((edge) => {
-            if (edge.target === nodeId) {
-              edge.type = correctImplication ? "checked" : "invalid";
-            }
-            return edge;
-          });
-        });
-      })
+      });
+      return correctImplication;
     },
     setWrappers: () => {
       // sets the indentation level for each statement inside a node
