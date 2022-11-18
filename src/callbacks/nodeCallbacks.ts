@@ -123,7 +123,12 @@ export const makeNodeCallbacks = (
 
       for (const goal of goals) {
         if (!goal.parsed || !shouldProve(goal)) {
-          setStopGlobalCheck(true);
+          if (!goal.parsed) {
+            setStopGlobalCheck(true);
+          }
+          if (goal.parsed?.kind === "VariableDeclaration" || goal.parsed?.kind === "FunctionDeclaration") {
+            smtReasons = smtReasons + `\n ${statementToZ3(goal)}\n`;
+          }
           return;
         }
         const goalStr = statementToZ3(goal);
