@@ -46,6 +46,7 @@ const Declarations = (props: DeclarationsPropsType) => {
               addAbove={() => { add(index) }}
               addBelow={() => { add(index + 1) }}
               deleteStatement={() => { remove(index) }} 
+              afterEdit={() => checkSyntax()}
               key={index}/>)}
         </Box>
       </div>

@@ -45,6 +45,7 @@ const TypeDeclarations = (props: TypesPropsType) => {
               addAbove={() => { add(index) }}
               addBelow={() => { add(index + 1) }}
               deleteStatement={() => { remove(index) }} 
+              afterEdit={() => checkSyntax()}
               key={index}/>)}  
         </Box>  
       </div>
