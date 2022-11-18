@@ -281,12 +281,18 @@ export type PatternData = {
     bindings: string[]
 }
 
+export type FunctionData = {
+    decl: FunctionDeclaration | undefined,
+    cid: number,
+    defs: Map<number, FunctionDefinition>
+}
 
 export class LogicInterface {
     // persist after reset
     globals: Map<number, ASTNode> = new Map();
     rendered_globals: Map<number, string> = new Map();
     rendered_tuples: Map<number, string> = new Map();
+    functions: Map<string, FunctionData> = new Map();
     insID: number = 0;
 
 
@@ -296,8 +302,6 @@ export class LogicInterface {
     rendered_givens: string[] = [];
     rendered_goal: string | undefined;
 
-
-    functionDefinitions: Map<string, string> = new Map();
     listID: number = 0;
 
     // Call this method before setting givens and goal for the current
@@ -312,8 +316,14 @@ export class LogicInterface {
     }
 
     renderGlobal(id: number): boolean {
-        // TODO
-        return false;
+        let A = this.globals.get(id);
+        if (!A) return false;
+
+        this.rendered_globals.set(
+            id,
+            this.renderNode(A)
+        )
+        return true;
     }
 
     // Add a global given. Returns the item ID (used for removing in future)
@@ -396,7 +406,7 @@ export class LogicInterface {
     renderPattern(a: Pattern, name: string): PatternData {
         switch(a.kind) {
             case "SimpleParam":
-                return { conditions: [], bindings: [] }
+                return { conditions: [], bindings: [`(${a.ident} ${name})`] }
             case "ConsParam":
                 return {
                     conditions: [`(> (seq.len ${name}) 0)`],
@@ -405,7 +415,7 @@ export class LogicInterface {
                         `(${a.B} (seq.extract ${name} 1 (- (seq.len ${name}) 1)))`]
                 }
             case "EmptyList":
-                return { conditions: [], bindings: [] }
+                return { conditions: [`(= (seq.len ${name}) 0)`], bindings: [] }
             case "ConstructedType":
                 return { conditions: [], bindings: [] }
             case "TuplePattern":
@@ -413,45 +423,140 @@ export class LogicInterface {
         }
     }
 
-    renderFnDef(a: FunctionDefinition): string {
+    renderFunction(ident: string): string | undefined {
+        let A = this.functions.get(ident);
+        if (!A || !A.decl) return undefined;
+
         let params: string[] = []
-        let pidx = 0;
-        for (let p of a.params) {
-            switch (p.kind) {
-                case "SimpleParam": params.push(p.ident);
-                break; case "ConsParam": {
-                    let pid = `IProveParameter${pidx++}`;
-                    let R = this.renderPattern(p, pid);
-                    params.push(pid);
-                    break;
-                }
-                case "EmptyList":
-                case "ConstructedType":
-                case "TuplePattern":
-                    params.push("[]");
+        let nparams = A.decl.type.argTypes.length;
+
+        for (let i = 0; i < nparams; i++)
+            params.push(`IProveParameter${i}`)
+
+        let pdatas: [PatternData, Term][] = [];
+        for (let [i, a] of A.defs) {
+            if (a.params.length != nparams) return undefined;
+
+            let idx: number = 0;
+            for (let p of a.params) {
+                pdatas.push([
+                    this.renderPattern(p, `IProveParameter${idx}`),
+                    (a.def as Term)
+                ]);
+                idx++;
             }
         }
 
-        // TODO: FINISH
-        return ""
+        let sections: string[] = [];
+        for (let [p, d] of pdatas) {
+            let cond = (p.conditions.length)
+                ? p.conditions[0]
+                : "true";
+            let bindings: string = (p.bindings.length)
+                ? `(let (${p.bindings.join(" ")}) ${this.renderNode(d)})`
+                : this.renderNode(d);
+            sections.push(`(if ${cond} ${bindings}`)
+        }
+        sections.push("0");
+        let defn: string = sections.join(" ");
+        for (let i = 0; i < sections.length - 1; i++)
+            defn += ")";
+
+        let rendered_params: string[] = [];
+        for (let i = 0; i < nparams; i++)
+            rendered_params.push(`(${params[i]} ${this.renderNode(A.decl.type.argTypes[0])})`)
+        
+        let type = `(${rendered_params.join(" ")}) ${this.renderNode(A.decl.type.retType)}`
+        return `(define-fun-rec ${ident} ${type} ${defn})`
+    }
+
+    newFunction(ident: string): boolean {
+        if (this.functions.has(ident))
+            return false;
+        
+        this.functions.set(ident, {
+            decl: undefined,
+            cid: 0,
+            defs: new Map()
+        })
+        return true;
+    }
+
+    addFnDecl(a: FunctionDeclaration): FunctionDeclaration | undefined {
+        this.newFunction(a.symbol);
+        let A = this.functions.get(a.symbol);
+        if (!A) return undefined; // error case for typechecking
+
+        let old = A.decl;
+        A.decl = a;
+        return old;
+    }
+
+    // Adds a function definition and returns its id within the definition of
+    // this particular function
+    addFnDef(a: FunctionDefinition): number {
+        this.newFunction(a.ident);
+
+        let A = this.functions.get(a.ident);
+        if (!A) return 0 // error case for typechecking
+
+        A.defs.set(++A.cid, a)
+        return A.cid;
+    }
+
+    // If id is null, the entire function will be removed, otherwise
+    // just the definition given by id
+    removeFnDef(ident: string, id: number | null = null): boolean {
+        if (!id)
+            return this.functions.delete(ident);
+        
+        let A = this.functions.get(ident);
+        if (!A) return false;
+        return A.defs.delete(id);
     }
 
     renderNode(a: ASTNode | undefined): string {
         if (!a) return "NULL";
 
-        let s = this.renderNode;
         switch (a.kind) {
             case "PrimitiveType": return a.ident;
-            case "FunctionType": return `(${a.argTypes.map(s).join(" ")})  ${s(a.retType)}`;
-            case "VariableBinding": return `(${s(a.symbol)} ${a.type ? s(a.type) : "Int"})`;
-            case "TypeExt": return `${s(a.subType)} ⊆ ${s(a.superType)}`;
-            case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${s(a.type)})`;
-            case "VariableDeclaration": return `(declare-const ${s(a.symbol)} ${a.type ? `${s(a.type)}` : "Int"})`;
+            case "FunctionType": return `(${a.argTypes.map(this.renderNode, this).join(" ")})  ${this.renderNode(a.retType)}`;
+            case "VariableBinding": return `(${this.renderNode(a.symbol)} ${a.type ? this.renderNode(a.type) : "Int"})`;
+            case "TypeExt": return `${this.renderNode(a.subType)} ⊆ ${this.renderNode(a.superType)}`;
+            case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${this.renderNode(a.type)})`;
+            case "VariableDeclaration": return `(declare-const ${this.renderNode(a.symbol)} ${a.type ? `${this.renderNode(a.type)}` : "Int"})`;
             case "Variable": return a.ident;
-            case "FunctionApplication": return `(${fnSMT(a.fn)} ${a.params.map(s).join(" ")})`;
-            case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(s).join(" ")}) ${s(a.term)})`;
-            case "EquationTerm": return `${s(a.lhs)} ::= ${s(a.rhs)}`;
-            case "ParenTerm": return s(a.term);
+            case "FunctionApplication": return `(${fnSMT(a.fn)} ${a.params.map(this.renderNode, this).join(" ")})`;
+            case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(this.renderNode, this).join(" ")}) ${this.renderNode(a.term)})`;
+            case "EquationTerm": return `${this.renderNode(a.lhs)} ::= ${this.renderNode(a.rhs)}`;
+            case "ParenTerm": return this.renderNode(a.term);
+            
+            case "TypeDef": {
+                let cons = a.cases.map(this.renderNode, this).join(" ");
+                let type_params = a.params.join(" ");
+                return `(declare-datatypes (${type_params}) ((${a.ident} ${cons})))`
+            }
+            case "TypeConstructor": {
+                let params = a.params.map(
+                    (e, i) => (`(${a.selectors[i]} ${this.renderNode(e)})`));
+                return `(${a.ident} ${params.join(" ")})`
+            }
+
+            case "ParamType":
+                return `(${a.ident} ${a.params.map(this.renderNode, this).join(" ")})`
+            case "ListType":
+                return `(Seq ${this.renderNode(a.param)})`
+            case "TupleType": {
+                let N = a.params.length;
+                this.createTuple(N);
+                return `(IProveTuple${N} ${a.params.map(this.renderNode, this).join(" ")})`;
+            }
+            
+            case "ArrayLiteral": {
+                let units = a.elems.map((e) => 
+                    (`(seq.unit ${this.renderNode(e)})`), this);
+                return `(seq.++ ${units.join(" ")})`
+            }
 
             // THESE CASES NEED TO BE HANDLED SOMEHOW?
             case "BeginScope":
@@ -460,11 +565,9 @@ export class LogicInterface {
             case "Skolemize":
                 return "";
             // ^^
-
-            case "FunctionDefinition":
-                return this.renderFnDef(a);
             
             // THESE CASES SHOULD NEVER BE ENCOUNTERED \/
+            case "FunctionDefinition":
             case "Guard":
             case "SimpleParam":
             case "ConsParam":
@@ -473,34 +576,6 @@ export class LogicInterface {
             case "TuplePattern":
                 return "NULL";
             // THESE CASES SHOULD NEVER BE ENCOUNTERED ^^
-            
-            case "TypeDef": {
-                let cons = a.cases.map(s).join(" ");
-                let type_params = a.params.join(" ");
-                return `(declare-datatypes (${type_params}) ((${a.ident} ${cons})))`
-            }
-            case "TypeConstructor": {
-                let params = a.params.map(
-                    (e, i) => (`(${a.selectors[i]} ${s(e)})`));
-                return `(${a.ident} ${params.join(" ")})`
-            }
-
-            case "ParamType":
-                return `(${a.ident} ${a.params.map(s).join(" ")})`
-            case "ListType":
-                return `(Seq ${s(a.param)})`
-            case "TupleType": {
-                let N = a.params.length;
-                this.createTuple(N);
-                return `(IProveTuple${N} ${a.params.map(s).join(" ")})`;
-            }
-            
-            case "ArrayLiteral": {
-                let units = a.elems.map((e) => 
-                    (`(seq.unit ${s(e)})`));
-                return `(seq.++ ${units.join(" ")})`
-                
-            }
         }
     }
 
@@ -517,8 +592,37 @@ export class LogicInterface {
     }
 
     toString(): string {
-        // TODO
-        return "";
+        let res = "";
+
+        // TUPLES
+        for (let [k, v] of this.rendered_tuples)
+            res += `${v}\n`
+
+        // FUNCTIONS
+        for (let [k,v] of this.functions)
+            res += `${this.renderFunction(k)}\n`
+
+        // GLOBALS
+        for (let [k,v] of this.rendered_globals)
+            res += `(assert ${v})\n`
+
+        // GIVENS
+        for (let v of this.givens) {
+            switch (v.kind) {
+                case "VariableDeclaration":
+                case "FunctionDeclaration":
+                    res += this.renderNode(v); break;
+                default:
+                    res += `(assert ${this.renderNode(v)})`
+
+            }
+            res += "\n"
+        }
+
+        // GOAL
+        res += `(assert (not ${this.renderNode(this.goal)}))\n`
+
+        return res;
     }
 }
 

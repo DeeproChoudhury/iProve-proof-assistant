@@ -511,7 +511,8 @@ TYPE_CONSTRUCTOR.setPattern(apply(
         rep_sc(TYPE)
     ),
     (value): AST.TypeConstructor =>
-        ({ kind: "TypeConstructor", ident: value[0].ident, params: value[1] })
+        // TODO: SELECTORS
+        ({ kind: "TypeConstructor", ident: value[0].ident, params: value[1], selectors: ["bruh"] })
 ))
 
 const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
@@ -557,3 +558,26 @@ export function evaluate(line: string): AST.ASTNode | ParseError {
 }
 
 export default evaluate;
+
+/*
+const util = require("util")
+let ASTN0 = (evaluate("length :: [Int] -> Int") as AST.FunctionDeclaration)
+let ASTN1 = (evaluate("length (_::as) ::= 1 + length(as)")  as AST.FunctionDefinition)
+let ASTN2 = (evaluate("length [] ::= 0")  as AST.FunctionDefinition)
+
+let ASTN4 = (evaluate("length(x) > 0") as AST.Term)
+let ASTN3 = (evaluate("var x : [Int]") as AST.ASTNode)
+console.log(util.inspect(ASTN0, false, null, true));
+console.log(util.inspect(ASTN1, false, null, true));
+console.log(util.inspect(ASTN2, false, null, true));
+
+AST.LI.addFnDecl(ASTN0);
+AST.LI.addFnDef(ASTN1);
+AST.LI.addFnDef(ASTN2);
+
+AST.LI.addGiven(ASTN3)
+
+AST.LI.setGoal(ASTN4)
+
+console.log(`${AST.LI}`);
+*/
