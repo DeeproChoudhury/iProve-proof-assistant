@@ -205,20 +205,15 @@ function Flow() {
 
   const verifyProofGlobal = async () => {
     /* check all nodes have correct syntax */ 
-    setStopGlobalCheck(false);
-    for (const node of nodes) {
+    for await (const node of nodes) {
       // check might not be necessary with the onBlur, but better make sure
       await node.data.thisNode.checkSyntax();
     }
-    for (const node of nodes) {
-      if (node.type === "statement") {
-        await node.data.thisNode.checkEdges();
-      }
+    for await (const node of nodes) {
+      await node.data.thisNode.checkEdges();
     }
-    for (const node of nodes) {
-      if (node.type === "statement") {
-        await node.data.thisNode.checkInternalAssertions();
-      }
+    for await (const node of nodes) {
+      await node.data.thisNode.checkInternalAssertions();
     }
   }
 
