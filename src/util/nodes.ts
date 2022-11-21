@@ -1,84 +1,44 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { InductionData, NodeData, StatementListFieldName } from "../types/Node";
-import { StatementKind, StatementType } from "../types/Statement";
+import { AnyNodeData, NodeData, ListField } from "../types/Node";
+import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
 
-export function listField(k: StatementKind): StatementListFieldName {
-    switch (k) {
-        case "given": return "givens";
-        case "proofStep": return "proofSteps";
-        case "goal": return "goals";
-        case "type": return "types";
-        case "predicate": return "predicate";
-        case "inductiveCase": return "inductiveCases";
-        case "baseCase": return "baseCases";
-        case "inductiveHypothesis": return "inductiveHypotheses"; 
-    }
-}
-
-export function localIndexToAbsolute(data: NodeData, k: StatementKind, index: number) {
+export function localIndexToAbsolute(data: NodeData, k: ListField<NodeData>, index: number): number {
   switch (k) {
-    case "given": return index;
-    case "proofStep": return data.givens.length + index;
-    case "goal": return data.givens.length + data.proofSteps.length + index;
+    case "givens": return index;
+    case "proofSteps": return data.givens.length + index;
+    case "goals": return data.givens.length + data.proofSteps.length + index;
   }
 }
 
-export function absoluteIndexToLocal(data: NodeData, index: number) {
-  if (index < data.givens.length) return ["given", index];
-  else if (index < data.givens.length + data.proofSteps.length) return ["proofStep", index - data.givens.length];
-  else return ["goal", index - data.givens.length - data.proofSteps.length];
+export function absoluteIndexToLocal(data: NodeData, index: number): [ListField<NodeData>, number] {
+  if (index < data.givens.length) return ["givens", index];
+  else if (index < data.givens.length + data.proofSteps.length) return ["proofSteps", index - data.givens.length];
+  else return ["goals", index - data.givens.length - data.proofSteps.length];
 }
 
-export const setStatementsForNode = (
-  setNode: Setter<Node<NodeData>>,
-  k: StatementKind
+export const setStatementsForNode = <K extends string, T extends AnyNodeData & Record<K, StatementType[]>>(
+  setNode: Setter<Node<T>>,
+  k: K
 ) => (
   action: SetStateAction<StatementType[]>
 ) => {
   setNode(node => {
-    const fieldName = listField(k);
     return {
       ...node,
       data: {
         ...node.data,
-        [fieldName]: applyAction(action as SetStateAction<any>, node.data[fieldName as keyof NodeData])
+        [k]: applyAction(action, node.data[k])
       }
     }
   });
 };
 
-export const setNodeWithId = (
-  setNodes: Setter<Node<NodeData>[]>,
+export const setNodeWithId = <T extends AnyNodeData>(
+  setNodes: Setter<Node<T>[]>,
   nodeId: string
-) => (action: SetStateAction<Node<NodeData>>) => {
-  setNodes(nds => nds.map((nd) => nd.id === nodeId ? applyAction(action, nd) : nd));
-};
-
-
-export const setInductionStatementsForNode = (
-  setNode: Setter<Node<InductionData>>,
-  k: StatementKind
-) => (
-  action: SetStateAction<StatementType[]>
-) => {
-  setNode(node => {
-    const fieldName = listField(k);
-    return {
-      ...node,
-      data: {
-        ...node.data,
-        [fieldName]: applyAction(action as SetStateAction<any>, node.data[fieldName as keyof InductionData])
-      }
-    }
-  });
-};
-
-export const setInductionNodeWithId = (
-  setNodes: Setter<Node<InductionData>[]>,
-  nodeId: string
-) => (action: SetStateAction<Node<InductionData>>) => {
+) => (action: SetStateAction<Node<T>>) => {
   setNodes(nds => nds.map((nd) => nd.id === nodeId ? applyAction(action, nd) : nd));
 };
 
@@ -100,7 +60,7 @@ export const getResults = (node: Node<NodeData>): StatementType[] => {
 export const shiftReasonsForNode = (
   setNode: Setter<Node<NodeData>>
 ) => (
-  k: "proofStep" | "goal",
+  k: "proofSteps" | "goals",
   index: number | undefined,
   offset: -1 | 1
 ) => {
@@ -108,8 +68,8 @@ export const shiftReasonsForNode = (
     const {givens, proofSteps: oldProofSteps, goals: oldGoals} = node.data;
     const proofSteps = [...oldProofSteps];
     const goals = [...oldGoals];
-    const defaultIndex = k === "goal" ? goals.length : proofSteps.length;
-    const absI = (index ?? defaultIndex) + givens.length + (k === "goal" ? proofSteps.length : 0);
+    const defaultIndex = k === "goals" ? goals.length : proofSteps.length;
+    const absI = (index ?? defaultIndex) + givens.length + (k === "goals" ? proofSteps.length : 0);
     let start = absI;
     for (let i = start; i < givens.length + proofSteps.length + goals.length; i++) {
       const [statements, relI] = i < givens.length + proofSteps.length ? [proofSteps, i - givens.length] : [goals, i - givens.length - proofSteps.length];
@@ -141,14 +101,14 @@ export const shiftReasonsForNode = (
 export const invalidateReasonForNode = (
   setNode: Setter<Node<NodeData>>
 ) => (
-  k: "proofStep" | "goal",
+  k: "proofSteps" | "goals",
   index: number
 ) => {
   setNode(node => {
     const {givens, proofSteps: oldProofSteps, goals: oldGoals} = node.data;
     const proofSteps = [...oldProofSteps];
     const goals = [...oldGoals];
-    const absI = index + givens.length + (k === "goal" ? proofSteps.length : 0);
+    const absI = index + givens.length + (k === "goals" ? proofSteps.length : 0);
     const removed = [absI];
     for (let i = absI; i < givens.length + proofSteps.length + goals.length; i++) {
       const [statements, relI] = i < givens.length + proofSteps.length ? [proofSteps, i - givens.length] : [goals, i - givens.length - proofSteps.length];

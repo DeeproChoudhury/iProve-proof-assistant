@@ -30,4 +30,6 @@ export type InductionData = GeneralNodeData & Readonly<{
   thisNode: InductionNodeCallbacks;
 }>; 
 
-export type StatementListFieldName = "givens" | "proofSteps" | "goals" | "types" | "baseCases" | "inductiveCases" | "predicate" | "inductiveHypotheses";
+export type ListField<T extends NodeData | InductionData> = T extends NodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionData ? ("types" | "predicate" | "inductiveCases" | "baseCases" | "inductiveHypotheses") : never
+
+export type AnyNodeData = NodeData | InductionData;

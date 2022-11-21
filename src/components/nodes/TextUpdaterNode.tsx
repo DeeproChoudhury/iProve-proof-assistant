@@ -5,14 +5,14 @@ import {
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, Position } from 'reactflow';
-import { NodeData } from '../../types/Node';
-import { StatementKind, StatementType } from '../../types/Statement';
-import { listField, localIndexToAbsolute } from '../../util/nodes';
+import { ListField, NodeData } from '../../types/Node';
+import { StatementType } from '../../types/Statement';
+import { localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import Statement from '../Statement';
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
-  const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
+  const onChange = useCallback((evt: any, k: ListField<NodeData>, updated: number) => {
     data.thisNode.statementList(k).update(updated, evt.target.value);
   }, [data]);
 
@@ -21,15 +21,15 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     data.thisNode.setWrappers();
   }, [data]);
 
-  const getStatementFromIndex = (k: StatementKind, index: number) => {
+  const getStatementFromIndex = (k: ListField<NodeData>, index: number): StatementType => {
     switch(k) {
-      case "given": return data.givens[index];
-      case "goal": return data.goals[index];
-      default: return data.proofSteps[index];
-      // default: return data.proofSteps[index];
+      case "givens": return data.givens[index];
+      case "proofSteps": return data.givens[index];
+      case "goals": return data.goals[index];
     }
   }
-  const makeStatementProps = useCallback((k: StatementKind, index: number) => ({
+
+  const makeStatementProps = useCallback((k: ListField<NodeData>, index: number) => ({
     statement: getStatementFromIndex(k, index),
     index: localIndexToAbsolute(data, k, index),
     onChange: (e: any) => onChange(e, k, index),
@@ -37,7 +37,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
     addBelow: () => data.thisNode.statementList(k).add(index + 1),
     deleteStatement: () => data.thisNode.statementList(k).remove(index),
     afterEdit: () => afterStatementEdit(),
-  }), [data]);
+  }), [data, onChange, afterStatementEdit, getStatementFromIndex]);
 
   const [isCollapsed, setCollapsed] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -104,7 +104,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           </div>
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
-              {...makeStatementProps("given", index)}
+              {...makeStatementProps("givens", index)}
               key={index}
             />)}
         </div>
@@ -151,7 +151,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           </div>
           {data.givens.map((s: StatementType, index: number) =>
             <Statement 
-              {...makeStatementProps("given", index)}
+              {...makeStatementProps("givens", index)}
               key={index}
             />)}
         </div>
@@ -203,7 +203,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         {data.givens.map((s: StatementType, index: number) =>
           <Statement
             proofNode={true}
-            {...makeStatementProps("given", index)}
+            {...makeStatementProps("givens", index)}
             key={index}
           />)}
       </div>
@@ -232,18 +232,18 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             <>
               <Statement
                 proofNode={true}
-                {...makeStatementProps("proofStep", 0)}
+                {...makeStatementProps("proofSteps", 0)}
               />
               <Text as='b'>. . .</Text>
               <Statement
                 proofNode={true}
-                {...makeStatementProps("proofStep", data.proofSteps.length - 1)}
+                {...makeStatementProps("proofSteps", data.proofSteps.length - 1)}
               />
             </> :
             data.proofSteps.map((s: StatementType, index: number) =>
               <Statement
                 proofNode={true}
-                {...makeStatementProps("proofStep", index)}
+                {...makeStatementProps("proofSteps", index)}
                 key={index}
               />)
         }
@@ -267,7 +267,7 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
           {data.goals.map((s: StatementType, index: number) =>
             <Statement
               proofNode={true}
-              {...makeStatementProps("goal", index)}
+              {...makeStatementProps("goals", index)}
               key={index}
             />)}
         </div>

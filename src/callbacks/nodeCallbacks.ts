@@ -3,9 +3,9 @@ import { Edge, Node } from "reactflow";
 import { ASTSMTLIB2, isBlockEnd, isBlockStart, isTerm } from "../parser/AST";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { NodeData } from "../types/Node";
-import { StatementKind, StatementType } from "../types/Statement";
-import { getResults, invalidateReasonForNode, listField, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { NodeData, ListField } from "../types/Node";
+import { StatementType } from "../types/Statement";
+import { getResults, invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks, StatementListCallbacks } from "./statementListCallbacks";
@@ -28,48 +28,48 @@ export const makeNodeCallbacks = (
   const shiftReasons = shiftReasonsForNode(setNode);
   const invalidateReason = invalidateReasonForNode(setNode);
 
-  const givens = makeStatementListCallbacks(setStatementsForNode(setNode, "given"));
-  const proofSteps = makeStatementListCallbacks(setStatementsForNode(setNode, "proofStep"));
-  const goals = makeStatementListCallbacks(setStatementsForNode(setNode, "goal"));
+  const givens = makeStatementListCallbacks(setStatementsForNode(setNode, "givens"));
+  const proofSteps = makeStatementListCallbacks(setStatementsForNode(setNode, "proofSteps"));
+  const goals = makeStatementListCallbacks(setStatementsForNode(setNode, "goals"));
   const statementLists = {
       givens,
       proofSteps: {
         add: (index?: number) => {
-          shiftReasons("proofStep", index, 1);
+          shiftReasons("proofSteps", index, 1);
           proofSteps.add(index);
         },
         update: (index: number, statementValue: string) => {
-          invalidateReason("proofStep", index);
+          invalidateReason("proofSteps", index);
           proofSteps.update(index, statementValue);
         },
         remove: (index: number) => {
-          invalidateReason("proofStep", index);
-          shiftReasons("proofStep", index, -1);
+          invalidateReason("proofSteps", index);
+          shiftReasons("proofSteps", index, -1);
           proofSteps.remove(index);
         },
         addReason: proofSteps.addReason,
         removeReason: (index: number) => {
-          invalidateReason("proofStep", index);
+          invalidateReason("proofSteps", index);
           proofSteps.removeReason(index);
         }
       },
       goals: {
         add: (index?: number) => {
-          shiftReasons("goal", index, 1);
+          shiftReasons("goals", index, 1);
           goals.add(index);
         },
         update: (index: number, statementValue: string) => {
-          invalidateReason("goal", index);
+          invalidateReason("goals", index);
           goals.update(index, statementValue);
         },
         remove: (index: number) => {
-          invalidateReason("goal", index);
-          shiftReasons("proofStep", index, -1);
+          invalidateReason("goals", index);
+          shiftReasons("proofSteps", index, -1);
           goals.remove(index);
         },
         addReason: goals.addReason,
         removeReason: (index: number) => {
-          invalidateReason("goal", index);
+          invalidateReason("goals", index);
           goals.removeReason(index);
         }
       }
@@ -77,7 +77,7 @@ export const makeNodeCallbacks = (
   return {
     delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     ...statementLists,
-    statementList: (k: StatementKind) => statementLists[listField(k) as keyof typeof statementLists],
+    statementList: (k: ListField<NodeData>) => statementLists[k],
     checkSyntax: async () => setNode(node => {
       setError(undefined);
       return {

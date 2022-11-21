@@ -1,4 +1,4 @@
-import { GeneralNodeData, InductionData } from "../../types/Node";
+import { GeneralNodeData, InductionData, ListField } from "../../types/Node";
 import { AddIcon } from '@chakra-ui/icons';
 import {
 	Box, Button, Heading, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent,
@@ -8,12 +8,12 @@ import { ReactElement, ReactNode, useCallback } from "react";
 import "./InductionNode.css"
 import { Handle, Position } from "reactflow";
 import Statement from "../Statement";
-import { StatementKind, StatementType } from "../../types/Statement";
+import { StatementType } from "../../types/Statement";
 import { deleteNodePopover } from "./GeneralNode";
 
 function InductionNode({ data: nodeData }: { data: InductionData }) : ReactElement {
 	const componentStyle = nodeData.type + "-node";
-  const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
+  const onChange = useCallback((evt: any, k: ListField<InductionData>, updated: number) => {
     nodeData.thisNode.statementList(k).update(updated, evt.target.value);
   }, [nodeData]);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -59,7 +59,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 				<Text>Type</Text>
 			</div>
 			<Statement
-				onChange={e => onChange(e, "type", 0)}
+				onChange={e => onChange(e, "types", 0)}
 				statement={nodeData.types[0]}
 				addAbove={() => {}}
 				addBelow={() => {}}
@@ -96,7 +96,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {nodeData.baseCases.map((s: StatementType, index: number) =>
           <Statement
-            onChange={e => onChange(e, "baseCase", index)}
+            onChange={e => onChange(e, "baseCases", index)}
             statement={s}
             index={index}
             proofNode={true}
@@ -121,7 +121,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {nodeData.inductiveCases.map((s: StatementType, index: number) =>
           <Statement
-            onChange={e => onChange(e, "inductiveCase", index)}
+            onChange={e => onChange(e, "inductiveCases", index)}
             statement={s}
             index={index}
             proofNode={true}
@@ -138,7 +138,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 				<Text>Inductive Hypothesis</Text>
 			</div>
 			<Statement
-				onChange={e => onChange(e, "inductiveHypothesis", 0)}
+				onChange={e => onChange(e, "inductiveHypotheses", 0)}
 				statement={nodeData.inductiveHypotheses[0]}
 				index={0}
 				addAbove={() => {}}
