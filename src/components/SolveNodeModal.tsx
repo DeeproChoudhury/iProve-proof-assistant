@@ -68,10 +68,10 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     console.log(smtConclusion);
     localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
       if (output === "unsat\n") {
-        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, z3Reason(reasonsIndexes));
+        node.thisNode[conclusionType].addReason(conclusionIndex, z3Reason(reasonsIndexes));
         setCheckFailed(false);
       } else {
-        node.thisNode.statementList(conclusionType).removeReason(conclusionIndex);
+        node.thisNode[conclusionType].removeReason(conclusionIndex);
         setCheckFailed(true);
       }
     })

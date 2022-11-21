@@ -9,35 +9,13 @@ import { ListField, NodeData } from '../../types/Node';
 import { StatementType } from '../../types/Statement';
 import { localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
-import Statement from '../Statement';
+import StatementList from '../StatementList';
 
 function TextUpdaterNode({ data }: { data: NodeData }) {
-  const onChange = useCallback((evt: any, k: ListField<NodeData>, updated: number) => {
-    data.thisNode.statementList(k).update(updated, evt.target.value);
-  }, [data]);
-
   const afterStatementEdit = useCallback(() => {
     data.thisNode.checkSyntax();
     data.thisNode.setWrappers();
   }, [data]);
-
-  const getStatementFromIndex = (k: ListField<NodeData>, index: number): StatementType => {
-    switch(k) {
-      case "givens": return data.givens[index];
-      case "proofSteps": return data.givens[index];
-      case "goals": return data.goals[index];
-    }
-  }
-
-  const makeStatementProps = useCallback((k: ListField<NodeData>, index: number) => ({
-    statement: getStatementFromIndex(k, index),
-    index: localIndexToAbsolute(data, k, index),
-    onChange: (e: any) => onChange(e, k, index),
-    addAbove: () => data.thisNode.statementList(k).add(index),
-    addBelow: () => data.thisNode.statementList(k).add(index + 1),
-    deleteStatement: () => data.thisNode.statementList(k).remove(index),
-    afterEdit: () => afterStatementEdit(),
-  }), [data, onChange, afterStatementEdit, getStatementFromIndex]);
 
   const [isCollapsed, setCollapsed] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -47,8 +25,6 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   const componentStyle = data.type + "-node";
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
-  const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
-  const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.checkSyntax() }}>Check Syntax</Button>;
   const checkSatButton: ReactNode = 
     <Button size='xs' 
@@ -91,23 +67,12 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
   if (data.type === "given") {
     return (
       <Box className={componentStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-            <Heading size='sm' >Given</Heading>
-            <IconButton
-                variant='outline'
-                aria-label='Add given'
-                size='xs'
-                onClick={() => { data.thisNode.givens.add() }}
-                icon={<AddIcon />}
-              />
-          </div>
-          {data.givens.map((s: StatementType, index: number) =>
-            <Statement 
-              {...makeStatementProps("givens", index)}
-              key={index}
-            />)}
-        </div>
+        <StatementList 
+          title="Givens"
+          statements={data.givens}
+          callbacks={data.thisNode.givens}
+          afterStatementEdit={afterStatementEdit}
+        />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
           {checkSyntaxButton}
@@ -137,24 +102,12 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
             Check failed. Check again?
           </Button>}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between'}}>
-            <Heading size='sm' >Goal</Heading>
-            <IconButton
-                variant='outline'
-                aria-label='Add given'
-                size='xs'
-                onClick={() => { data.thisNode.givens.add() }}
-                icon={<AddIcon />}
-                style={{justifySelf: 'flex-end'}}
-              />
-          </div>
-          {data.givens.map((s: StatementType, index: number) =>
-            <Statement 
-              {...makeStatementProps("givens", index)}
-              key={index}
-            />)}
-        </div>
+        <StatementList 
+          title="Goals"
+          statements={data.goals}
+          callbacks={data.thisNode.goals}
+          afterStatementEdit={afterStatementEdit}
+        />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           {deletePopover}
           {checkSyntaxButton}
@@ -186,106 +139,47 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
         </Button>}
       </div>
       
-      {/* Begin: Givens */}
-      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-        <Text>Givens</Text>
-        <IconButton
-          variant='outline'
-          aria-label='Add given'
-          size='xs'
-          onClick={() => { data.thisNode.givens.add() }}
-          icon={<AddIcon />}
-        />
-      </div>
-
-      {/* Begin: Given Statements */}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {data.givens.map((s: StatementType, index: number) =>
-          <Statement
-            proofNode={true}
-            {...makeStatementProps("givens", index)}
-            key={index}
-          />)}
-      </div>
-      {/* END: Given Statements */}
+      {/* BEGIN: Givens */}
+      <StatementList 
+        title="Givens"
+        statements={data.givens}
+        callbacks={data.thisNode.givens}
+        indexToDisplayedIndex={index => localIndexToAbsolute(data, "givens", index)}
+        afterStatementEdit={afterStatementEdit}
+      />
       {/* END: Givens */}
 
 
       {/* BEGIN: Proof */}
-      <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
-        <Text>Proof Steps</Text>
-        <IconButton
-          variant='outline'
-          aria-label='Add proof step'
-          size='xs'
-          onClick={() => { data.thisNode.proofSteps.add() }}
-          icon={<AddIcon />}
-        />
+      <StatementList 
+        title="Proof Steps"
+        statements={data.proofSteps}
+        callbacks={data.thisNode.proofSteps}
+        isCollapsed={isCollapsed}
+        indexToDisplayedIndex={index => localIndexToAbsolute(data, "proofSteps", index)}
+        afterStatementEdit={afterStatementEdit}
+      />
+      {/* END: Proof */}
+
+      {/* BEGIN: Goals */}
+      <StatementList 
+        title="Goals"
+        statements={data.goals}
+        callbacks={data.thisNode.goals}
+        indexToDisplayedIndex={index => localIndexToAbsolute(data, "goals", index)}
+        afterStatementEdit={afterStatementEdit}
+      />
+      {/* END: Goals */}
+
+      {/* BEGIN: Node End Buttons */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
+        {deletePopover}
+        {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
+        {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
+        {checkSyntaxButton}
+        {checkSolveReady ? checkSatButton : solveNotReadyPopover}
       </div>
-
-      {/* BEGIN: Proof Statements collapsed*/}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {componentStyle === "given-node" && givenTitle}
-        {componentStyle === "goal-node" && goalTitle}
-        {
-          isCollapsed ?
-            <>
-              <Statement
-                proofNode={true}
-                {...makeStatementProps("proofSteps", 0)}
-              />
-              <Text as='b'>. . .</Text>
-              <Statement
-                proofNode={true}
-                {...makeStatementProps("proofSteps", data.proofSteps.length - 1)}
-              />
-            </> :
-            data.proofSteps.map((s: StatementType, index: number) =>
-              <Statement
-                proofNode={true}
-                {...makeStatementProps("proofSteps", index)}
-                key={index}
-              />)
-        }
-        {/* END: Proof Statements collapsed*/}
-        {/* END: Proof */}
-
-        {/* BEGIN: Goals */}
-        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
-          <Text>Goals</Text>
-          <IconButton
-            variant='outline'
-            aria-label='Add goal'
-            size='xs'
-            onClick={() => { data.thisNode.goals.add() }}
-            icon={<AddIcon />}
-          />
-        </div>
-
-        {/* BEGIN: Proof Statements */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {data.goals.map((s: StatementType, index: number) =>
-            <Statement
-              proofNode={true}
-              {...makeStatementProps("goals", index)}
-              key={index}
-            />)}
-        </div>
-        {/* END: Proof Statements */}
-        {/* END: Goals */}
-
-        {/* BEGIN: Node End Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          {deletePopover}
-          {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
-          {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
-          {checkSyntaxButton}
-          {checkSolveReady ? checkSatButton : solveNotReadyPopover}
-        </div>
-        {/* END: Node End Buttons */}
-
-      </div>
-      {componentStyle !== "goal-node" && sourceHandle}
+      {/* END: Node End Buttons */}
     </Box>
   );
 }

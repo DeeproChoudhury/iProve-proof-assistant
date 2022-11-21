@@ -14,7 +14,7 @@ import { deleteNodePopover } from "./GeneralNode";
 function InductionNode({ data: nodeData }: { data: InductionData }) : ReactElement {
 	const componentStyle = nodeData.type + "-node";
   const onChange = useCallback((evt: any, k: ListField<InductionData>, updated: number) => {
-    nodeData.thisNode.statementList(k).update(updated, evt.target.value);
+    nodeData.thisNode[k].update(updated, evt.target.value);
   }, [nodeData]);
   const { isOpen, onOpen, onClose } = useDisclosure();
 

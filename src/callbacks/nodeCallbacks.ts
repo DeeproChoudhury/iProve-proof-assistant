@@ -77,7 +77,6 @@ export const makeNodeCallbacks = (
   return {
     delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     ...statementLists,
-    statementList: (k: ListField<NodeData>) => statementLists[k],
     checkSyntax: async () => setNode(node => {
       setError(undefined);
       return {

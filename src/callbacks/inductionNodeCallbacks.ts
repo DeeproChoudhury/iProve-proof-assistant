@@ -23,17 +23,13 @@ export const makeInductionNodeCallbacks = (
   nodeId: string
 ) => {
   const setNode = setNodeWithId(setInductionNodes, nodeId);
-  const statementLists = {
+  return {
+    delete: (): void => setInductionNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     types: makeStatementListCallbacks(setStatementsForNode(setNode, "types")),
     predicate: makeStatementListCallbacks(setStatementsForNode(setNode, "predicate")),
     baseCases: makeStatementListCallbacks(setStatementsForNode(setNode, "baseCases")),
     inductiveCases: makeStatementListCallbacks(setStatementsForNode(setNode, "inductiveCases")),
     inductiveHypotheses: makeStatementListCallbacks(setStatementsForNode(setNode, "inductiveHypotheses")),
-  };
-  return {
-    delete: (): void => setInductionNodes(nds => nds.filter(nd => nd.id !== nodeId)),
-    ...statementLists,
-    statementList: (k: ListField<InductionData>) => statementLists[k],
     checkSyntax: (): void => setNode(node => {
       setError(undefined);
 
