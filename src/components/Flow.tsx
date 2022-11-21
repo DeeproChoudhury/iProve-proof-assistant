@@ -25,6 +25,28 @@ import GeneralNode from './nodes/GeneralNode';
 import './nodes/TextUpdaterNode.css';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import TypeDeclarations from './TypeDeclarations';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverFooter,
+  PopoverArrow,
+  PopoverCloseButton,
+  PopoverAnchor,
+} from '@chakra-ui/react'
+import {
+  Table,
+  Thead,
+  Tbody,
+  Tfoot,
+  Tr,
+  Th,
+  Td,
+  TableCaption,
+  TableContainer,
+} from '@chakra-ui/react'
 
 const nodeTypes = { 
   generalNode: GeneralNode
@@ -116,6 +138,10 @@ function Flow() {
   const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
 
   const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
+
+  const addSymbol = (symbol: String): void => {
+    console.log(symbol);
+  };
 
   const addNode = useCallback((nodeType: NodeType) => {
     const count = nextId();
@@ -373,13 +399,60 @@ function Flow() {
           <Button onClick={() => {setDeclarationSidebarVisible(!declarationSidebarVisible)}}>
             Settings
           </Button>
+          <Popover>
+            <PopoverTrigger>
+              <Button>Symbols</Button>
+            </PopoverTrigger>
+            <PopoverContent style = {{width:"400px"}}>
+              <PopoverArrow />
+              <PopoverCloseButton />
+              <PopoverBody>
+              <TableContainer>
+                <Table variant='simple'>
+                  <Thead>
+                    <Tr>
+                      <Th>Logical Operator</Th>
+                      <Th>iProve Symbol</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    <Tr>
+                      <Td>and</Td>
+                      <Td>&</Td>
+                    </Tr>
+                    <Tr>
+                      <Td>or</Td>
+                      <Td></Td>
+                    </Tr>
+                    <Tr>
+                      <Td>iff</Td>
+                      <Td>{"<->"}</Td>
+                    </Tr>
+                    <Tr>
+                      <Td>implies</Td>
+                      <Td>{"->"}</Td>
+                    </Tr>
+                    <Tr>
+                      <Td>for all x</Td>
+                      <Td>FA x.</Td>
+                    </Tr>
+                    <Tr>
+                      <Td>exists x</Td>
+                      <Td>E x.</Td>
+                    </Tr>
+                  </Tbody>
+                </Table>
+              </TableContainer>
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
         </Stack>
       </div>
       {/* END : Header Buttons */}
 
 
       {/* START : Flow Graph */}
-      <div style={{display: 'flex', flexDirection: 'row'}}>
+      <div style={{display: 'flex', flexDirection: 'row', height:"100vh" }}>
         {/* START : Column for declarations */}
         <Grid style={{zIndex: 20 /* zIndex to move column to front*/}} 
           // templateRows='repeat(3, 1fr)'
