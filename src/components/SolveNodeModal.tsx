@@ -5,7 +5,7 @@ import {
 import { useState } from 'react';
 import { ASTSMTLIB2, isTerm } from '../parser/AST';
 import Z3Solver from '../solver/Solver';
-import { NodeData } from '../types/Node';
+import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { z3Reason } from '../util/reasons';
 import { statementToZ3 } from '../util/statements';
@@ -15,7 +15,7 @@ import './SolveNodeModal.css';
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
   onClose: () => void,
-  node: NodeData,
+  node: StatementNodeData,
 }
 
 const SolveNodeModal = (props: SolveNodeModalPropsType) => {

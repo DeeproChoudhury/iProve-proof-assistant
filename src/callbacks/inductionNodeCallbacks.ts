@@ -3,7 +3,7 @@ import { Edge, Node } from "reactflow";
 import { ASTSMTLIB2 } from "../parser/AST";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { InductionData, NodeData, ListField } from "../types/Node";
+import { InductionNodeData, InductionNodeType, ListField } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { getResults, setNodeWithId, setStatementsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
@@ -12,10 +12,10 @@ import { makeStatementListCallbacks } from "./statementListCallbacks";
 
 
 export const makeInductionNodeCallbacks = (
-  inductionNodesRef: MutableRefObject<Node<InductionData>[]>,
+  inductionNodesRef: MutableRefObject<InductionNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
   declarationsRef: MutableRefObject<StatementType[]>,
-  setInductionNodes: Setter<Node<InductionData>[]>,
+  setInductionNodes: Setter<InductionNodeType[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<ErrorLocation | undefined>,
   z3: Z3Solver.Z3Prover

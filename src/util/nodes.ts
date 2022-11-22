@@ -1,10 +1,10 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { AnyNodeData, NodeData, ListField } from "../types/Node";
+import { AnyNodeData, ListField, StatementNodeType, InductionNodeType, StatementNodeData } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
 
-export function localIndexToAbsolute(data: NodeData, k: ListField<NodeData>, index: number): number {
+export function localIndexToAbsolute(data: StatementNodeData, k: ListField<StatementNodeData>, index: number): number {
   switch (k) {
     case "givens": return index;
     case "proofSteps": return data.givens.length + index;
@@ -12,14 +12,14 @@ export function localIndexToAbsolute(data: NodeData, k: ListField<NodeData>, ind
   }
 }
 
-export function absoluteIndexToLocal(data: NodeData, index: number): [ListField<NodeData>, number] {
+export function absoluteIndexToLocal(data: StatementNodeData, index: number): [ListField<StatementNodeData>, number] {
   if (index < data.givens.length) return ["givens", index];
   else if (index < data.givens.length + data.proofSteps.length) return ["proofSteps", index - data.givens.length];
   else return ["goals", index - data.givens.length - data.proofSteps.length];
 }
 
-export const setStatementsForNode = <K extends string, T extends AnyNodeData & Record<K, StatementType[]>>(
-  setNode: Setter<Node<T>>,
+export const setStatementsForNode = <K extends string, D extends Record<K, StatementType[]>, T extends Node<D>>(
+  setNode: Setter<T>,
   k: K
 ) => (
   action: SetStateAction<StatementType[]>
@@ -35,10 +35,10 @@ export const setStatementsForNode = <K extends string, T extends AnyNodeData & R
   });
 };
 
-export const setNodeWithId = <T extends AnyNodeData>(
-  setNodes: Setter<Node<T>[]>,
+export const setNodeWithId = <T extends StatementNodeType | InductionNodeType>(
+  setNodes: Setter<T[]>,
   nodeId: string
-) => (action: SetStateAction<Node<T>>) => {
+) => (action: SetStateAction<T>) => {
   setNodes(nds => nds.map((nd) => nd.id === nodeId ? applyAction(action, nd) : nd));
 };
 
@@ -48,17 +48,17 @@ export const collided = (node1: Node, node2: Node): boolean => {
   return Math.sqrt(a * a + b * b) < 100;
 }
 
-export const getResults = (node: Node<NodeData>): StatementType[] => {
-  switch (node.data.type) {
-    case "given": return node.data.givens;
-    case "statement": return node.data.goals;
-    case "goal": return [];
-    case "induction": return [];
+export const getResults = (node: StatementNodeType | InductionNodeType): StatementType[] => {
+  switch (node.type) {
+    case "givenNode": return node.data.givens;
+    case "proofNode": return node.data.goals;
+    case "goalNode": return [];
+    case "inductionNode": return [];
   }
 }
 
 export const shiftReasonsForNode = (
-  setNode: Setter<Node<NodeData>>
+  setNode: Setter<StatementNodeType>
 ) => (
   k: "proofSteps" | "goals",
   index: number | undefined,
@@ -99,7 +99,7 @@ export const shiftReasonsForNode = (
 };
 
 export const invalidateReasonForNode = (
-  setNode: Setter<Node<NodeData>>
+  setNode: Setter<StatementNodeType>
 ) => (
   k: "proofSteps" | "goals",
   index: number

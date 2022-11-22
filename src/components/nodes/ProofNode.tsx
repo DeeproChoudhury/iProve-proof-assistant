@@ -1,28 +1,26 @@
-import { AddIcon } from '@chakra-ui/icons';
 import {
-  Box, Button, Heading, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent,
-  PopoverHeader, PopoverTrigger, Text, useDisclosure
+  Box, Button, Popover, PopoverArrow, PopoverCloseButton, PopoverContent,
+  PopoverHeader, PopoverTrigger, useDisclosure
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useState } from 'react';
-import { Handle, Position } from 'reactflow';
-import { ListField, NodeData } from '../../types/Node';
+import { Handle, NodeProps, Position } from 'reactflow';
+import { StatementNodeData } from '../../types/Node';
 import { StatementType } from '../../types/Statement';
 import { localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
+import { DeleteNodePopover } from './GeneralNode';
 
-function TextUpdaterNode({ data }: { data: NodeData }) {
+function ProofNode({ data }: NodeProps<StatementNodeData>) {
   const afterStatementEdit = useCallback(() => {
     data.thisNode.checkSyntax();
     data.thisNode.setWrappers();
   }, [data]);
 
   const [isCollapsed, setCollapsed] = useState(false);
-  const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isSolveNotReadyOpen, onOpen: onSolveNotReadyOpen, onClose: onSolveNotReadyClose } = useDisclosure();
   const { isOpen: isSolveModalOpen, onOpen: onSolveModalOpen, onClose: onSolveModalClose } = useDisclosure();
 
-  const componentStyle = data.type + "-node";
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.checkSyntax() }}>Check Syntax</Button>;
@@ -35,22 +33,6 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       Solve
     </Button>;
   
-  const deletePopover =
-    <Popover isOpen={isOpen} onClose={onClose}>
-      <PopoverTrigger>
-        <Button size='xs' colorScheme='blackAlpha' onClick={onOpen}>Delete</Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <PopoverArrow />
-        <PopoverCloseButton />
-        <PopoverHeader>Are you sure you want to delete?</PopoverHeader>
-        <PopoverBody style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.delete() }}>Yes, I'm sure!</Button>
-          <Button size='xs' colorScheme='blackAlpha' onClick={onClose}>No, go back.</Button>
-        </PopoverBody>
-      </PopoverContent>
-    </Popover>
-    
   const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarationsRef.current).every((s: StatementType) => s.parsed !== undefined);
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
@@ -64,62 +46,9 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       </PopoverContent>
     </Popover>
 
-  if (data.type === "given") {
-    return (
-      <Box className={componentStyle}>
-        <StatementList 
-          title="Givens"
-          statements={data.givens}
-          callbacks={data.thisNode.givens}
-          afterStatementEdit={afterStatementEdit}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          {deletePopover}
-          {checkSyntaxButton}
-          {checkSatButton}
-        </div>
-        {sourceHandle}
-      </Box>
-    )
-  }
-
-
-  if (data.type === "goal") {
-    return (
-      <Box className={componentStyle}>
-        {targetHandle}
-        <div style={{display: 'flex', justifyContent: 'center'}}>
-        {data.correctImplication === undefined &&
-        <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
-          Check incoming implications
-        </Button>}
-        {data.correctImplication === true &&
-          <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
-            Check passed. Check again?
-          </Button>}
-        {data.correctImplication === false &&
-          <Button colorScheme='red' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
-            Check failed. Check again?
-          </Button>}
-        </div>
-        <StatementList 
-          title="Goals"
-          statements={data.goals}
-          callbacks={data.thisNode.goals}
-          afterStatementEdit={afterStatementEdit}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          {deletePopover}
-          {checkSyntaxButton}
-          {checkSatButton}
-        </div>
-      </Box>
-    )
-  }
-
   return (
-    <Box className={componentStyle}>
-      {componentStyle !== "given-node" && targetHandle}
+    <Box className="proof-node">
+      {targetHandle}
       <SolveNodeModal 
         isOpen={isSolveModalOpen} 
         onClose={onSolveModalClose} 
@@ -129,11 +58,11 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
       <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
         Check incoming implications
       </Button>}
-      {data.correctImplication === true &&
+      {data.correctImplication === "valid" &&
         <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
           Check passed. Check again?
         </Button>}
-      {data.correctImplication === false &&
+      {data.correctImplication === "invalid" &&
         <Button colorScheme='red' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
           Check failed. Check again?
         </Button>}
@@ -173,15 +102,16 @@ function TextUpdaterNode({ data }: { data: NodeData }) {
 
       {/* BEGIN: Node End Buttons */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-        {deletePopover}
+        <DeleteNodePopover deleteNode={data.thisNode.delete} />
         {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
         {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
         {checkSyntaxButton}
         {checkSolveReady ? checkSatButton : solveNotReadyPopover}
       </div>
       {/* END: Node End Buttons */}
+      {sourceHandle}
     </Box>
   );
 }
 
-export default TextUpdaterNode;
+export default ProofNode;
