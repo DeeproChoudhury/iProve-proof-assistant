@@ -1,4 +1,4 @@
-import { Reason } from "../types/Reason";
+import { CheckStatus, Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { Setter } from "../util/setters";
 
@@ -32,6 +32,7 @@ export const makeStatementListCallbacks = (
     addReason: (index: number, reason: Reason) => {
       setStatements(statements => {
         const result = [...statements];
+        console.log(result, index);
         result[index].reason = reason;
         return result;
       });
@@ -40,6 +41,18 @@ export const makeStatementListCallbacks = (
       setStatements(statements => {
         const result = [...statements];
         result[index].reason = undefined;
+        return result;
+      });
+    },
+    updateReasonStatus: (index: number, status: CheckStatus) => {
+      setStatements(statements => {
+        const result = [...statements];
+        const reason = result[index].reason
+        if (!reason) return statements;
+        result[index].reason = {
+          ...reason,
+          status
+        }
         return result;
       });
     }
