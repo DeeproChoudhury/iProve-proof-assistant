@@ -78,8 +78,8 @@ function Flow() {
   }, [count]);
 
   const checkProofValid = (ns: Node[], es: Edge[]): void => {
-    const givens = ns.filter( node => node.data.type === "given");
-    const goals = ns.filter( node => node.data.type === "goal");
+    const givens = ns.filter( node => node.type === "givenNode");
+    const goals = ns.filter( node => node.type === "goalNode");
     setProofValid(checkValid(ns, goals, givens, es, []));
   }
   
