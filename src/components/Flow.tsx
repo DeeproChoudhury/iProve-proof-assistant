@@ -279,8 +279,11 @@ function Flow() {
         <ModalHeader>Export Proof</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ModalExport data={JSON.stringify(nodes.map(n => 
-                {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
+          <ModalExport data={
+            JSON.stringify(
+              nodes.map(n => 
+                {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}
+              )).concat(JSON.stringify({dec: declarations.map(p => p.value)})).concat(JSON.stringify({types:typeDeclarations.map(p => p.value)}))
           }/>
         </ModalBody>
         </ModalContent>
