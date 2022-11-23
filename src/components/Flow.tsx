@@ -226,6 +226,23 @@ function Flow() {
         type: 'generalNode',
       }
     });
+    if (jsonNodes.length > 0) {
+      const declarationsData = [jsonNodes[0].dec].map(d => {
+        return {
+          value : d,
+          wrappers: []
+        }
+      });
+      const typeDeclarations = [jsonNodes[0]].map(node => {
+        return {
+          value : node.types,
+          wrappers: []
+        }
+      });;
+      setDeclarations(declarationsData);
+      setTypeDeclarations(typeDeclarations);
+    }
+    
     setNodes(nodeData);
   }, [nextId, makeThisNode]);
 
@@ -285,8 +302,9 @@ function Flow() {
               nodes.map(n => 
                 {return {dec: [""],types:[""],type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}
               ).push({dec: declarations.map(p => p.value), types:typeDeclarations.map(p => p.value), type:"statement", givens: [""], proofs:[""], goals: [""]}))
+            */
 
-            doesn't work as expected*/
+           /* above doesn't work as expected*/
             
             JSON.stringify(
               nodes.map(n => 
