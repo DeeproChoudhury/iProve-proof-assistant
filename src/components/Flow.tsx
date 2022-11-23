@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Box, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -7,35 +7,39 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { makeDeclarationCallbacks } from '../callbacks/declarationsCallbacks';
 import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
+import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../solver/Solver';
 import { ErrorLocation } from '../types/ErrorLocation';
-import { GeneralNodeData, InductionData, NodeData, NodeType } from '../types/Node';
+import { InductionNodeType, NodeType, StatementNodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
 import ImplicationEdge from './edges/ImplicationEdge';
 import InvalidEdge from './edges/InvalidEdge';
 import './Flow.css';
-import InductionNode from './nodes/InductionNode';
 import ModalExport from './ModalExport';
 import ModalImport from './ModalImport';
-import GeneralNode from './nodes/GeneralNode';
-// import TextUpdaterNode from './TextUpdaterNode';
-import './nodes/TextUpdaterNode.css';
-import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
+import GivenNode from './nodes/GivenNode';
+import GoalNode from './nodes/GoalNode';
+import InductionNode from './nodes/InductionNode';
+import ProofNode from './nodes/ProofNode';
+import './nodes/ProofNode.css';
 import TypeDeclarations from './TypeDeclarations';
 
 const nodeTypes = { 
-  generalNode: GeneralNode
+  proofNode: ProofNode,
+  givenNode: GivenNode,
+  goalNode: GoalNode,
+  inductionNode: InductionNode
 };
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge};
 
 function Flow() {
   const [proofValid, setProofValid] = useState(false);
   
-  const [nodes, setNodes] = useState<Node<NodeData>[]>([]);
-  const [inductionNodes, setInductionNodes] = useState<Node<InductionData>[]>([]);
+  const [nodes, setNodes] = useState<StatementNodeType[]>([]);
+  const [inductionNodes, setInductionNodes] = useState<InductionNodeType[]>([]);
   
 
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -48,7 +52,7 @@ function Flow() {
   const [typeDeclarations, setTypeDeclarations] = useState<StatementType[]>([]);
 
   const [typeSidebarVisible, setTypeSidebarVisible] = useState(true);
-  const localZ3Solver = new Z3Solver.Z3Prover("");
+  const localZ3Solver = useMemo(() => new Z3Solver.Z3Prover(""), []);
 
   /**
    * Modals
@@ -74,8 +78,8 @@ function Flow() {
   }, [count]);
 
   const checkProofValid = (ns: Node[], es: Edge[]): void => {
-    const givens = ns.filter( node => node.data.type === "given");
-    const goals = ns.filter( node => node.data.type === "goal");
+    const givens = ns.filter( node => node.type === "givenNode");
+    const goals = ns.filter( node => node.type === "goalNode");
     setProofValid(checkValid(ns, goals, givens, es, []));
   }
   
@@ -109,24 +113,22 @@ function Flow() {
     }
   }
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), []);
-  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), []);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
+  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
   const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
 
-  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
+  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, inductionNodes, nextId, makeThisNode]);
 
   const addNode = useCallback((nodeType: NodeType) => {
     const count = nextId();
     
-    if (nodeType === "induction") {
+    if (nodeType === "inductionNode") {
       setInductionNodes(nds => [...nds, {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
-          id: count,
-          type: nodeType,
           types: [{value: '', wrappers: []}],
           predicate: [{value: '', wrappers: []}],
           inductiveCases: [],
@@ -137,7 +139,7 @@ function Flow() {
           thisNode: makeThisInductionNode(`${count}`)
         },
         position: { x: 300, y: 0 },
-        type: 'generalNode',
+        type: 'inductionNode',
       }]);
     }
     else {
@@ -145,30 +147,26 @@ function Flow() {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
-          id: count,
-          type: nodeType,
-          givens: nodeType === 'statement' ? [] : [{ value: '', wrappers: []}],
+          givens: nodeType === 'proofNode' ? [] : [{ value: '', wrappers: []}],
           proofSteps: [],
-          goals: nodeType === 'statement' ? [{ value: '', wrappers: []}, ] : [], 
+          goals: nodeType === 'proofNode' ? [{ value: '', wrappers: []}, ] : [], 
           declarationsRef,
           thisNode: makeThisNode(`${count}`)
         },
         position: { x: 300, y: 0 },
-        type: 'generalNode',
+        type: nodeType,
       }]);
     }
     
-  }, [nextId, makeThisNode]);
+  }, [nextId, makeThisNode, makeThisInductionNode]);
 
   
-  const addNodeData = useCallback((nodeType: NodeType, givens?: string[], proofs?: string[], goals?: string[]) => {
+  const addNodeData = useCallback((nodeType: Exclude<NodeType, "inductionNode">, givens?: string[], proofs?: string[], goals?: string[]) => {
     const count = nextId();
     setNodes(nds => [...nds, {
       id: `${count}`,
       data: {
         label: `Node ${count}`,
-        id: count,
-        type: nodeType,
         givens: givens === undefined ? [] : givens.map((e) => { return { value: e, wrappers: []} }),
         proofSteps: proofs === undefined ? [] : proofs.map((e) => { return { value: e, wrappers: [] } }),
         goals: goals === undefined ? [] : goals.map((e) => { return { value: e, wrappers: [] } }),
@@ -176,7 +174,7 @@ function Flow() {
         thisNode: makeThisNode(`${count}`)
       },
       position: { x: 300, y: 0 },
-      type: 'generalNode',
+      type: nodeType,
     }]);
   }, [nextId, makeThisNode]);
 
@@ -188,8 +186,6 @@ function Flow() {
         id: `${id}`,
         data: {
           label: `Node ${id}`,
-          id: id,
-          type: node.type,
           givens: node.givens === undefined ? [] : node.givens.map((e: string) => { return { value: e, wrappers: [] } }),
           proofSteps: node.proofs === undefined ? [] : node.proofs.map((e: string) => { return { value: e, wrappers: [] } }),
           goals: node.goals === undefined ? [] : node.goals.map((e: string) => { return { value: e, wrappers: [] } }),
@@ -197,7 +193,7 @@ function Flow() {
           thisNode: makeThisNode(`${id}`)
         },
         position: { x: 300, y: 0 },
-        type: 'generalNode',
+        type: node.type,
       }
     });
     setNodes(nodeData);
@@ -212,7 +208,7 @@ function Flow() {
     }
     let correctEdges = true;
     for await (const node of nodes) {
-      if (node.data.type !== "given") {
+      if (node.type !== "givenNode") {
         const output = await node.data.thisNode.checkEdges();
         correctEdges = correctEdges && output;
       }
@@ -254,7 +250,7 @@ function Flow() {
         <ModalCloseButton />
         <ModalBody>
           <ModalExport data={JSON.stringify(nodes.map(n => 
-                {return {type: n.data.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
+                {return {type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
           }/>
         </ModalBody>
         </ModalContent>
@@ -359,10 +355,10 @@ function Flow() {
       {/* START : Header Buttons */}
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('given')}>Add Given</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('goal')}>Add Goal</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('statement')}>Add Proof Node</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('induction')}>Add Induction Node</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('givenNode')}>Add Given</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('goalNode')}>Add Goal</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>Add Proof Node</Button>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>Add Induction Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => {setImportModalShow(true)}}>Import Proofs</Button>
           <Button onClick={() => {checkProofValid(nodes, edges); setExportModalShow(true)}}>
             Export proof
@@ -411,7 +407,7 @@ function Flow() {
 
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
-            nodes={(nodes as Node<GeneralNodeData>[]).concat(inductionNodes as Node<GeneralNodeData>[])}
+            nodes={(nodes as Node[]).concat(inductionNodes as Node[])}
             nodeTypes={nodeTypes}
             edges={edges}
             edgeTypes={edgeTypes}

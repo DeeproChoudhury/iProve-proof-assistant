@@ -1,27 +1,23 @@
-import { GeneralNodeData, InductionData } from "../../types/Node";
+import { InductionNodeData, ListField } from "../../types/Node";
 import { AddIcon } from '@chakra-ui/icons';
 import {
-	Box, Button, Heading, IconButton, Popover, PopoverArrow, PopoverBody, PopoverCloseButton, PopoverContent,
-	PopoverHeader, PopoverTrigger, Text, useDisclosure
+	Box, Button, Heading, IconButton, Text
 } from '@chakra-ui/react';
 import { ReactElement, ReactNode, useCallback } from "react";
 import "./InductionNode.css"
-import { Handle, Position } from "reactflow";
+import { Handle, NodeProps, Position } from "reactflow";
 import Statement from "../Statement";
-import { StatementKind, StatementType } from "../../types/Statement";
-import { deleteNodePopover } from "./GeneralNode";
+import { StatementType } from "../../types/Statement";
+import { DeleteNodePopover } from "./GeneralNode";
 
-function InductionNode({ data: nodeData }: { data: InductionData }) : ReactElement {
-	const componentStyle = nodeData.type + "-node";
-  const onChange = useCallback((evt: any, k: StatementKind, updated: number) => {
-    nodeData.thisNode.statementList(k).update(updated, evt.target.value);
+function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : ReactElement {
+	const componentStyle = "induction-node";
+  const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
+    nodeData.thisNode[k].update(updated, evt.target.value);
   }, [nodeData]);
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
-  const givenTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Given</Heading>
-  const goalTitle: ReactNode = <Heading textAlign={['center']} as='h6' size='xs'>Goal</Heading>
   const checkSatButton: ReactNode = 
     <Button size='xs'
       colorScheme='blackAlpha' 
@@ -35,14 +31,11 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
       }}>
       Solve
     </Button>;
-  // Delete Node button popover
-	const deletePopover =
-    deleteNodePopover(isOpen, onClose, onOpen, nodeData)
 	
 	const NodeBottomButtons = () => {
 		return (
 			<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-				{deletePopover}
+        <DeleteNodePopover deleteNode={nodeData.thisNode.delete} />
 				{checkSatButton}
 			</div>
 		);
@@ -52,14 +45,14 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
  * INDUCTION NODE
  */
 	return (
-		<Box className={componentStyle} key={`induction-node-${nodeData.id}`}>
-
+		<Box className={componentStyle} key={`induction-node-${id}`}>
+      {targetHandle}
 			{/* BEGIN : Type */}
 			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
 				<Text>Type</Text>
 			</div>
 			<Statement
-				onChange={e => onChange(e, "type", 0)}
+				onChange={e => onChange(e, "types", 0)}
 				statement={nodeData.types[0]}
 				addAbove={() => {}}
 				addBelow={() => {}}
@@ -96,7 +89,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {nodeData.baseCases.map((s: StatementType, index: number) =>
           <Statement
-            onChange={e => onChange(e, "baseCase", index)}
+            onChange={e => onChange(e, "baseCases", index)}
             statement={s}
             index={index}
             proofNode={true}
@@ -121,7 +114,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {nodeData.inductiveCases.map((s: StatementType, index: number) =>
           <Statement
-            onChange={e => onChange(e, "inductiveCase", index)}
+            onChange={e => onChange(e, "inductiveCases", index)}
             statement={s}
             index={index}
             proofNode={true}
@@ -138,7 +131,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 				<Text>Inductive Hypothesis</Text>
 			</div>
 			<Statement
-				onChange={e => onChange(e, "inductiveHypothesis", 0)}
+				onChange={e => onChange(e, "inductiveHypotheses", 0)}
 				statement={nodeData.inductiveHypotheses[0]}
 				index={0}
 				addAbove={() => {}}
@@ -150,7 +143,7 @@ function InductionNode({ data: nodeData }: { data: InductionData }) : ReactEleme
 			{/* START : Node Bottom Buttons */}
 			<NodeBottomButtons />
 			{/* END : Node Bottom Buttons */}
-
+      {sourceHandle}
 		</Box>
 
 	)

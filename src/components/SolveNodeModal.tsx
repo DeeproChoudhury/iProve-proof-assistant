@@ -5,7 +5,7 @@ import {
 import { useState } from 'react';
 import { ASTSMTLIB2, isTerm } from '../parser/AST';
 import Z3Solver from '../solver/Solver';
-import { NodeData } from '../types/Node';
+import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { z3Reason } from '../util/reasons';
 import { statementToZ3 } from '../util/statements';
@@ -15,7 +15,7 @@ import './SolveNodeModal.css';
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
   onClose: () => void,
-  node: NodeData,
+  node: StatementNodeData,
 }
 
 const SolveNodeModal = (props: SolveNodeModalPropsType) => {
@@ -46,11 +46,11 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const solveZ3 = () => {
     const reasonsIndexes = node.givens.concat(node.proofSteps, node.goals).map((g, i) => tags[i] === '1' ? i : -1).filter((i) => i >= 0)
     const reasons = node.givens.concat(node.proofSteps, node.goals).filter((g, i) => tags[i] === '1')
-    const conclusionType = node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goal" : "proofStep";
-    const conclusionIndex = conclusionType === "proofStep" ?
+    const conclusionType = node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goals" : "proofSteps";
+    const conclusionIndex = conclusionType === "proofSteps" ?
       node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') :
       node.goals.findIndex((s, i) => tags[node.givens.length + node.proofSteps.length + i] === '2');
-    const conclusion = conclusionType === "proofStep" ? node.proofSteps[conclusionIndex] : node.goals[conclusionIndex];
+    const conclusion = conclusionType === "proofSteps" ? node.proofSteps[conclusionIndex] : node.goals[conclusionIndex];
     if (reasons.some(r => !r.parsed) || !conclusion.parsed) {
       setCheckFailed(true);
       return;
@@ -68,10 +68,10 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     console.log(smtConclusion);
     localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
       if (output === "unsat\n") {
-        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, z3Reason(reasonsIndexes));
+        node.thisNode[conclusionType].addReason(conclusionIndex, z3Reason(reasonsIndexes));
         setCheckFailed(false);
       } else {
-        node.thisNode.statementList(conclusionType).removeReason(conclusionIndex);
+        node.thisNode[conclusionType].removeReason(conclusionIndex);
         setCheckFailed(true);
       }
     })
