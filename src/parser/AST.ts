@@ -1,6 +1,8 @@
+import { As } from "@chakra-ui/react"
 import { render } from "@testing-library/react"
+import { FOCUSABLE_SELECTOR } from "@testing-library/user-event/dist/utils"
 
-export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | Guard | TypeConstructor
+export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | TypeConstructor | Guard
 
 export type TypeDef = {
     kind: "TypeDef",
@@ -312,7 +314,13 @@ export class LogicInterface {
         this.givens = [];
 
         this.rendered_goal = undefined;
-        this.rendered_givens;
+        this.rendered_givens = [];
+
+        this.globals = new Map();
+        this.rendered_globals = new Map();
+        this.rendered_tuples = new Map();
+        this.functions = new Map();
+        this.insID = 0;
     }
 
     renderGlobal(id: number): boolean {
@@ -427,6 +435,10 @@ export class LogicInterface {
         let A = this.functions.get(ident);
         if (!A || !A.decl) return undefined;
 
+        if (!A.defs.size) {
+            return this.renderNode(A.decl);
+        }
+
         let params: string[] = []
         let nparams = A.decl.type.argTypes.length;
 
@@ -526,7 +538,10 @@ export class LogicInterface {
             case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${this.renderNode(a.type)})`;
             case "VariableDeclaration": return `(declare-const ${this.renderNode(a.symbol)} ${a.type ? `${this.renderNode(a.type)}` : "Int"})`;
             case "Variable": return a.ident;
-            case "FunctionApplication": return `(${fnSMT(a.fn)} ${a.params.map(this.renderNode, this).join(" ")})`;
+            case "FunctionApplication":
+                return (a.params.length)
+                    ? `(${fnSMT(a.fn)} ${a.params.map(this.renderNode, this).join(" ")})`
+                    : fnSMT(a.fn)
             case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(this.renderNode, this).join(" ")}) ${this.renderNode(a.term)})`;
             case "EquationTerm": return `${this.renderNode(a.lhs)} ::= ${this.renderNode(a.rhs)}`;
             case "ParenTerm": return this.renderNode(a.term);
@@ -539,7 +554,9 @@ export class LogicInterface {
             case "TypeConstructor": {
                 let params = a.params.map(
                     (e, i) => (`(${a.selectors[i]} ${this.renderNode(e)})`));
-                return `(${a.ident} ${params.join(" ")})`
+                return (params.length)
+                    ? `(${a.ident} ${params.join(" ")})`
+                    : a.ident
             }
 
             case "ParamType":
@@ -604,7 +621,7 @@ export class LogicInterface {
 
         // GLOBALS
         for (let [k,v] of this.rendered_globals)
-            res += `(assert ${v})\n`
+            res += v.startsWith("(declare-") ? `${v}\n` : `(assert ${v})\n`
 
         // GIVENS
         for (let v of this.givens) {
@@ -624,7 +641,285 @@ export class LogicInterface {
 
         return res;
     }
+
+    //rec_on(t: TypeDef): (x: Variable)
+}
+
+// Given a function f: Term -> Term, returns a function whic, given an AST A,
+// returns the AST corresponding to a recursive application of f to the terms
+// of A.
+export function map_terms(f: (x: Term) => Term): (A: Term) => Term {
+    var R: (A: ASTNode) => ASTNode;
+    var RT: (A: Term) => Term;
+    var RG: (A: Guard) => Guard;
+    var RGT: (A: Guard | Term) => Guard | Term;
+    var RT_ = (t: Term | undefined): Term | undefined =>
+        (t ? RT(t) : undefined);
+    var RG_ = (t: Guard | undefined): Guard | undefined =>
+        (t ? RG(t) : undefined);
+
+    
+    R = (A: ASTNode): ASTNode => {
+        switch (A.kind) {
+            // ARE TERMS AND CAN CONTAIN THEM
+            case "FunctionApplication":
+            case "QuantifierApplication":
+            case "EquationTerm":
+            case "ParenTerm":
+            case "ArrayLiteral":
+            case "Variable":
+                return RT(A)
+
+            // NOT A TERM, BUT CAN CONTAIN THEM
+            case "Guard":
+                return RG(A);
+            case "Assumption":
+                return {
+                    kind: "Assumption",
+                    arg: RT(A.arg)
+                }
+            case "FunctionDefinition":
+                return {
+                    kind: "FunctionDefinition",
+                    ident: A.ident,
+                    params: A.params,
+                    def: RGT(A.def)
+                }
+
+            // NEITHER TERMS NOR CAN CONTAIN THEM
+            case "PrimitiveType":
+            case "FunctionType":
+            case "VariableBinding":
+            case "TypeExt": 
+            case "FunctionDeclaration":
+            case "VariableDeclaration":
+            case "TypeDef":
+            case "TypeConstructor":
+            case "ParamType":
+            case "ListType":
+            case "TupleType":
+            case "BeginScope":
+            case "EndScope":
+            case "Skolemize":
+            case "SimpleParam":
+            case "ConsParam":
+            case "ConstructedType":
+            case "EmptyList":
+            case "TuplePattern":
+                return A;
+            
+        }
+    }
+
+    RG = (A: Guard): Guard => {
+        return {
+            kind: "Guard",
+            cond: RT(A.cond),
+            res: RT(A.res),
+            next: RG_(A.next)
+        }
+    }
+
+    RGT = (A: Guard | Term): Guard | Term => {
+        switch (A.kind) {
+            case "FunctionApplication":
+            case "QuantifierApplication":
+            case "EquationTerm":
+            case "ParenTerm":
+            case "ArrayLiteral":
+            case "Variable":
+                return RT(A)
+
+            case "Guard":
+                return RG(A);
+        }
+    }
+
+    RT = (A: Term): Term => {
+        switch (A.kind) {
+            // ARE TERMS AND CAN CONTAIN THEM
+            case "FunctionApplication":
+                // I HATE TYPESCRIPT I HATE TYPESCRIPT
+                switch (A.appType) {
+                    case "PrefixFunc":
+                    case "PrefixOp":
+                        return f({
+                            kind: "FunctionApplication",
+                            appType: A.appType,
+                            fn: A.fn,
+                            params: A.params.map(RT)
+                        });
+                    
+                    case "UnaryFunc":
+                    case "UnaryOp":
+                        return f({
+                            kind: "FunctionApplication",
+                            appType: A.appType,
+                            fn: A.fn,
+                            params: [RT(A.params[0])]
+                        });
+                    
+                    case "InfixFunc":
+                    case "InfixOp":
+                        return f({
+                            kind: "FunctionApplication",
+                            appType: A.appType,
+                            fn: A.fn,
+                            params: [RT(A.params[0]), RT(A.params[1])]
+                        });
+
+                    case "ArrayElem":
+                        return f({
+                            kind: "FunctionApplication",
+                            appType: A.appType,
+                            fn: A.fn,
+                            params: [RT(A.params[0]), RT(A.params[1])]
+                        });
+                    
+                    case "ArraySlice":
+                        return f({
+                            kind: "FunctionApplication",
+                            appType: A.appType,
+                            fn: A.fn,
+                            params: [RT(A.params[0]), RT_(A.params[1]), RT_(A.params[2])]
+                        });
+                }
+            case "QuantifierApplication":
+                return f({
+                    kind: "QuantifierApplication",
+                    term: RT(A.term),
+                    vars: A.vars,
+                    quantifier: A.quantifier
+                })
+            case "EquationTerm":
+                return f({
+                    kind: "EquationTerm",
+                    lhs: RT(A.lhs),
+                    rhs: RT(A.rhs)
+                })
+            case "ParenTerm":
+                return f({
+                    kind: "ParenTerm",
+                    term: RT(A.term)
+                })
+            case "ArrayLiteral":
+                return f({
+                    kind: "ArrayLiteral",
+                    elems: A.elems.map(RT)
+                })
+            
+            // CANNOT CONTAIN TERMS, BUT IS ONE
+            case "Variable":
+                return f(A)
+        }
+    }
+
+    return RT;
+}
+
+// NOTE: For obvious reasons, this will not rewrite in itself. 
+export function strict_rw(goal: Term, L: Term, R: Term): Term {
+    let f = (x: Term): Term => {
+        let term_equal: Boolean = JSON.stringify(L) == JSON.stringify(x);
+        return term_equal ? R : x
+    }
+    return map_terms(f)(goal);
+}
+
+class IdentState {
+    cid: number = 0;
+    get(): number {
+        return this.cid++;
+    }
+}
+
+function construct_type(con: TypeConstructor, params: Variable[]): PrefixApplication {
+    return {
+        kind: "FunctionApplication",
+        appType: "PrefixFunc",
+        fn: con.ident,
+        params: params
+    }
+}
+
+function mk_var(ident: string): Variable {
+    return {
+        kind: "Variable",
+        ident: ident
+    }
+}
+
+function range_over(t: Term, vars: [Variable, Type][]): Term {
+    return vars.length ?
+    {
+        kind: "QuantifierApplication",
+        term: parenthesize(t),
+        vars: vars.map((v: [Variable, Type]) => ({
+            kind: "VariableBinding",
+            symbol: v[0],
+            type: v[1]
+        })),
+        quantifier: "A"
+    }
+    : t
+}
+
+function imply(L: Term | undefined, R: Term): Term {
+    if (!L) return R;
+    return {
+        kind: "FunctionApplication",
+        appType: "InfixOp",
+        fn: "->",
+        params: [parenthesize(L), parenthesize(R)]
+    }
+}
+function parenthesize(t: Term): ParenTerm {
+    return {
+        kind: "ParenTerm",
+        term: t
+    }
+}
+
+export function rec_on(T: Type, type_def: TypeDef): (ident_: string, motive: Term) => Term {
+    return (ident_: string, motive: Term): Term => {
+        let ident: Variable = mk_var(ident_);
+
+        let cases: Term[] = type_def.cases.map(con => {
+            let vars: [Variable, Type][] = con.params.map(
+                (v, i) => [mk_var(`InductiveParameter${i}`), v]
+            );
+            let subbed = strict_rw(motive, ident, construct_type(
+                con,
+                vars.map(x => x[0])
+            ));
+
+            let precons: Term[] = vars
+                .filter(pt => pt[1] == T)
+                .map(pt => strict_rw(motive, ident, pt[0]))
+            let final_case: Term = imply(LI.conjunct(precons), subbed)
+            
+            return range_over(final_case, vars)
+        })
+
+        return imply(
+            LI.conjunct(cases),
+            range_over(motive, [[ident, T]]));
+        }
+}
+
+export function Z3Unifies(A: Term, B: Term): Boolean {
+    LI.newProof();
+    LI.setGoal({
+        kind: "FunctionApplication",
+        appType: "InfixOp",
+        fn: "<->",
+        params: [parenthesize(A), parenthesize(B)]
+    });
+    console.log(`${LI}`);
+    LI.newProof();
+    return false;
 }
 
 export const LI = new LogicInterface();
 export const ASTSMTLIB2: (line: Line | undefined) => string = LI.ast2smtlib;
+

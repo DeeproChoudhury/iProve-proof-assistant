@@ -107,7 +107,6 @@ type TermOperator = InfixOperator | UnaryOperator | EndOfTerm;
 const OPERATOR = rule<TokenKind, TermOperator>();
 
 
-
 VARIABLE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
     return { kind: "Variable", ident: s.text }
 }));
@@ -560,6 +559,23 @@ export function evaluate(line: string): AST.ASTNode | ParseError {
 export default evaluate;
 
 /*
+let TD = (evaluate("type Listyy ::= Emptyyy | Consyy Listyy") as AST.TypeDef)
+let motive = (evaluate("FA (y:Listyy).[Q(x) & Q(y)]") as AST.Term)
+let motive2 = (evaluate("FA (y:Listyy).[Q(y) & Q(x)]") as AST.Term)
+let motive3 = (evaluate("Q(x)") as AST.Term)
+let pt: AST.PrimitiveType = {
+    kind: "PrimitiveType",
+    ident: "Listyy"
+}
+const util = require("util")
+console.log(util.inspect(
+    AST.rec_on(pt, TD)('x', motive)
+, false, null, true))
+console.log(AST.display(AST.rec_on(pt, TD)('x', motive)))
+console.log(AST.Z3Unifies(AST.rec_on(pt, TD)('x', motive3), AST.rec_on(pt, TD)('x', motive2)))
+*/
+
+/*
 const util = require("util")
 let ASTN0 = (evaluate("length :: [Int] -> Int") as AST.FunctionDeclaration)
 let ASTN1 = (evaluate("length (_::as) ::= 1 + length(as)")  as AST.FunctionDefinition)
@@ -580,4 +596,17 @@ AST.LI.addGiven(ASTN3)
 AST.LI.setGoal(ASTN4)
 
 console.log(`${AST.LI}`);
+*/
+
+/*
+(assert (implies
+(and (P (as seq.empty (Seq Int)))
+(forall ((x (Seq Int))) (forall ((y Int)) (implies (P x) (P (seq.++ x (seq.unit y)))))))
+(forall ((x (Seq Int))) (P x))
+))
+
+(assert (P (as seq.empty (Seq Int))))
+(assert (forall ((x (Seq Int))) (forall ((y Int)) (implies (P x) (P (seq.++ x (seq.unit y)))))))
+
+(assert (not (forall ((x (Seq Int))) (P x))))
 */
