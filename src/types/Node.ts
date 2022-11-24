@@ -1,26 +1,26 @@
 import { MutableRefObject } from "react";
+import { Node } from "reactflow";
 import { InductionNodeCallbacks } from "../callbacks/inductionNodeCallbacks";
 import { NodeCallbacks } from "../callbacks/nodeCallbacks";
+import { CheckStatus } from "./Reason";
 import { StatementType } from "./Statement";
 
-export type NodeType = "statement" | "given" | "goal" | "induction" ;
+export type NodeType = "proofNode" | "givenNode" | "goalNode" | "inductionNode";
 
-export type GeneralNodeData = Readonly<{
+export type StatementNodeData = {
   label: string;
-  id: number;
-  type: NodeType;
   declarationsRef: MutableRefObject<StatementType[]>;
-  correctImplication?: boolean;
-}>;
-
-export type NodeData = GeneralNodeData & Readonly<{
+  correctImplication?: CheckStatus;
   givens: StatementType[];
   proofSteps: StatementType[];
   goals: StatementType[];
   thisNode: NodeCallbacks;
-}>;
+};
 
-export type InductionData = GeneralNodeData & Readonly<{
+export type InductionNodeData = {
+  label: string;
+  declarationsRef: MutableRefObject<StatementType[]>;
+  correctImplication?: CheckStatus;
   typeDeclarationsRef: MutableRefObject<StatementType[]>;
   types: StatementType[];
   predicate: StatementType[];
@@ -28,6 +28,14 @@ export type InductionData = GeneralNodeData & Readonly<{
   baseCases: StatementType[];
   inductiveHypotheses: StatementType[];
   thisNode: InductionNodeCallbacks;
-}>; 
+}; 
 
-export type StatementListFieldName = "givens" | "proofSteps" | "goals" | "types" | "baseCases" | "inductiveCases" | "predicate" | "inductiveHypotheses";
+export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "predicate" | "inductiveCases" | "baseCases" | "inductiveHypotheses") : never
+
+export type AnyNodeData = StatementNodeData | InductionNodeData;
+
+export type ProofNodeType = Node<StatementNodeData> & { type: "proofNode" };
+export type GivenNodeType = Node<StatementNodeData> & { type: "givenNode" };
+export type GoalNodeType = Node<StatementNodeData> & { type: "goalNode" };
+export type StatementNodeType = ProofNodeType | GivenNodeType | GoalNodeType;
+export type InductionNodeType = Node<InductionNodeData> & { type: "inductionNode" };

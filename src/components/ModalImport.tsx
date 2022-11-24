@@ -1,7 +1,7 @@
 import { Box, Button, Radio, RadioGroup, Textarea } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import { display } from "../parser/AST";
-import { NodeData, NodeType } from '../types/Node';
+import { NodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 
 
