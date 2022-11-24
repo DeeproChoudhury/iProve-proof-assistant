@@ -6,7 +6,10 @@ import { makeStatementListCallbacks } from "./statementListCallbacks";
 
   export const makeDeclarationCallbacks = (setDeclarations: Setter<StatementType[]>, setError: Setter<ErrorLocation | undefined>) => ({
     ...makeStatementListCallbacks(setDeclarations),
-    checkSyntax: () => setDeclarations(decls => decls.map(updateWithParsed(setError)))
+    checkSyntax: () => {
+      setError(undefined)
+      setDeclarations(decls => decls.map(updateWithParsed(setError)))
+    }
   });
 
   export type DeclarationCallbacks = ReturnType<typeof makeDeclarationCallbacks>;

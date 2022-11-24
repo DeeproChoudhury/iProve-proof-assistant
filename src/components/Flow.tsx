@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerOverlay, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack, useDisclosure } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -67,8 +67,6 @@ function Flow() {
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
 
   const [typeDeclarations, setTypeDeclarations] = useState<StatementType[]>([]);
-
-  const [typeSidebarVisible, setTypeSidebarVisible] = useState(true);
   const localZ3Solver = useMemo(() => new Z3Solver.Z3Prover(""), []);
 
   /**
@@ -130,6 +128,14 @@ function Flow() {
     }
   }
 
+  /* Table used to display 'help' information to user */
+  const operatorsToSymbols = [{value: 'and', symbol: '&'}, 
+    {value: 'or', symbol: '|'}, 
+    {value: 'iff', symbol: '<->'},
+    {value: 'implies', symbol: '->'}, 
+    {value: 'for all x', symbol: 'FA x.'}, 
+    {value: 'exists x', symbol: 'E x.'}]
+
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
@@ -137,10 +143,6 @@ function Flow() {
   const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
 
   const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, inductionNodes, nextId, makeThisNode]);
-
-  const addSymbol = (symbol: String): void => {
-    console.log(symbol);
-  };
 
   const addNode = useCallback((nodeType: NodeType) => {
     const count = nextId();
@@ -408,7 +410,7 @@ function Flow() {
           </Button>
           <Popover>
             <PopoverTrigger>
-              <Button>Symbols</Button>
+              <Button>Help</Button>
             </PopoverTrigger>
             <PopoverContent style = {{width:"400px"}}>
               <PopoverArrow />
@@ -423,30 +425,12 @@ function Flow() {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    <Tr>
-                      <Td>and</Td>
-                      <Td>&</Td>
-                    </Tr>
-                    <Tr>
-                      <Td>or</Td>
-                      <Td>|</Td>
-                    </Tr>
-                    <Tr>
-                      <Td>iff</Td>
-                      <Td>{"<->"}</Td>
-                    </Tr>
-                    <Tr>
-                      <Td>implies</Td>
-                      <Td>{"->"}</Td>
-                    </Tr>
-                    <Tr>
-                      <Td>for all x</Td>
-                      <Td>FA x.</Td>
-                    </Tr>
-                    <Tr>
-                      <Td>exists x</Td>
-                      <Td>E x.</Td>
-                    </Tr>
+                    {operatorsToSymbols.map((p, index) =>
+                      <Tr key={index}>
+                        <Td>{p.value}</Td>
+                        <Td>{p.symbol}</Td>
+                      </Tr>
+                    )}
                   </Tbody>
                 </Table>
               </TableContainer>
