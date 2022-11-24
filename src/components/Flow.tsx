@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Drawer, DrawerBody, DrawerCloseButton, DrawerContent, DrawerOverlay, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack, useDisclosure } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -26,6 +26,23 @@ import InductionNode from './nodes/InductionNode';
 import ProofNode from './nodes/ProofNode';
 import './nodes/ProofNode.css';
 import TypeDeclarations from './TypeDeclarations';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  PopoverArrow,
+  PopoverCloseButton,
+} from '@chakra-ui/react'
+import {
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+} from '@chakra-ui/react'
 
 const nodeTypes = { 
   proofNode: ProofNode,
@@ -50,8 +67,6 @@ function Flow() {
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
 
   const [typeDeclarations, setTypeDeclarations] = useState<StatementType[]>([]);
-
-  const [typeSidebarVisible, setTypeSidebarVisible] = useState(true);
   const localZ3Solver = useMemo(() => new Z3Solver.Z3Prover(""), []);
 
   /**
@@ -112,6 +127,14 @@ function Flow() {
       return checkValid(ns, prev_nodes, givens, es, new_visited);
     }
   }
+
+  /* Table used to display 'help' information to user */
+  const operatorsToSymbols = [{value: 'and', symbol: '&'}, 
+    {value: 'or', symbol: '|'}, 
+    {value: 'iff', symbol: '<->'},
+    {value: 'implies', symbol: '->'}, 
+    {value: 'for all x', symbol: 'FA x.'}, 
+    {value: 'exists x', symbol: 'E x.'}]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
@@ -178,7 +201,7 @@ function Flow() {
     }]);
   }, [nextId, makeThisNode]);
 
-  const addNodes = useCallback((jsonNodes: any[]) => {
+  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[]) => {
     const nodeData = jsonNodes.map(node => {
       const newCount = nextId();
       const id = Math.random();
@@ -196,6 +219,20 @@ function Flow() {
         type: node.type,
       }
     });
+    const declarationsData = jsonDeclarations.map(d => {
+      return {
+        value : d,
+        wrappers: []
+      }
+    });
+    const typeDeclarations = jsonTypes.map(t => {
+      return {
+        value : t,
+        wrappers: []
+      }
+    });;
+    setDeclarations(declarationsData);
+    setTypeDeclarations(typeDeclarations);
     setNodes(nodeData);
   }, [nextId, makeThisNode]);
 
@@ -234,7 +271,7 @@ function Flow() {
         <ModalHeader>Import Proof</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ModalImport addNodes={addNodes}/>
+          <ModalImport addImportedProof={addImportedProof}/>
         </ModalBody>
         </ModalContent>
       </Modal>
@@ -248,11 +285,13 @@ function Flow() {
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
         <ModalHeader>Export Proof</ModalHeader>
         <ModalCloseButton />
-        <ModalBody>
-          <ModalExport data={JSON.stringify(nodes.map(n => 
-                {return {type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
-          }/>
-        </ModalBody>
+          <ModalBody>
+            <ModalExport data={
+              JSON.stringify({ nodes: nodes.map(n => { return { type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value) } }), 
+                declarations: declarations.map(decl => decl.value), 
+                types: typeDeclarations.map(type => type.value) })
+            } />
+          </ModalBody>
         </ModalContent>
       </Modal>
       {/* END : Export Modal */}
@@ -369,13 +408,42 @@ function Flow() {
           <Button onClick={() => {setDeclarationSidebarVisible(!declarationSidebarVisible)}}>
             Settings
           </Button>
+          <Popover>
+            <PopoverTrigger>
+              <Button>Help</Button>
+            </PopoverTrigger>
+            <PopoverContent style = {{width:"400px"}}>
+              <PopoverArrow />
+              <PopoverCloseButton />
+              <PopoverBody>
+              <TableContainer>
+                <Table variant='simple'>
+                  <Thead>
+                    <Tr>
+                      <Th>Logical Operator</Th>
+                      <Th>iProve Symbol</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {operatorsToSymbols.map((p, index) =>
+                      <Tr key={index}>
+                        <Td>{p.value}</Td>
+                        <Td>{p.symbol}</Td>
+                      </Tr>
+                    )}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
         </Stack>
       </div>
       {/* END : Header Buttons */}
 
 
       {/* START : Flow Graph */}
-      <div style={{display: 'flex', flexDirection: 'row'}}>
+      <div style={{display: 'flex', flexDirection: 'row', height:"100vh" }}>
         {/* START : Column for declarations */}
         <Grid style={{zIndex: 20 /* zIndex to move column to front*/}} 
           // templateRows='repeat(3, 1fr)'
