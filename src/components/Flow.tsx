@@ -30,22 +30,17 @@ import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-  PopoverHeader,
   PopoverBody,
-  PopoverFooter,
   PopoverArrow,
   PopoverCloseButton,
-  PopoverAnchor,
 } from '@chakra-ui/react'
 import {
   Table,
   Thead,
   Tbody,
-  Tfoot,
   Tr,
   Th,
   Td,
-  TableCaption,
   TableContainer,
 } from '@chakra-ui/react'
 
@@ -204,7 +199,7 @@ function Flow() {
     }]);
   }, [nextId, makeThisNode]);
 
-  const addNodes = useCallback((jsonNodes: any[]) => {
+  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[]) => {
     const nodeData = jsonNodes.map(node => {
       const newCount = nextId();
       const id = Math.random();
@@ -222,23 +217,20 @@ function Flow() {
         type: node.type,
       }
     });
-    if (jsonNodes.length > 0) {
-      const declarationsData = [jsonNodes[0].dec].map(d => {
-        return {
-          value : d,
-          wrappers: []
-        }
-      });
-      const typeDeclarations = [jsonNodes[0]].map(node => {
-        return {
-          value : node.types,
-          wrappers: []
-        }
-      });;
-      setDeclarations(declarationsData);
-      setTypeDeclarations(typeDeclarations);
-    }
-    
+    const declarationsData = jsonDeclarations.map(d => {
+      return {
+        value : d,
+        wrappers: []
+      }
+    });
+    const typeDeclarations = jsonTypes.map(t => {
+      return {
+        value : t,
+        wrappers: []
+      }
+    });;
+    setDeclarations(declarationsData);
+    setTypeDeclarations(typeDeclarations);
     setNodes(nodeData);
   }, [nextId, makeThisNode]);
 
@@ -277,7 +269,7 @@ function Flow() {
         <ModalHeader>Import Proof</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <ModalImport addNodes={addNodes}/>
+          <ModalImport addImportedProof={addImportedProof}/>
         </ModalBody>
         </ModalContent>
       </Modal>
@@ -291,11 +283,13 @@ function Flow() {
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
         <ModalHeader>Export Proof</ModalHeader>
         <ModalCloseButton />
-        <ModalBody>
-          <ModalExport data={JSON.stringify(nodes.map(n => 
-                {return {type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value)}}))
-          }/>
-        </ModalBody>
+          <ModalBody>
+            <ModalExport data={
+              JSON.stringify({ nodes: nodes.map(n => { return { type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value) } }), 
+                declarations: declarations.map(decl => decl.value), 
+                types: typeDeclarations.map(type => type.value) })
+            } />
+          </ModalBody>
         </ModalContent>
       </Modal>
       {/* END : Export Modal */}
@@ -435,7 +429,7 @@ function Flow() {
                     </Tr>
                     <Tr>
                       <Td>or</Td>
-                      <Td></Td>
+                      <Td>|</Td>
                     </Tr>
                     <Tr>
                       <Td>iff</Td>
