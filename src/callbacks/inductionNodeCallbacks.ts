@@ -1,11 +1,10 @@
 import { MutableRefObject } from "react";
-import { Edge, Node } from "reactflow";
-import { ASTSMTLIB2 } from "../parser/AST";
+import { Edge } from "reactflow";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { InductionNodeData, InductionNodeType, ListField } from "../types/Node";
+import { InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { getResults, setNodeWithId, setStatementsForNode } from "../util/nodes";
+import { setNodeWithId, setStatementsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";

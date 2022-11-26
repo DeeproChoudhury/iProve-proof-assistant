@@ -1,7 +1,7 @@
 import { InductionNodeData, ListField } from "../../types/Node";
 import { AddIcon } from '@chakra-ui/icons';
 import {
-	Box, Button, Heading, IconButton, Text
+	Box, Button, IconButton, Select, Text
 } from '@chakra-ui/react';
 import { ReactElement, ReactNode, useCallback } from "react";
 import "./InductionNode.css"
@@ -41,6 +41,12 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 		);
 	}
 
+	const onTypeSelect = (typeIndex: number) => {
+		if (!isNaN(typeIndex)) {
+			nodeData.thisNode["types"].updateWithStatement(0, nodeData.typeDeclarationsRef.current[typeIndex]);
+		}
+	}
+
 	/**
  * INDUCTION NODE
  */
@@ -51,6 +57,11 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
 				<Text>Type</Text>
 			</div>
+			<Select placeholder='Select type' size='xs' onChange={(event) => onTypeSelect(parseInt(event.target.value))} defaultValue={nodeData.types[0].value}>
+				{nodeData.typeDeclarationsRef.current.map((type, index) =>
+					<option value={index}>{type.value}</option>
+				)}
+			</Select>
 			<Statement
 				onChange={e => onChange(e, "types", 0)}
 				statement={nodeData.types[0]}
