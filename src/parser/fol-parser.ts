@@ -579,9 +579,30 @@ AST.LI.addGlobal(TD);
 console.log(`${AST.LI}`);
 AST.LI.newProof();
 //console.log(AST.Z3Unifies(AST.rec_on(pt, TD)('x', motive), AST.rec_on(pt, TD)('x', motive2)))
-
-console.log(util.inspect(AST.unify_preprocess((evaluate("FA x.[FA x.[x & y] & FA x.[k & x]]") as AST.Term)),
+const EMPTY_SCOPE: AST.UnifyScope = {
+    kind: "UnifyScope",
+    sort_ctx_a: new Map,
+    sort_ctx_b: new Map,
+    assignments: [new Map]
+}
+//console.log(util.inspect(AST.unify_preprocess((evaluate("x & FA (x:Int).x") as AST.Term)),
+//   false, null, true))
+/*
+console.log(util.inspect(AST.unifies(
+        (evaluate("x & FA (x:Int,y:Int).[x & y]") as AST.Term),
+        (evaluate("x & FA (z:Int,y:Int).[y & z]") as AST.Term)
+    ),
     false, null, true))
+*/
+let verdict = AST.unifies(
+    (evaluate("x & FA (x:Int,y:Int).[x & y & x & y]") as AST.Term),
+    (evaluate("x & FA (z:Int,y:Int).[[y & y] & [z & z]]") as AST.Term)
+)
+if (verdict.kind == "UnifyFail") {
+    console.log("ERROR")
+} else {
+    console.log(AST.display(verdict.term))
+}
 /*
 console.log(util.inspect(AST.gen_unify((evaluate("x & y") as AST.Term), (evaluate("x & y") as AST.Term), {
     kind: "UnifyScope",

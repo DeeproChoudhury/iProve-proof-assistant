@@ -955,8 +955,12 @@ export function map_terms<T>(f: StatefulTransformer<Term, T>, init: T, lazy: boo
 }
 
 export function stateless_map_terms(f: (x: Term) => Term): (x: Term) => Term {
+    //console.log(MT)
     let MT = map_terms((x: Term, st) => ([f(x), undefined]), undefined)
-    return (x: Term) => MT(x)[0];
+    return (x: Term) => {
+        //console.log(x)
+        return MT(x)[0];
+    }
 }
 
 // NOTE: For obvious reasons, this will not rewrite in itself. 
@@ -1142,7 +1146,6 @@ export const remove_parens = stateless_map_terms(unparenthesize)
 
 type RenameState = Map<string, number>
 function rename_vars(A: Term, S: RenameState): [Term, RenameState] {
-
     switch(A.kind) {
         case "ArrayLiteral":
         case "EquationTerm":
@@ -1162,8 +1165,12 @@ function rename_vars(A: Term, S: RenameState): [Term, RenameState] {
                     })
                     S.set(v.symbol.ident, VI + 1)
                 } else {
+                    nvd.push({
+                        kind: "VariableBinding",
+                        symbol: mk_var(`IProveAlpha_0_${v.symbol.ident}`),
+                        type: v.type
+                    })
                     S.set(v.symbol.ident, 1)
-                    nvd.push(v)
                 }
             }
             return [{
@@ -1183,18 +1190,21 @@ function rename_vars(A: Term, S: RenameState): [Term, RenameState] {
     }
 }
 
-const MT = map_terms(rename_vars, new Map, true);
-export const rename_pass: (A: Term) => Term 
-    = (x) => MT(x)[0]
+export function rename_pass(A: Term): Term
+    { return map_terms(rename_vars, new Map, true)(A)[0]; }
+
+export function basic_preprocess(A: Term): Term {
+    return squash_quantifiers(
+        rename_pass (
+            normalize_constants(A)
+        )
+    )
+}
 
 export function unify_preprocess(A: Term): Term {
     return extract_assoc()(
         remove_parens(
-            squash_quantifiers(
-                rename_pass (
-                    normalize_constants(A)
-                )
-            )
+            basic_preprocess(A)
         )
     )
 }
@@ -1240,9 +1250,8 @@ function pop_scope(S: UnifyScope): void {
 
 export type UnifyScope = {
     kind: "UnifyScope";
-    free_variables: Set<string>;
-    sort_ctx_a: Map<string, Type | undefined>;
-    sort_ctx_b: Map<string, Type | undefined>;
+    sort_ctx_a: Map<string, string>;
+    sort_ctx_b: Map<string, string>;
     assignments: Map<string, string | undefined>[];
 }
 
@@ -1279,6 +1288,11 @@ export function gen_unify(A: Term | undefined, B: Term | undefined, scope: Unify
         }
         case "Variable": {
             if (B.kind != "Variable") return UNIFY_FAIL
+
+            if (!scope.sort_ctx_a.has(A.ident) || 
+                !scope.sort_ctx_b.has(B.ident) )
+                return (A.ident == B.ident) ? scope : UNIFY_FAIL
+
             if (!get_from_scope(scope, A.ident)) {
                 let set_verdict = set_in_scope(scope, A.ident, B.ident);
                 if (!set_verdict) return UNIFY_FAIL
@@ -1289,24 +1303,31 @@ export function gen_unify(A: Term | undefined, B: Term | undefined, scope: Unify
                 : UNIFY_FAIL
         }
         case "QuantifierApplication": {
+            const util = require("util")
+            
             if (B.kind != "QuantifierApplication"
                 || B.quantifier != A.quantifier
                 || B.vars.length != A.vars.length)
                 return UNIFY_FAIL
 
-            let type_cnts: Map<Type | undefined, number> = new Map
+            let type_cnts: Map<string, number> = new Map
+            let d_ = (x: Type | undefined): string => {
+                if (!x) return "any"
+                return d(x)
+            }
             for (let i = 0; i < A.vars.length; i++) {
-                scope.sort_ctx_a.set(A.vars[i].symbol.ident, A.vars[i].type)
-                scope.sort_ctx_b.set(B.vars[i].symbol.ident, B.vars[i].type)
+                scope.sort_ctx_a.set(A.vars[i].symbol.ident, d_(A.vars[i].type))
+                scope.sort_ctx_b.set(B.vars[i].symbol.ident, d_(B.vars[i].type))
                 
-                let tca: number | undefined = type_cnts.get(A.vars[i].type)
+                let tca: number | undefined = type_cnts.get(d_(A.vars[i].type))
                 if (!tca) tca = 0
-                let tcb: number | undefined = type_cnts.get(B.vars[i].type)
+                type_cnts.set(d_(A.vars[i].type), tca + 1)
+                let tcb: number | undefined = type_cnts.get(d_(B.vars[i].type))
                 if (!tcb) tcb = 0
-                type_cnts.set(A.vars[i].type, tca + 1)
-                type_cnts.set(B.vars[i].type, tcb - 1)
+                type_cnts.set(d_(B.vars[i].type), tcb - 1)
             }
 
+            //console.log(type_cnts)
             for (let [_,v] of type_cnts)
                 if (v != 0) return UNIFY_FAIL
 
@@ -1381,20 +1402,76 @@ function gen_unify_poss(
     }
 }
 
-export function Z3Unifies(A_: Term, B_: Term): Boolean {
+const alpha_regex: RegExp = /^IProveAlpha_(\d+)_/
+function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: Term) => Term {
+    let MGet = (xi: string): string | undefined => 
+        (unalpha) ? M.get(xi) : M.get(xi)?.replace(alpha_regex, '')
+    return (A: Term): Term => {
+        switch (A.kind) {
+            case "ArrayLiteral":
+            case "EquationTerm":
+            case "FunctionApplication":
+            case "ParenTerm":
+                return A
+            
+            case "QuantifierApplication": {
+                let VL: VariableBinding[] = []
+                for (let vb of A.vars) {
+                    let MG = MGet(vb.symbol.ident)
+                    if (MG) {
+                        VL.push({
+                            kind: "VariableBinding",
+                            symbol: mk_var(MG),
+                            type: vb.type
+                        })
+                    }
+                }
+                return {
+                    kind: "QuantifierApplication",
+                    term: A.term,
+                    quantifier: A.quantifier,
+                    vars: VL
+                }
+            }
+            case "Variable": {
+                let MG = MGet(A.ident)
+                if (MG) return mk_var(MG)
+                return A
+            }
+
+        }
+    }
+}
+function replace_vars(M: Map<string, string>, unalpha: boolean = false): (x: Term) => Term {
+    return stateless_map_terms(replace_var(M, unalpha))
+}
+
+export type AlphaAssignment = {
+    kind: "AlphaAssignment",
+    assn: Map<string, string>,
+    term: Term
+}
+
+export function unifies(A_: Term, B_: Term): AlphaAssignment | UnifyFail {
     let A: Term = unify_preprocess(A_)
     let B: Term = unify_preprocess(B_)
 
-    LI.newProof();
-    LI.setGoal({
-        kind: "FunctionApplication",
-        appType: "InfixOp",
-        fn: "<->",    
-        params: [parenthesize(A), parenthesize(B)]
-    });
-    console.log(`${LI}`);
-    LI.newProof();
-    return false;
+    let verdict: Unification = gen_unify(B, A, {
+        kind: "UnifyScope",
+        sort_ctx_a: new Map,
+        sort_ctx_b: new Map,
+        assignments: [new Map]
+    })
+
+    return (verdict.kind == "UnifyFail")
+    ? verdict
+    : { kind: "AlphaAssignment",
+        term: replace_vars(verdict.assignments.reduce((x, y) => {
+            return new Map([...y,...x])
+        }, new Map()))(basic_preprocess(B_)),
+        assn: verdict.assignments.reduce((x, y) => {
+            return new Map([...y,...x])
+        }, new Map()) }
 }
 
 export const LI = new LogicInterface();
