@@ -1,6 +1,4 @@
-import { As } from "@chakra-ui/react"
-import { render } from "@testing-library/react"
-import { FOCUSABLE_SELECTOR } from "@testing-library/user-event/dist/utils"
+import { kMaxLength } from "buffer"
 
 export type ASTNode = Type | FunctionType | VariableBinding | Line | Pattern | TypeConstructor | Guard
 
@@ -179,7 +177,9 @@ export type QuantifierApplication = {
     kind: "QuantifierApplication",
     term: Term,
     vars: VariableBinding[],
-    quantifier: "E" | "A"
+    quantifier: "E" | "A",
+
+    var_nesting?: number[]
 }
 
 export type EquationTerm = {
@@ -368,7 +368,7 @@ export class LogicInterface {
 
     // utility rec function which takes in an array of terms and returns their
     // (left-associative) dis(/con)junction. See above comment to motivate existence.
-    combineTerms(ts: Term[], conjunct: boolean = false): Term | undefined {
+    combineTerms(ts: Term[], conjunct: string = "||"): Term | undefined {
         let A = ts.shift();
         if (!A) return undefined;
         let tail = this.combineTerms(ts, conjunct);
@@ -377,12 +377,12 @@ export class LogicInterface {
         return {
             kind: "FunctionApplication",
             appType: "InfixOp",
-            fn: conjunct ? "&" : "||",
+            fn: conjunct,
             params: [A, tail]
         }
     }
     disjunct = this.combineTerms
-    conjunct = (ts: Term[]): Term | undefined => (this.combineTerms(ts, true))
+    conjunct = (ts: Term[]): Term | undefined => (this.combineTerms(ts, "&"))
 
     // Adds tuples of particular length to the global context. Returns true
     // iff the tuple length wasn't already handled
@@ -545,7 +545,7 @@ export class LogicInterface {
             case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(this.renderNode, this).join(" ")}) ${this.renderNode(a.term)})`;
             case "EquationTerm": return `${this.renderNode(a.lhs)} ::= ${this.renderNode(a.rhs)}`;
             case "ParenTerm": return this.renderNode(a.term);
-            
+        
             case "TypeDef": {
                 let cons = a.cases.map(this.renderNode, this).join(" ");
                 let type_params = a.params.join(" ");
@@ -645,21 +645,22 @@ export class LogicInterface {
     //rec_on(t: TypeDef): (x: Variable)
 }
 
-// Given a function f: Term -> Term, returns a function whic, given an AST A,
+// Given a function f: Term -> Term, returns a function which, given an AST A,
 // returns the AST corresponding to a recursive application of f to the terms
 // of A.
-export function map_terms(f: (x: Term) => Term): (A: Term) => Term {
-    var R: (A: ASTNode) => ASTNode;
-    var RT: (A: Term) => Term;
-    var RG: (A: Guard) => Guard;
-    var RGT: (A: Guard | Term) => Guard | Term;
-    var RT_ = (t: Term | undefined): Term | undefined =>
-        (t ? RT(t) : undefined);
-    var RG_ = (t: Guard | undefined): Guard | undefined =>
-        (t ? RG(t) : undefined);
+export type StatefulTransformer<T, S> = (x: T, st: S) => [T, S]
+export function map_terms<T>(f: StatefulTransformer<Term, T>, init: T, lazy: boolean = false): (A: Term) => [Term, T] {
+    var R: StatefulTransformer<ASTNode, T>
+    var RT: (A: Term, st: T, seen?: boolean) => [Term, T]
+    var RG: StatefulTransformer<Guard, T>
+    var RGT: StatefulTransformer<Guard | Term, T>
+    var RT_ = (t: Term | undefined, st: T): [Term | undefined, T] =>
+        (t ? RT(t, st, false) : [undefined, st]);
+    var RG_ = (t: Guard | undefined, st: T): [Guard | undefined, T] =>
+        (t ? RG(t, st) : [undefined, st]);
 
     
-    R = (A: ASTNode): ASTNode => {
+    R = (A: ASTNode, st: T): [ASTNode, T] => {
         switch (A.kind) {
             // ARE TERMS AND CAN CONTAIN THEM
             case "FunctionApplication":
@@ -668,23 +669,26 @@ export function map_terms(f: (x: Term) => Term): (A: Term) => Term {
             case "ParenTerm":
             case "ArrayLiteral":
             case "Variable":
-                return RT(A)
+                return RT(A, st, false)
 
             // NOT A TERM, BUT CAN CONTAIN THEM
             case "Guard":
-                return RG(A);
-            case "Assumption":
-                return {
+                return RG(A, st);
+            case "Assumption": {
+                let [new_A, new_st] = RT(A.arg, st, false)
+                return [{
                     kind: "Assumption",
-                    arg: RT(A.arg)
-                }
-            case "FunctionDefinition":
-                return {
+                    arg: new_A
+                }, new_st]
+            } case "FunctionDefinition": {
+                let [new_A, new_st] = RGT(A.def, st)
+                return [{
                     kind: "FunctionDefinition",
                     ident: A.ident,
                     params: A.params,
-                    def: RGT(A.def)
-                }
+                    def: new_A
+                }, new_st]
+            }
 
             // NEITHER TERMS NOR CAN CONTAIN THEM
             case "PrimitiveType":
@@ -706,21 +710,24 @@ export function map_terms(f: (x: Term) => Term): (A: Term) => Term {
             case "ConstructedType":
             case "EmptyList":
             case "TuplePattern":
-                return A;
+                return [A, st];
             
         }
     }
 
-    RG = (A: Guard): Guard => {
-        return {
+    RG = (A: Guard, st_0: T): [Guard, T] => {
+        let [new_cond, st_1] = RT(A.cond, st_0, false)
+        let [new_res, st_2] = RT(A.res, st_1, false)
+        let [new_next, st_3] = RG_(A.next, st_2)
+        return [{
             kind: "Guard",
-            cond: RT(A.cond),
-            res: RT(A.res),
-            next: RG_(A.next)
-        }
+            cond: new_cond,
+            res: new_res,
+            next: new_next
+        }, st_3]
     }
 
-    RGT = (A: Guard | Term): Guard | Term => {
+    RGT = (A: Guard | Term, st: T): [Guard | Term, T] => {
         switch (A.kind) {
             case "FunctionApplication":
             case "QuantifierApplication":
@@ -728,93 +735,228 @@ export function map_terms(f: (x: Term) => Term): (A: Term) => Term {
             case "ParenTerm":
             case "ArrayLiteral":
             case "Variable":
-                return RT(A)
+                return RT(A, st)
 
             case "Guard":
-                return RG(A);
+                return RG(A, st);
         }
     }
 
-    RT = (A: Term): Term => {
-        switch (A.kind) {
-            // ARE TERMS AND CAN CONTAIN THEM
-            case "FunctionApplication":
-                // I HATE TYPESCRIPT I HATE TYPESCRIPT
-                switch (A.appType) {
-                    case "PrefixFunc":
-                    case "PrefixOp":
-                        return f({
-                            kind: "FunctionApplication",
-                            appType: A.appType,
-                            fn: A.fn,
-                            params: A.params.map(RT)
-                        });
-                    
-                    case "UnaryFunc":
-                    case "UnaryOp":
-                        return f({
-                            kind: "FunctionApplication",
-                            appType: A.appType,
-                            fn: A.fn,
-                            params: [RT(A.params[0])]
-                        });
-                    
-                    case "InfixFunc":
-                    case "InfixOp":
-                        return f({
-                            kind: "FunctionApplication",
-                            appType: A.appType,
-                            fn: A.fn,
-                            params: [RT(A.params[0]), RT(A.params[1])]
-                        });
+    function stateful_map<X, Y, S>(f: (x: X, s: S) => [Y, S]): (x: X[], s: S) => [Y[], S] {
+        return (x: X[], s: S): [Y[], S] => {
+            let R: Y[] = [];
+            let c_s: S = s;
+            let me: Y;
+            for (let e of x) {
+                [me, c_s] = f(e, c_s)
+                R.push(me)
+            }
+            return [R, c_s]
+        }
+    }
 
-                    case "ArrayElem":
-                        return f({
-                            kind: "FunctionApplication",
-                            appType: A.appType,
-                            fn: A.fn,
-                            params: [RT(A.params[0]), RT(A.params[1])]
-                        });
-                    
-                    case "ArraySlice":
-                        return f({
-                            kind: "FunctionApplication",
-                            appType: A.appType,
-                            fn: A.fn,
-                            params: [RT(A.params[0]), RT_(A.params[1]), RT_(A.params[2])]
-                        });
+    RT = (A: Term, st: T, seen?: boolean): [Term, T] => {
+        if (!lazy) {
+            switch (A.kind) {
+                // ARE TERMS AND CAN CONTAIN THEM
+                case "FunctionApplication":
+                    // I HATE TYPESCRIPT I HATE TYPESCRIPT
+                    switch (A.appType) {
+                        case "PrefixFunc":
+                        case "PrefixOp": {
+                            let [new_params, new_st] = stateful_map(RT)(A.params, st)
+                            return f({
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: new_params
+                            }, new_st);
+                        }
+                        case "UnaryFunc":
+                        case "UnaryOp": {
+                            let [new_param, new_st] = RT(A.params[0], st)
+                            return f({
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param]
+                            }, new_st);
+                        }
+                        case "InfixFunc":
+                        case "InfixOp": {
+                            let [new_param_1, st_1] = RT(A.params[0], st)
+                            let [new_param_2, st_2] = RT(A.params[1], st_1)
+                            return f({
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param_1, new_param_2]
+                            }, st_2);
+                        }
+                        case "ArrayElem": {
+                            let [new_param_1, st_1] = RT(A.params[0], st)
+                            let [new_param_2, st_2] = RT(A.params[1], st_1)
+                            return f({
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param_1, new_param_2]
+                            }, st_2);
+                        }
+                        
+                        case "ArraySlice": {
+                            let [new_param_1, st_1] = RT(A.params[0], st)
+                            let [new_param_2, st_2] = RT_(A.params[1], st_1)
+                            let [new_param_3, st_3] = RT_(A.params[2], st_2)
+                            return f({
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param_1, new_param_2, new_param_3]
+                            }, st_3);
+                        }
+                    }
+                case "QuantifierApplication": {
+                    let [new_term, new_st] = RT(A.term, st)
+                    return f({
+                        kind: "QuantifierApplication",
+                        term: new_term,
+                        vars: A.vars,
+                        quantifier: A.quantifier
+                    }, new_st)
+                } case "EquationTerm": {
+                    let [new_lhs, st_1] = RT(A.lhs, st)
+                    let [new_rhs, st_2] = RT(A.rhs, st_1)
+                    return f({
+                        kind: "EquationTerm",
+                        lhs: new_lhs,
+                        rhs: new_rhs
+                    }, st_2)
+                } case "ParenTerm": {
+                    let [new_term, new_st] = RT(A.term, st)
+                    return f({
+                        kind: "ParenTerm",
+                        term: new_term
+                    }, new_st)
+                } case "ArrayLiteral": {
+                    let [new_elems, new_st] = stateful_map(RT)(A.elems, st)
+                    return f({
+                        kind: "ArrayLiteral",
+                        elems: new_elems
+                    }, new_st)
                 }
-            case "QuantifierApplication":
-                return f({
-                    kind: "QuantifierApplication",
-                    term: RT(A.term),
-                    vars: A.vars,
-                    quantifier: A.quantifier
-                })
-            case "EquationTerm":
-                return f({
-                    kind: "EquationTerm",
-                    lhs: RT(A.lhs),
-                    rhs: RT(A.rhs)
-                })
-            case "ParenTerm":
-                return f({
-                    kind: "ParenTerm",
-                    term: RT(A.term)
-                })
-            case "ArrayLiteral":
-                return f({
-                    kind: "ArrayLiteral",
-                    elems: A.elems.map(RT)
-                })
-            
-            // CANNOT CONTAIN TERMS, BUT IS ONE
-            case "Variable":
-                return f(A)
+                
+                // CANNOT CONTAIN TERMS, BUT IS ONE
+                case "Variable":
+                    return f(A, st)
+            }
+        } else {
+            if (!seen) {
+                let [new_node, new_st] = f(A, st)
+                return RT(new_node, new_st, true)
+            }
+            switch (A.kind) {
+                // ARE TERMS AND CAN CONTAIN THEM
+                case "FunctionApplication":
+                    // I HATE TYPESCRIPT I HATE TYPESCRIPT
+                    switch (A.appType) {
+                        case "PrefixFunc":
+                        case "PrefixOp": {
+                            let [new_params, new_st] = stateful_map(RT)(A.params, st)
+                            return [{
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: new_params
+                            }, new_st];
+                        }
+                        case "UnaryFunc":
+                        case "UnaryOp": {
+                            let [new_param, new_st] = RT(A.params[0], st)
+                            return [{
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param]
+                            }, new_st];
+                        }
+                        case "InfixFunc":
+                        case "InfixOp": {
+                            let [new_param_1, st_1] = RT(A.params[0], st)
+                            let [new_param_2, st_2] = RT(A.params[1], st_1)
+                            return [{
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param_1, new_param_2]
+                            }, st_2];
+                        }
+                        case "ArrayElem": {
+                            let [new_param_1, st_1] = RT(A.params[0], st)
+                            let [new_param_2, st_2] = RT(A.params[1], st_1)
+                            return [{
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param_1, new_param_2]
+                            }, st_2];
+                        }
+                        
+                        case "ArraySlice": {
+                            let [new_param_1, st_1] = RT(A.params[0], st)
+                            let [new_param_2, st_2] = RT_(A.params[1], st_1)
+                            let [new_param_3, st_3] = RT_(A.params[2], st_2)
+                            return [{
+                                kind: "FunctionApplication",
+                                appType: A.appType,
+                                fn: A.fn,
+                                params: [new_param_1, new_param_2, new_param_3]
+                            }, st_3];
+                        }
+                    }
+                case "QuantifierApplication": {
+                    let [new_term, new_st] = RT(A.term, st)
+                    return [{
+                        kind: "QuantifierApplication",
+                        term: new_term,
+                        vars: A.vars,
+                        quantifier: A.quantifier
+                    }, new_st]
+                } case "EquationTerm": {
+                    let [new_lhs, st_1] = RT(A.lhs, st)
+                    let [new_rhs, st_2] = RT(A.rhs, st_1)
+                    return [{
+                        kind: "EquationTerm",
+                        lhs: new_lhs,
+                        rhs: new_rhs
+                    }, st_2]
+                } case "ParenTerm": {
+                    let [new_term, new_st] = RT(A.term, st)
+                    return [{
+                        kind: "ParenTerm",
+                        term: new_term
+                    }, new_st]
+                } case "ArrayLiteral": {
+                    let [new_elems, new_st] = stateful_map(RT)(A.elems, st)
+                    return [{
+                        kind: "ArrayLiteral",
+                        elems: new_elems
+                    }, new_st]
+                }
+                
+                // CANNOT CONTAIN TERMS, BUT IS ONE
+                case "Variable":
+                    return [A, st]
+            }
         }
     }
 
-    return RT;
+    return (x: Term) => RT(x, init);
+}
+
+export function stateless_map_terms(f: (x: Term) => Term): (x: Term) => Term {
+    let MT = map_terms((x: Term, st) => ([f(x), undefined]), undefined)
+    return (x: Term) => MT(x)[0];
 }
 
 // NOTE: For obvious reasons, this will not rewrite in itself. 
@@ -823,7 +965,7 @@ export function strict_rw(goal: Term, L: Term, R: Term): Term {
         let term_equal: Boolean = JSON.stringify(L) == JSON.stringify(x);
         return term_equal ? R : x
     }
-    return map_terms(f)(goal);
+    return stateless_map_terms(f)(goal);
 }
 
 class IdentState {
@@ -873,7 +1015,7 @@ function imply(L: Term | undefined, R: Term): Term {
         params: [parenthesize(L), parenthesize(R)]
     }
 }
-function parenthesize(t: Term): ParenTerm {
+export function parenthesize(t: Term): ParenTerm {
     return {
         kind: "ParenTerm",
         term: t
@@ -907,12 +1049,347 @@ export function rec_on(T: Type, type_def: TypeDef): (ident_: string, motive: Ter
         }
 }
 
-export function Z3Unifies(A: Term, B: Term): Boolean {
+// TODO: this function should be able to squash quantifiers down when what they
+// quantify over only appears in one parameter of a function application
+// but this requires leaf->root recursion over AST (or gross memoization :/)
+// EDIT: Because JS isn't lazy, our recursion actually IS leaf-> root so now
+// I've added a state to thread through this can get refactored
+function squash_quantifier(A: Term): Term {
+    return (
+        A.kind == "QuantifierApplication"
+        && A.term.kind == "QuantifierApplication"
+        && A.quantifier == A.term.quantifier
+    ) ? {
+        kind: "QuantifierApplication",
+        term: A.term.term,
+        vars: A.vars.concat(A.term.vars),
+        quantifier: A.quantifier
+    } : A
+}
+export const squash_quantifiers = stateless_map_terms(squash_quantifier)
+
+const AssocOperators: Set<string> = new Set([
+    "&",
+    "||"
+])
+
+const CommOperators: Set<string> = new Set([
+    "&",
+    "||"
+])
+
+function seek_parens(A: Term): Term {
+    let c_t: Term = A;
+    while (c_t.kind == "ParenTerm") c_t = c_t.term
+    return c_t
+}
+
+// An associative chain is any repeated application of associative binary
+// operators. This function extracts them either with the ignore_parens
+// flag set to false (in which case this simply flattens nested left-associative)
+// applications), or true (in which case this flattens THROUGH parentheses).
+//
+// In the way we're using it, ignore_parens means that we are exploiting
+// associativity of (& / | / +(over ints) / *(over ints)), whereas disabling
+// it allows us to account for commutativity without exploiting associativity
+function assoc_chain(A: Term, ignore_parens: Boolean = false): Term {
+    return (
+        A.kind == "FunctionApplication"
+        && A.appType != "ArrayElem" && A.appType != "ArraySlice"
+        && AssocOperators.has(A.fn)
+    ) ? {
+        kind: "FunctionApplication",
+        appType: "PrefixOp",
+        fn: A.fn,
+        params: A.params.map((sub: Term): Term[] => {
+            let w_sub: Term = (ignore_parens) ? seek_parens(sub) : sub
+            return (w_sub.kind == "FunctionApplication"
+                && w_sub.appType != "ArrayElem" && w_sub.appType != "ArraySlice"
+                && A.fn == w_sub.fn)
+            ? w_sub.params
+            : [sub]
+        }).flat()
+    } : A
+}
+export function extract_assoc(ignore_parens: Boolean = false)
+: (x: Term) => Term {
+    return stateless_map_terms((x_: Term): Term => assoc_chain(x_, ignore_parens))
+} 
+
+// 0-ary functions can be normalized to variables
+function variablize(A: Term): Term {
+    return (A.kind == "FunctionApplication"
+        && (A.appType == "PrefixFunc"
+            || A.appType == "PrefixOp"
+            || A.appType == "UnaryFunc"
+            || A.appType == "UnaryOp")
+        && (!A.params.length))
+        ? {
+           kind: "Variable",
+           ident: A.fn
+        }
+        : A
+}
+export const normalize_constants = stateless_map_terms(variablize);
+
+// Once in the AST, we can remove all unneccessary parens
+function unparenthesize(A: Term): Term {
+    return (A.kind == "ParenTerm")
+        ? A.term
+        : A
+}
+export const remove_parens = stateless_map_terms(unparenthesize)
+
+type RenameState = Map<string, number>
+function rename_vars(A: Term, S: RenameState): [Term, RenameState] {
+
+    switch(A.kind) {
+        case "ArrayLiteral":
+        case "EquationTerm":
+        case "FunctionApplication":
+        case "ParenTerm":
+            return [A, S]
+
+        case "QuantifierApplication": {
+            let nvd: VariableBinding[] = []
+            for (let v of A.vars) {
+                let VI = S.get(v.symbol.ident)
+                if (VI && VI > 0) {
+                    nvd.push({
+                        kind: "VariableBinding",
+                        symbol: mk_var(`IProveAlpha_${VI}_${v.symbol.ident}`),
+                        type: v.type
+                    })
+                    S.set(v.symbol.ident, VI + 1)
+                } else {
+                    S.set(v.symbol.ident, 1)
+                    nvd.push(v)
+                }
+            }
+            return [{
+                kind: "QuantifierApplication",
+                quantifier: A.quantifier,
+                term: A.term,
+                vars: nvd
+            }, S]
+        }
+        case "Variable": {
+            let VI = S.get(A.ident)
+            if (VI && VI > 0)
+                return [mk_var(`IProveAlpha_${VI - 1}_${A.ident}`), S]
+            else
+                return [A, S]
+        }
+    }
+}
+
+const MT = map_terms(rename_vars, new Map, true);
+export const rename_pass: (A: Term) => Term 
+    = (x) => MT(x)[0]
+
+export function unify_preprocess(A: Term): Term {
+    return extract_assoc()(
+        remove_parens(
+            squash_quantifiers(
+                rename_pass (
+                    normalize_constants(A)
+                )
+            )
+        )
+    )
+}
+
+function assoc_length(A: Term, c: number): [Term, number] {
+    return [A, (A.kind == "FunctionApplication" && AssocOperators.has(A.fn))
+        ? Math.max(A.params.length, c)
+        : c]
+}
+const mapped_AL = map_terms(assoc_length, 0)
+export const max_assoc_length = (x: Term): number => mapped_AL(x)[1]
+
+
+export type Unification = UnifyFail | UnifyScope
+
+export type UnifyFail = {
+    kind: "UnifyFail"
+}
+
+const UNIFY_FAIL: UnifyFail = {
+    kind: "UnifyFail"
+}
+
+function get_from_scope(S: UnifyScope, x: string): string | undefined {
+    for (let ss of S.assignments) {
+        if (ss.has(x)) return ss.get(x)
+    }
+}
+
+function set_in_scope(S: UnifyScope, a: string, b: string): boolean {
+    if (S.sort_ctx_a.get(a) != S.sort_ctx_b.get(b)) return false
+    S.assignments[0].set(a, b)
+    return true
+}
+
+function push_scope(S: UnifyScope): void {
+    S.assignments.unshift(new Map)
+}
+
+function pop_scope(S: UnifyScope): void {
+    S.assignments.shift()
+}
+
+export type UnifyScope = {
+    kind: "UnifyScope";
+    free_variables: Set<string>;
+    sort_ctx_a: Map<string, Type | undefined>;
+    sort_ctx_b: Map<string, Type | undefined>;
+    assignments: Map<string, string | undefined>[];
+}
+
+export function gen_unify(A: Term | undefined, B: Term | undefined, scope: UnifyScope): Unification {
+    if (!A || !B) {
+        return ((!A) && (!B))
+            ? scope : UNIFY_FAIL
+    }
+
+    switch (A.kind) {
+        case "ArrayLiteral": {
+            if (B.kind != "ArrayLiteral"
+                || A.elems.length != B.elems.length) return UNIFY_FAIL
+            
+            let c_v: Unification = scope;
+            for (let i = 0; i < A.elems.length; i++) {
+                c_v = gen_unify(A.elems[i], B.elems[i], c_v)
+                if (c_v.kind == "UnifyFail") return UNIFY_FAIL
+            }
+            return c_v;
+        }
+        case "EquationTerm": {
+            if (B.kind != "EquationTerm") return UNIFY_FAIL
+            let lhs_verdict = gen_unify(A.lhs, B.lhs, scope)
+            let rhs_verdict = gen_unify(A.rhs, B.rhs, scope)
+            if (rhs_verdict.kind == "UnifyFail" || lhs_verdict.kind == "UnifyFail")
+                return UNIFY_FAIL
+
+            return scope
+        }
+        case "ParenTerm": {
+            if (B.kind != "ParenTerm") return UNIFY_FAIL
+            return gen_unify(A.term, B.term, scope)
+        }
+        case "Variable": {
+            if (B.kind != "Variable") return UNIFY_FAIL
+            if (!get_from_scope(scope, A.ident)) {
+                let set_verdict = set_in_scope(scope, A.ident, B.ident);
+                if (!set_verdict) return UNIFY_FAIL
+            }
+
+            return (get_from_scope(scope, A.ident) == B.ident)
+                ? scope
+                : UNIFY_FAIL
+        }
+        case "QuantifierApplication": {
+            if (B.kind != "QuantifierApplication"
+                || B.quantifier != A.quantifier
+                || B.vars.length != A.vars.length)
+                return UNIFY_FAIL
+
+            let type_cnts: Map<Type | undefined, number> = new Map
+            for (let i = 0; i < A.vars.length; i++) {
+                scope.sort_ctx_a.set(A.vars[i].symbol.ident, A.vars[i].type)
+                scope.sort_ctx_b.set(B.vars[i].symbol.ident, B.vars[i].type)
+                
+                let tca: number | undefined = type_cnts.get(A.vars[i].type)
+                if (!tca) tca = 0
+                let tcb: number | undefined = type_cnts.get(B.vars[i].type)
+                if (!tcb) tcb = 0
+                type_cnts.set(A.vars[i].type, tca + 1)
+                type_cnts.set(B.vars[i].type, tcb - 1)
+            }
+
+            for (let [_,v] of type_cnts)
+                if (v != 0) return UNIFY_FAIL
+
+            return gen_unify(A.term, B.term, scope)
+            
+        }
+        case "FunctionApplication": {
+            let N = A.params.length
+            if (B.kind != "FunctionApplication"
+                || N != B.params.length
+                || A.fn != B.fn) return UNIFY_FAIL
+            
+            if (!CommOperators.has(A.fn)) {
+                for (let i = 0; i < A.params.length; i++) {
+                    let c_v = gen_unify(A.params[i], B.params[i], scope)
+                    if (c_v.kind == "UnifyFail") return UNIFY_FAIL
+                }
+                return scope
+            }
+
+            // repeating A/B cases to allow non-matching appTypes
+            // in terms of prefix/infix
+            if (A.appType == "ArrayElem"
+                || A.appType == "ArraySlice"
+                || A.appType == "UnaryFunc"
+                || A.appType == "UnaryOp"
+                || B.appType == "ArrayElem"
+                || B.appType == "ArraySlice"
+                || B.appType == "UnaryFunc"
+                || B.appType == "UnaryOp")
+                return UNIFY_FAIL
+            
+            return gen_unify_poss(0, A.params, B.params, 0, scope)
+        }
+    }
+}
+
+function bitmap_mex(bs: number, st: number = 0): number {
+    bs = bs >> st
+    let R = st;
+    while (bs & 1) {
+        R++;
+        bs = bs >> 1;
+    }
+    return R
+}
+
+function set_bit(N: number, i: number): number {
+    return N | (1 << i)
+}
+
+function gen_unify_poss(
+    i: number,
+    A: Term[],
+    B: Term[],
+    bitmap: number,
+    scope: UnifyScope): Unification 
+{
+    if (i >= A.length) return scope
+
+    let b_i: number | undefined = -1
+    while (true) {
+        b_i = bitmap_mex(bitmap, b_i + 1)
+        if (b_i >= B.length) return UNIFY_FAIL
+
+        push_scope(scope)
+        if (gen_unify(A[i], B[b_i], scope).kind == "UnifyScope") {
+            let res = gen_unify_poss(i + 1, A, B, set_bit(bitmap, b_i), scope)
+            if (res.kind == "UnifyScope") return scope
+        }
+        pop_scope(scope)
+    }
+}
+
+export function Z3Unifies(A_: Term, B_: Term): Boolean {
+    let A: Term = unify_preprocess(A_)
+    let B: Term = unify_preprocess(B_)
+
     LI.newProof();
     LI.setGoal({
         kind: "FunctionApplication",
         appType: "InfixOp",
-        fn: "<->",
+        fn: "<->",    
         params: [parenthesize(A), parenthesize(B)]
     });
     console.log(`${LI}`);

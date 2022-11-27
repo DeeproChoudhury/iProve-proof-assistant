@@ -558,23 +558,37 @@ export function evaluate(line: string): AST.ASTNode | ParseError {
 
 export default evaluate;
 
-/*
+
 let TD = (evaluate("type Listyy ::= Emptyyy | Consyy Listyy") as AST.TypeDef)
 let motive = (evaluate("FA (y:Listyy).[Q(x) & Q(y)]") as AST.Term)
-let motive2 = (evaluate("FA (y:Listyy).[Q(y) & Q(x)]") as AST.Term)
+let motive2 = (evaluate("FA (y:Listyy).[Q(x) & Q(x)]") as AST.Term)
 let motive3 = (evaluate("Q(x)") as AST.Term)
 let pt: AST.PrimitiveType = {
     kind: "PrimitiveType",
     ident: "Listyy"
 }
 const util = require("util")
-console.log(util.inspect(
-    AST.rec_on(pt, TD)('x', motive)
-, false, null, true))
-console.log(AST.display(AST.rec_on(pt, TD)('x', motive)))
-console.log(AST.Z3Unifies(AST.rec_on(pt, TD)('x', motive3), AST.rec_on(pt, TD)('x', motive2)))
-*/
 
+//console.log(util.inspect(
+//    AST.rec_on(pt, TD)('x', motive)
+//, false, null, true))
+//console.log(AST.display(AST.rec_on(pt, TD)('x', motive)))
+
+AST.LI.newProof();
+AST.LI.addGlobal(TD);
+console.log(`${AST.LI}`);
+AST.LI.newProof();
+//console.log(AST.Z3Unifies(AST.rec_on(pt, TD)('x', motive), AST.rec_on(pt, TD)('x', motive2)))
+
+console.log(util.inspect(AST.unify_preprocess((evaluate("FA x.[FA x.[x & y] & FA x.[k & x]]") as AST.Term)),
+    false, null, true))
+/*
+console.log(util.inspect(AST.gen_unify((evaluate("x & y") as AST.Term), (evaluate("x & y") as AST.Term), {
+    kind: "UnifyScope",
+    free_variables: new Set,
+    assignments: []
+}), false, null, true))
+*/
 /*
 const util = require("util")
 let ASTN0 = (evaluate("length :: [Int] -> Int") as AST.FunctionDeclaration)
