@@ -6,7 +6,7 @@ import { ErrorLocation } from "../types/ErrorLocation";
 import { ListField, StatementNodeData, StatementNodeType } from "../types/Node";
 import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
-import { getResults, invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks, StatementListCallbacks } from "./statementListCallbacks";
@@ -159,7 +159,7 @@ export const makeNodeCallbacks = (
       // should probably use getIncomers from reactflow
       const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
       const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
-      const givens = incomingNodes.map(node => getResults(node)).flat();
+      const givens = incomingNodes.flatMap(node => node.data.givens);
       const expImplications = node.data.givens;
       
       if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {

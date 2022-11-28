@@ -166,13 +166,14 @@ function Flow() {
       }]);
     }
     else {
+      const blankStatement = { value: '', wrappers: [] };
       setNodes(nds => [...nds, {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
-          givens: nodeType === 'proofNode' ? [] : [{ value: '', wrappers: [] }],
+          givens: nodeType === 'goalNode' ? [blankStatement] : [],
           proofSteps: [],
-          goals: nodeType === 'proofNode' ? [{ value: '', wrappers: [] },] : [],
+          goals: nodeType !== 'goalNode' ? [blankStatement] : [],
           declarationsRef,
           thisNode: makeThisNode(`${count}`)
         },

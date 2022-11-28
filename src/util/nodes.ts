@@ -1,6 +1,6 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { AnyNodeData, ListField, StatementNodeType, InductionNodeType, StatementNodeData } from "../types/Node";
+import { ListField, StatementNodeType, InductionNodeType, StatementNodeData } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
 
@@ -46,15 +46,6 @@ export const collided = (node1: Node, node2: Node): boolean => {
   const a: number = node1.position.x - node2.position.x;
   const b: number = node1.position.y - node2.position.y;
   return Math.sqrt(a * a + b * b) < 100;
-}
-
-export const getResults = (node: StatementNodeType | InductionNodeType): StatementType[] => {
-  switch (node.type) {
-    case "givenNode": return node.data.givens;
-    case "proofNode": return node.data.goals;
-    case "goalNode": return [];
-    case "inductionNode": return [];
-  }
 }
 
 export const shiftReasonsForNode = (
