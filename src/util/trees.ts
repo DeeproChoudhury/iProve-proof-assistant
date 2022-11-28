@@ -109,10 +109,11 @@ export function imply(L: AST.Term | undefined, R: AST.Term): AST.Term {
     }
 }
 
-export function parenthesize(t: AST.Term): AST.ParenTerm {
+export function parenthesize(t: AST.Term, isSquare: boolean = true): AST.ParenTerm {
     return {
         kind: "ParenTerm",
-        term: t
+        term: t,
+        isSquare: isSquare
     }
 }
 

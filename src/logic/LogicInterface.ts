@@ -88,6 +88,8 @@ export class LogicInterface {
             default: return `elem${n}`;
         }
     }
+
+    
     createTuple(n: number): boolean {
         if (this.rendered_tuples.has(n)) return false;
 

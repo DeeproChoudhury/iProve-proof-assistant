@@ -188,5 +188,6 @@ export type EquationTerm = {
 
 export type ParenTerm = { 
     kind: "ParenTerm",
-    term: Term
+    term: Term,
+    isSquare: boolean
 }

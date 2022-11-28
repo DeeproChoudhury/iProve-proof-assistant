@@ -195,7 +195,8 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
                     let [new_term, new_st] = RT(A.term, st)
                     return f({
                         kind: "ParenTerm",
-                        term: new_term
+                        term: new_term,
+                        isSquare: A.isSquare
                     }, new_st)
                 } case "ArrayLiteral": {
                     let [new_elems, new_st] = stateful_map(RT)(A.elems, st)
@@ -297,7 +298,8 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
                     let [new_term, new_st] = RT(A.term, st)
                     return [{
                         kind: "ParenTerm",
-                        term: new_term
+                        term: new_term,
+                        isSquare: A.isSquare
                     }, new_st]
                 } case "ArrayLiteral": {
                     let [new_elems, new_st] = stateful_map(RT)(A.elems, st)

@@ -1,8 +1,34 @@
-import { opt_sc, Token } from 'typescript-parsec';
+import { Parser, ParserOutput, ParseResult, Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule, ParseError } from 'typescript-parsec';
-import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, rep_sc, nil } from 'typescript-parsec';
+import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb } from 'typescript-parsec';
 import * as AST from "../types/AST"
 Error.stackTraceLimit = Infinity;
+
+function handle<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResult> {
+    return {
+        parse(token: Token<TKind> | undefined): ParserOutput<TKind, TResult> {
+            try {
+            return P.parse(token)
+            } catch (E) {
+                return {
+                    successful: false,
+                    error: {
+                        kind: "Error",
+                        pos: token?.pos,
+                        message: (E as Error).message
+                    }
+                }
+            }
+        }
+    }
+}
+
+function prec<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResult> {
+    return apply(
+        amb(P),
+        (x: TResult[]) => x[0]
+    )
+}
 
 enum TokenKind {
     NumberLiteral,
@@ -29,12 +55,14 @@ enum TokenKind {
     Paren,
     Guard,
     TypeKW,
-    CurlyBrace
+    CurlyBrace,
+    Times
 }
 
 const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^(::=)/g, TokenKind.DirEqToken],
+    [true, /^(×)/g, TokenKind.Times],
     [true, /^(:=)/g, TokenKind.FunDefToken],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(::)/g, TokenKind.DoubleColon],
@@ -107,6 +135,7 @@ const OPERATOR = rule<TokenKind, TermOperator>();
 
 
 VARIABLE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
+    //console.log("VARIABLE SUCCEEDS", s.text)
     return { kind: "Variable", ident: s.text }
 }));
 
@@ -138,7 +167,10 @@ LIST_TYPE.setPattern(apply(
 ));
 
 TUPLE_TYPE.setPattern(apply(
-    kmid(str("("), list_sc(TYPE, str(",")), str(")")),
+    alt(
+        kmid(str("("), list_sc(TYPE, str(",")), str(")")),
+        list_sc(TYPE, tok(TokenKind.Times))
+    ),
     (value): AST.TupleType =>
         ({ kind: "TupleType", params: value })
 ));
@@ -151,11 +183,9 @@ TYPE.setPattern(alt(
 ))
 
 
-
-
 FN_TYPE.setPattern(apply(
     seq(
-        kmid(opt(str("(")), list_sc(TYPE, str(",")), opt(str(")"))),
+        kmid(opt_sc(str("(")), list_sc(TYPE, str(",")), opt_sc(str(")"))),
         kright(str("->"), TYPE)),
     (value: [AST.Type[], AST.Type]): AST.FunctionType => {
         return { kind: "FunctionType", argTypes: value[0], retType: value[1] }
@@ -164,7 +194,7 @@ FN_TYPE.setPattern(apply(
 
 FN_DEC.setPattern(apply(
     seq(
-        kright(opt(str("fun")), tok(TokenKind.Symbol)),
+        kright(opt_sc(str("fun")), tok(TokenKind.Symbol)),
         kright(str("::"), FN_TYPE)),
     (value: [Token<TokenKind.Symbol>, AST.FunctionType]): AST.FunctionDeclaration => {
         return { kind: "FunctionDeclaration", symbol: value[0].text, type: value[1] }
@@ -173,7 +203,7 @@ FN_DEC.setPattern(apply(
 VAR_DEC.setPattern(apply(
     seq(
         kright(str("var"), VARIABLE),
-        opt(kright(str(":"), TYPE))),
+        opt_sc(kright(str(":"), TYPE))),
     (value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration => {
         return { kind: "VariableDeclaration", symbol: value[0], type: value[1] }
     }
@@ -188,7 +218,7 @@ TYPE_EXT.setPattern(apply(
 ));
 
 VAR_BIND.setPattern(apply(
-    seq(VARIABLE, opt(kright(str(":"), TYPE))),
+    seq(VARIABLE, opt_sc(kright(str(":"), TYPE))),
     (value: [AST.Variable, AST.Type | undefined]): AST.VariableBinding => {
         return { kind: "VariableBinding", symbol: value[0], type: value[1] }
     }
@@ -211,18 +241,27 @@ PREFIX_APPLY.setPattern(apply(
          }
     }
 ));
+
 PAREN_TERM.setPattern(apply(
-    kmid(str("["), TERM, str("]")),
-    (value: AST.Term): AST.ParenTerm => {
-        return { kind: "ParenTerm", term: value }
+    alt(
+        kright(str("["), seq(TERM, str("]"))),
+        kright(str("("), seq(TERM, str(")")))
+    ),
+    (value: [AST.Term, Token<TokenKind>]): AST.ParenTerm => {
+        return { kind: "ParenTerm", term: value[0], isSquare: value[1].text == "]" }
     }
 ));
+
 ATOMIC_TERM.setPattern(apply(
     seq(
-        alt(PREFIX_APPLY, PAREN_TERM, VARIABLE, ARRAY_LITERAL),
+        alt(
+            PREFIX_APPLY,
+            VARIABLE,
+            ARRAY_LITERAL,
+            PAREN_TERM),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
-            kmid(str("["), seq(apply(nil(), (_) => { return false; }), TERM, kright(str(".."), opt(TERM))), str(")")),
+            kmid(str("["), seq(apply(nil(), (_) => { return false; }), TERM, kright(str(".."), opt_sc(TERM))), str(")")),
             ))
     ),
     (value: [AtomicTerm, [boolean, AST.Term, AST.Term?][]]): AtomicTerm => {
@@ -271,11 +310,28 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
     "<->": [4, true, true],
 }
 
-TERM.setPattern(
+TERM.setPattern(handle(
     apply(
-        seq(alt(OPERATOR, ATOMIC_TERM), rep_sc(alt(OPERATOR, ATOMIC_TERM))),
-        (value: [TermOperator | AST.Term,  (TermOperator | AST.Term)[]]): AST.Term => {
-            let queue: (TermOperator | AST.Term)[] = [value[0]].concat(value[1]);
+        seq(
+            rep_sc(OPERATOR),
+            ATOMIC_TERM,
+            rep_sc(
+                seq(
+                    seq(OPERATOR, rep_sc(OPERATOR)),
+                    ATOMIC_TERM,
+                )
+            )
+        ),
+        (value: [TermOperator[], AtomicTerm, [[TermOperator, TermOperator[]], AtomicTerm][]]): AST.Term => {
+            let head: AST.Term = value[1]
+            let queue: (TermOperator | AST.Term)[] = value[0]
+            queue = queue.concat([head]).concat(value[2].map(
+                ([[op, ops], term]: [[TermOperator, TermOperator[]], AtomicTerm]) => {
+                    let R: (AST.Term | TermOperator)[] = [op]
+                    return R.concat(ops).concat(term)
+                }
+            ).flat())
+            //console.log("ENTERING TERM")
             queue.push({ kind: "Operator", appType: "End", left_assoc: false, precedence: 0 });
             let out_stack: AST.Term[] = [];
             let op_stack: TermOperator[] = [];
@@ -297,13 +353,16 @@ TERM.setPattern(
                             switch (stack_top.appType) {
                                 case "Unary": {
                                     let x = out_stack.pop();
-                                    if (!x) throw new Error("Syntax Error: Expected 1 argument, got none");
+                                    if (!x) 
+                                        throw new Error("Syntax Error: Expected 1 argument, got none");
                                     out_stack.push(stack_top.apply(x));
                                     break;
                                 } case "Binary": {
                                     let y = out_stack.pop();
                                     let x = out_stack.pop();
-                                    if (!x || !y) throw new Error("Syntax Error: Expected 2 arguments, got 1 or none");
+                                    if (!x || !y) 
+                                        throw new Error("Syntax Error: Expected 2 arguments, got 1 or none")
+                                        
                                     out_stack.push(stack_top.apply(x, y));
                                     break;
                                 } case "End": { }
@@ -314,17 +373,25 @@ TERM.setPattern(
                         break;
                     }
                     default: {
-                        if (prev_atom) throw new Error("Syntax Error: Cannot apply Term to Term");
-                        prev_atom = true;
-                        out_stack.push(token);
-                        break;
+                        if (prev_atom) {
+                            let fname = out_stack.pop()
+                            if (!fname || fname.kind != "Variable") 
+                                throw new Error("Syntax Error: Cannot apply Term to Term")
+                        } else {
+                            prev_atom = true;
+                            out_stack.push(token);
+                            break;
+                        }
                     }
                 }
             }
-            if (out_stack.length > 1) throw new Error("Syntax Error: Cannot apply Term to Term");
-            if (out_stack.length < 1) throw new Error("Syntax Error: Malformed Term");
+            if (out_stack.length > 1) 
+                throw new Error("Syntax Error: Cannot apply Term to Term")
+            if (out_stack.length < 1)
+                throw new Error("Syntax Error: Malformed Term")
+
             return out_stack[0];
-        })
+        }))
 );
 
 OPERATOR.setPattern(alt(
@@ -385,6 +452,9 @@ OPERATOR.setPattern(alt(
                 left_assoc: false,
                 precedence: 9,
                 apply: (t: AST.Term): AST.Term => {
+                    if (t.kind == "ParenTerm"
+                        && !t.isSquare)
+                        throw new Error("Syntax Error: Quantifiers must be followed by square braces");
                     return {
                         kind: "QuantifierApplication",
                         term: t,
