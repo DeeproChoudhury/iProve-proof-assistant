@@ -23,7 +23,7 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
-  const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.checkSyntax() }}>Check Syntax</Button>;
+  // const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.checkSyntax() }}>Check Syntax</Button>;
   const checkSatButton: ReactNode = 
     <Button size='xs' 
       colorScheme='blackAlpha' 
@@ -105,7 +105,7 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
         <DeleteNodePopover deleteNode={data.thisNode.delete} />
         {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
         {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
-        {checkSyntaxButton}
+        {/* {checkSyntaxButton} */}
         {checkSolveReady ? checkSatButton : solveNotReadyPopover}
       </div>
       {/* END: Node End Buttons */}

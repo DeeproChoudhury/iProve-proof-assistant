@@ -35,6 +35,7 @@ export const makeNodeCallbacks = (
   const statementLists = {
       givens,
       proofSteps: {
+        ...proofSteps,
         add: (index?: number) => {
           shiftReasons("proofSteps", index, 1);
           proofSteps.add(index);
@@ -48,13 +49,13 @@ export const makeNodeCallbacks = (
           shiftReasons("proofSteps", index, -1);
           proofSteps.remove(index);
         },
-        addReason: proofSteps.addReason,
         removeReason: (index: number) => {
           invalidateReason("proofSteps", index);
           proofSteps.removeReason(index);
         }
       },
       goals: {
+        ...goals,
         add: (index?: number) => {
           shiftReasons("goals", index, 1);
           goals.add(index);
@@ -68,7 +69,6 @@ export const makeNodeCallbacks = (
           shiftReasons("proofSteps", index, -1);
           goals.remove(index);
         },
-        addReason: goals.addReason,
         removeReason: (index: number) => {
           invalidateReason("goals", index);
           goals.removeReason(index);
@@ -188,7 +188,7 @@ export const makeNodeCallbacks = (
       console.log(smtConclusions);
       const output = await z3.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)")
       const success = output === "unsat\n";
-      setNodeWithId(setNodes, nodeId)((node) => {
+      setNode((node) => {
         //set nodes
         return {
           ...node,
@@ -214,7 +214,7 @@ export const makeNodeCallbacks = (
       // this is run whenever the user leaves the input field of a statement and sees if 
       // any indentations can be updated (only goes through proofSteps since no indentations 
       // should be possible in givens and goals
-      setNodeWithId(setNodes, nodeId)((n) => {
+      setNode((n) => {
         const wrappers = [];
         const proofSteps = [];
         for (const oldStep of n.data.proofSteps) {
