@@ -1,15 +1,14 @@
 import { MutableRefObject } from "react";
-import { Edge, Node } from "reactflow";
+import { Edge } from "reactflow";
 import { ASTSMTLIB2, isBlockEnd, isBlockStart, isTerm } from "../parser/AST";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { ListField, StatementNodeData, StatementNodeType } from "../types/Node";
-import { CheckStatus } from "../types/Reason";
+import { StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
-import { makeStatementListCallbacks, StatementListCallbacks } from "./statementListCallbacks";
+import { makeStatementListCallbacks } from "./statementListCallbacks";
 
 
 export const makeNodeCallbacks = (
@@ -116,9 +115,9 @@ export const makeNodeCallbacks = (
         const parsed = s.parsed;
         return !(parsed.kind === "VariableDeclaration" || 
           parsed.kind === "EndScope" || 
-          parsed.kind == "BeginScope" || 
-          parsed.kind == "FunctionDeclaration" || 
-          parsed.kind == "Assumption"); 
+          parsed.kind === "BeginScope" || 
+          parsed.kind === "FunctionDeclaration" || 
+          parsed.kind === "Assumption"); 
       }
 
       for (const goal of goals) {

@@ -28,6 +28,7 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
     <Button size='xs' 
       colorScheme='blackAlpha' 
       onClick={() => { 
+        data.thisNode.checkSyntax();
         onSolveModalOpen();
       }}>
       Solve
