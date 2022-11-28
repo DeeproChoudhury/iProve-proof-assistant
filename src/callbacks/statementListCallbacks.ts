@@ -55,6 +55,7 @@ export const makeStatementListCallbacks = (
         }
         return result;
       });
+    },
     updateWithStatement: (index: number, statement: StatementType) => {
       setStatements(statements => {
         const result = [...statements];
