@@ -9,8 +9,8 @@ export default function GivenNode({ data }: NodeProps<StatementNodeData>) {
     <Box className="given-node">
       <StatementList
         title="Givens"
-        statements={data.givens}
-        callbacks={data.thisNode.givens}
+        statements={data.goals}
+        callbacks={data.thisNode.goals}
         afterStatementEdit={data.thisNode.checkSyntax}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>

@@ -159,7 +159,7 @@ export const makeNodeCallbacks = (
       // should probably use getIncomers from reactflow
       const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
       const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
-      const givens = incomingNodes.flatMap(node => node.data.givens);
+      const givens = incomingNodes.flatMap(node => node.data.goals);
       const expImplications = node.data.givens;
       
       if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
