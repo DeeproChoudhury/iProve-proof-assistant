@@ -1,5 +1,5 @@
 import { Box, Radio, RadioGroup } from '@chakra-ui/react';
-import { display } from "../parser/AST";
+import { display } from "../logic/AST";
 import { StatementType } from '../types/Statement';
 
 export type ModalStatementPropsType = {

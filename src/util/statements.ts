@@ -1,5 +1,5 @@
-import { ASTSMTLIB2, isTerm, Line, toWrapperFunc } from "../parser/AST";
-import evaluate from "../parser/fol-parser";
+import { ASTSMTLIB2, isTerm, Line, toWrapperFunc } from "../logic/AST";
+import evaluate from "../logic/Parser";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";

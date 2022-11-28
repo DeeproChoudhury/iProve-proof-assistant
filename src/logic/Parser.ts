@@ -4,7 +4,6 @@ import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, rep_sc, n
 import * as AST from './AST'
 Error.stackTraceLimit = Infinity;
 
-
 enum TokenKind {
     NumberLiteral,
     Symbol,

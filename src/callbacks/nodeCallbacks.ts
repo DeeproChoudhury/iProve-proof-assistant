@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 import { Edge, Node } from "reactflow";
-import { ASTSMTLIB2, isBlockEnd, isBlockStart, isTerm } from "../parser/AST";
+import { ASTSMTLIB2, isBlock../logic/ASTtart, isTerm } from "../parser/AST";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { ListField, StatementNodeData, StatementNodeType } from "../types/Node";

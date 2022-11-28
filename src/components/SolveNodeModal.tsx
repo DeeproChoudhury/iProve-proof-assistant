@@ -3,7 +3,7 @@ import {
   ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Tooltip
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import { ASTSMTLIB2, isTerm } from '../parser/AST';
+import { ASTSMTLIB2, isTerm } from '../logic/AST';
 import Z3Solver from '../solver/Solver';
 import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';

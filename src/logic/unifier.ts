@@ -1,0 +1,154 @@
+function gen_unify_poss(
+    i: number,
+    A: Term[],
+    B: Term[],
+    bitmap: number,
+    scope: UnifyScope): Unification 
+{
+    if (i >= A.length) return scope
+
+    let b_i: number | undefined = -1
+    while (true) {
+        b_i = bitmap_mex(bitmap, b_i + 1)
+        if (b_i >= B.length) return UNIFY_FAIL
+
+        push_scope(scope)
+        if (gen_unify(A[i], B[b_i], scope).kind == "UnifyScope") {
+            let res = gen_unify_poss(i + 1, A, B, set_bit(bitmap, b_i), scope)
+            if (res.kind == "UnifyScope") return scope
+        }
+        pop_scope(scope)
+    }
+}
+
+export function gen_unify(A: Term | undefined, B: Term | undefined, scope: UnifyScope): Unification {
+    if (!A || !B) {
+        return ((!A) && (!B))
+            ? scope : UNIFY_FAIL
+    }
+
+    switch (A.kind) {
+        case "ArrayLiteral": {
+            if (B.kind != "ArrayLiteral"
+                || A.elems.length != B.elems.length) return UNIFY_FAIL
+            
+            let c_v: Unification = scope;
+            for (let i = 0; i < A.elems.length; i++) {
+                c_v = gen_unify(A.elems[i], B.elems[i], c_v)
+                if (c_v.kind == "UnifyFail") return UNIFY_FAIL
+            }
+            return c_v;
+        }
+        case "EquationTerm": {
+            if (B.kind != "EquationTerm") return UNIFY_FAIL
+            let lhs_verdict = gen_unify(A.lhs, B.lhs, scope)
+            let rhs_verdict = gen_unify(A.rhs, B.rhs, scope)
+            if (rhs_verdict.kind == "UnifyFail" || lhs_verdict.kind == "UnifyFail")
+                return UNIFY_FAIL
+
+            return scope
+        }
+        case "ParenTerm": {
+            if (B.kind != "ParenTerm") return UNIFY_FAIL
+            return gen_unify(A.term, B.term, scope)
+        }
+        case "Variable": {
+            if (B.kind != "Variable") return UNIFY_FAIL
+
+            if (!scope.sort_ctx_a.has(A.ident) || 
+                !scope.sort_ctx_b.has(B.ident) )
+                return (A.ident == B.ident) ? scope : UNIFY_FAIL
+
+            if (!get_from_scope(scope, A.ident)) {
+                let set_verdict = set_in_scope(scope, A.ident, B.ident);
+                if (!set_verdict) return UNIFY_FAIL
+            }
+
+            return (get_from_scope(scope, A.ident) == B.ident)
+                ? scope
+                : UNIFY_FAIL
+        }
+        case "QuantifierApplication": {
+            const util = require("util")
+            
+            if (B.kind != "QuantifierApplication"
+                || B.quantifier != A.quantifier
+                || B.vars.length != A.vars.length)
+                return UNIFY_FAIL
+
+            let type_cnts: Map<string, number> = new Map
+            let d_ = (x: Type | undefined): string => {
+                if (!x) return "any"
+                return d(x)
+            }
+            for (let i = 0; i < A.vars.length; i++) {
+                scope.sort_ctx_a.set(A.vars[i].symbol.ident, d_(A.vars[i].type))
+                scope.sort_ctx_b.set(B.vars[i].symbol.ident, d_(B.vars[i].type))
+                
+                let tca: number | undefined = type_cnts.get(d_(A.vars[i].type))
+                if (!tca) tca = 0
+                type_cnts.set(d_(A.vars[i].type), tca + 1)
+                let tcb: number | undefined = type_cnts.get(d_(B.vars[i].type))
+                if (!tcb) tcb = 0
+                type_cnts.set(d_(B.vars[i].type), tcb - 1)
+            }
+
+            //console.log(type_cnts)
+            for (let [_,v] of type_cnts)
+                if (v != 0) return UNIFY_FAIL
+
+            return gen_unify(A.term, B.term, scope)
+            
+        }
+        case "FunctionApplication": {
+            let N = A.params.length
+            if (B.kind != "FunctionApplication"
+                || N != B.params.length
+                || A.fn != B.fn) return UNIFY_FAIL
+            
+            if (!CommOperators.has(A.fn)) {
+                for (let i = 0; i < A.params.length; i++) {
+                    let c_v = gen_unify(A.params[i], B.params[i], scope)
+                    if (c_v.kind == "UnifyFail") return UNIFY_FAIL
+                }
+                return scope
+            }
+
+            // repeating A/B cases to allow non-matching appTypes
+            // in terms of prefix/infix
+            if (A.appType == "ArrayElem"
+                || A.appType == "ArraySlice"
+                || A.appType == "UnaryFunc"
+                || A.appType == "UnaryOp"
+                || B.appType == "ArrayElem"
+                || B.appType == "ArraySlice"
+                || B.appType == "UnaryFunc"
+                || B.appType == "UnaryOp")
+                return UNIFY_FAIL
+            
+            return gen_unify_poss(0, A.params, B.params, 0, scope)
+        }
+    }
+}
+
+export function unifies(A_: Term, B_: Term): AlphaAssignment | UnifyFail {
+    let A: Term = unify_preprocess(A_)
+    let B: Term = unify_preprocess(B_)
+
+    let verdict: Unification = gen_unify(B, A, {
+        kind: "UnifyScope",
+        sort_ctx_a: new Map,
+        sort_ctx_b: new Map,
+        assignments: [new Map]
+    })
+
+    return (verdict.kind == "UnifyFail")
+    ? verdict
+    : { kind: "AlphaAssignment",
+        term: replace_vars(verdict.assignments.reduce((x, y) => {
+            return new Map([...y,...x])
+        }, new Map()))(basic_preprocess(B_)),
+        assn: verdict.assignments.reduce((x, y) => {
+            return new Map([...y,...x])
+        }, new Map()) }
+}
