@@ -88,25 +88,6 @@ export type TupleType = {
     params: Type[]
 }
 
-export type Type = PrimitiveType | ParamType | ListType | TupleType
-export type PrimitiveType = { 
-    kind: "PrimitiveType",
-    ident: string
-}
-export type ParamType = { 
-    kind: "ParamType",
-    ident: string,
-    params: Type[]
-}
-export type ListType = { 
-    kind: "ListType",
-    param: Type
-}
-export type TupleType = {
-    kind: "TupleType",
-    params: Type[]
-}
-
 export type FunctionType = {
     kind: "FunctionType",
     argTypes: Type[],
@@ -654,10 +635,6 @@ export class LogicInterface {
         }
     }
 
-
-
-export const ASTSMTLIB2: (line: Line | undefined) => string = s;
-
     // LEGACY DONT USE
     ast2smtlib(a: ASTNode | undefined) : string {
         if(a === undefined) return "NULL"
@@ -705,6 +682,7 @@ export const ASTSMTLIB2: (line: Line | undefined) => string = s;
 
     //rec_on(t: TypeDef): (x: Variable)
 }
+
 
 // Given a function f: Term -> Term, returns a function which, given an AST A,
 // returns the AST corresponding to a recursive application of f to the terms
@@ -867,13 +845,17 @@ export function map_terms<T>(f: StatefulTransformer<Term, T>, init: T, lazy: boo
                         
                         case "ArraySlice": {
                             let [new_param_1, st_1] = RT(A.params[0], st)
-                            let [new_param_2, st_2] = RT_(A.params[1], st_1)
+                            let [new_param_2, st_2] = RT(A.params[1], st_1)
                             let [new_param_3, st_3] = RT_(A.params[2], st_2)
+                            let new_params : [Term, Term, Term] | [Term, Term]
+                                = (new_param_3)
+                                    ? [new_param_1, new_param_2, new_param_3]
+                                    : [new_param_1, new_param_2]
                             return f({
                                 kind: "FunctionApplication",
                                 appType: A.appType,
                                 fn: A.fn,
-                                params: [new_param_1, new_param_2, new_param_3]
+                                params: new_params
                             }, st_3);
                         }
                     }
@@ -965,13 +947,17 @@ export function map_terms<T>(f: StatefulTransformer<Term, T>, init: T, lazy: boo
                         
                         case "ArraySlice": {
                             let [new_param_1, st_1] = RT(A.params[0], st)
-                            let [new_param_2, st_2] = RT_(A.params[1], st_1)
+                            let [new_param_2, st_2] = RT(A.params[1], st_1)
                             let [new_param_3, st_3] = RT_(A.params[2], st_2)
+                            let new_params : [Term, Term, Term] | [Term, Term]
+                                = (new_param_3)
+                                    ? [new_param_1, new_param_2, new_param_3]
+                                    : [new_param_1, new_param_2]
                             return [{
                                 kind: "FunctionApplication",
                                 appType: A.appType,
                                 fn: A.fn,
-                                params: [new_param_1, new_param_2, new_param_3]
+                                params: new_params
                             }, st_3];
                         }
                     }
