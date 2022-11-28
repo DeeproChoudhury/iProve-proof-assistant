@@ -24,8 +24,8 @@ const ModalStatement = (props: ModalStatementPropsType) => {
         <RadioGroup size='sm' onChange={setTag} value={tag}>
           <div style={{display: 'flex', flexDirection: 'column', marginRight: '10px'}}>
             <Radio value='0'>Not Selected</Radio>
-            <Radio value='1' isDisabled={isReasonDisabled}>Reason</Radio>
-            <Radio value='2' isDisabled={isConclusionDisabled}>Conclusion</Radio>
+            <Radio value='1' isDisabled={isReasonDisabled || statement.parsed.kind == "EndScope" || statement.parsed.kind == "BeginScope" }>Reason</Radio>
+            <Radio value='2' isDisabled={isConclusionDisabled || statement.parsed.kind == "EndScope"  || statement.parsed.kind == "BeginScope" }>Conclusion</Radio>
           </div>
         </RadioGroup>
       </div>

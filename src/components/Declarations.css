@@ -5,4 +5,14 @@
   padding: 5px;
   margin: 5px;
   width: 300px;
+  position: absolute;
+  z-index: 2;
+}
+
+.closed {
+  opacity: 100%;
+}
+
+.open {
+  opacity: 0%;
 }

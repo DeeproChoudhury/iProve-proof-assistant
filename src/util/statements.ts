@@ -1,4 +1,4 @@
-import { Line } from "../parser/AST";
+import { ASTSMTLIB2, isTerm, Line, toWrapperFunc } from "../parser/AST";
 import evaluate from "../parser/fol-parser";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
@@ -15,4 +15,10 @@ export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) =>
     statement.syntaxCorrect = true;
   }
   return statement;
+}
+
+export const statementToZ3 = (statement: StatementType): string => {
+  if (!statement.parsed) return "";
+  else if (isTerm(statement.parsed)) return ASTSMTLIB2(statement.wrappers.map(toWrapperFunc).reduceRight((accTerm, wrapperFunc) => wrapperFunc(accTerm), statement.parsed)) ?? "";
+  else return ASTSMTLIB2(statement.parsed);
 }

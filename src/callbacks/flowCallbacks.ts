@@ -1,17 +1,17 @@
 import { MutableRefObject } from "react";
 import { Edge, NodeChange, applyNodeChanges, EdgeChange, applyEdgeChanges, Connection, addEdge, Node } from "reactflow";
-import { NodeData } from "../types/Node";
+import { InductionNodeData, InductionNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { collided } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { NodeCallbacks } from "./nodeCallbacks";
 
-export const makeFlowCallbacks = (nodes: Node<NodeData>[], setNodes: Setter<Node<NodeData>[]>, setEdges: Setter<Edge[]>, declarationsRef: MutableRefObject<StatementType[]>, nextId: () => number, makeThisNode: (id: string) => NodeCallbacks) => ({
+export const makeFlowCallbacks = (nodes: StatementNodeType[], inductionNodes: InductionNodeType[], setNodes: Setter<StatementNodeType[]>, setInductionNodes: Setter<InductionNodeType[]>, setEdges: Setter<Edge[]>, declarationsRef: MutableRefObject<StatementType[]>, nextId: () => number, makeThisNode: (id: string) => NodeCallbacks) => ({
   onNodeDragStop: (event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
     if (node.data.type !== 'statement') return;
 
-    const other: Node<NodeData> | undefined = nodes
-      .filter((other) => other.data.type === 'statement')
+    const other: StatementNodeType | undefined = nodes
+      .filter((other) => other.type === 'proofNode')
       .find((other) => other.id !== node.id && collided(node, other));
 
     if (!other) return;
@@ -22,8 +22,6 @@ export const makeFlowCallbacks = (nodes: Node<NodeData>[], setNodes: Setter<Node
       id: `${count}`,
       data: {
         label: `Node ${count}`,
-        id: count,
-        type: 'statement',
         givens: first.data.givens,
         proofSteps: [
           ...first.data.proofSteps,
@@ -36,10 +34,13 @@ export const makeFlowCallbacks = (nodes: Node<NodeData>[], setNodes: Setter<Node
         thisNode: makeThisNode(`${count}`)
       },
       position: { x: other.position.x, y: other.position.y },
-      type: 'textUpdater',
+      type: 'proofNode',
     }]);
   },
-  onNodesChange: (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+  onNodesChange: (changes: NodeChange[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds) as StatementNodeType[]);
+    setInductionNodes((nds) => applyNodeChanges(changes, nds) as InductionNodeType[]);
+  },
   onEdgesChange: (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
   onConnect: (params: Connection) => {
     setEdges((eds) => addEdge({...params, 

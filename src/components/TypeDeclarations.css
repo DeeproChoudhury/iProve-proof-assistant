@@ -1,0 +1,18 @@
+.types {
+    border: 2px solid black;
+    border-radius: 5px;
+    background: rgb(156, 96, 56);
+    padding: 5px;
+    margin: 5px;
+    width: 300px;
+    position: absolute;
+    z-index: 2;
+  }
+  
+  .closed {
+    opacity: 100%;
+  }
+  
+  .open {
+    opacity: 0%;
+  }

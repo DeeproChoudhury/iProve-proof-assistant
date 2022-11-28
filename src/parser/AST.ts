@@ -88,6 +88,25 @@ export type TupleType = {
     params: Type[]
 }
 
+export type Type = PrimitiveType | ParamType | ListType | TupleType
+export type PrimitiveType = { 
+    kind: "PrimitiveType",
+    ident: string
+}
+export type ParamType = { 
+    kind: "ParamType",
+    ident: string,
+    params: Type[]
+}
+export type ListType = { 
+    kind: "ListType",
+    param: Type
+}
+export type TupleType = {
+    kind: "TupleType",
+    params: Type[]
+}
+
 export type FunctionType = {
     kind: "FunctionType",
     argTypes: Type[],
@@ -99,7 +118,7 @@ export type VariableBinding = {
     symbol: Variable,
     type?: Type
 }
-
+export type BlockStart = VariableDeclaration | Assumption | BeginScope;
 export type Line = TypeExt | Declaration | Term | Tactic | FunctionDefinition | TypeDef
 
 export type TypeExt = {
@@ -170,7 +189,7 @@ export type ArraySlice = {
     kind: "FunctionApplication",
     appType: "ArraySlice",
     fn: "???", // TODO
-    params: [Term, Term?, Term?]
+    params: [Term, Term] | [Term, Term, Term]
 }
 
 export type QuantifierApplication = {
@@ -277,6 +296,45 @@ function d(a: ASTNode): string {
 
 export const display: (line: Line) => string = d
 
+export const isBlockStart = (line: Line): line is BlockStart => {
+return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";
+}
+
+export const isBlockEnd = (line: Line): line is EndScope => {
+return line.kind === "EndScope";
+}
+
+export const toWrapperFunc = (w: BlockStart): ((term: Term) => Term) => {
+if (w.kind === "VariableDeclaration") {
+    return term => ({
+    kind: "QuantifierApplication",
+    quantifier: "A",
+    vars: [{
+        kind: "VariableBinding",
+        symbol: w.symbol,
+        type: w.type
+    }],
+    term
+    });
+} else if (w.kind === "Assumption") {
+    return term => ({
+    kind: "FunctionApplication",
+    appType: "InfixOp",
+    fn: "=>",
+    params: [w.arg, term]
+    });
+} else if (w.kind === "BeginScope") {
+    return term => term
+} throw "unsupported BlockStart"; // why isn't this unreachable
+}
+
+export const isTerm = (line: Line): line is Term => {
+return line.kind === "Variable"
+    || line.kind === "FunctionApplication"
+    || line.kind === "QuantifierApplication"
+    || line.kind === "EquationTerm"
+    || line.kind === "ParenTerm"
+}
 
 export type PatternData = {
     conditions: string[],
@@ -596,6 +654,9 @@ export class LogicInterface {
         }
     }
 
+
+
+export const ASTSMTLIB2: (line: Line | undefined) => string = s;
 
     // LEGACY DONT USE
     ast2smtlib(a: ASTNode | undefined) : string {

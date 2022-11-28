@@ -8,6 +8,7 @@ import {
   PopoverArrow,
   PopoverCloseButton,
   Tooltip,
+  Text,
 } from '@chakra-ui/react';
 import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
 import './Statement.css';
@@ -20,19 +21,31 @@ export type StatementPropsType = {
   index?: number;
   onChange: (e: any) => void;
   proofNode?: boolean;
-  addAbove?: () => void;
-  addBelow?: () => void;
-  deleteStatement?: () => void;
+  addAbove: () => void;
+  addBelow: () => void;
+  deleteStatement: () => void;
+  afterEdit?: () => void;
+  setWrappers?: () => void;
 }
 
 const Statement = (props: StatementPropsType) => {
   const input = useRef<HTMLInputElement>(null);
-  const {statement, index = 0, onChange, addAbove = () => {}, addBelow = () => {}, deleteStatement = () => {}, proofNode = false} = props;
+  const {statement, index = 0, onChange, addAbove, addBelow, deleteStatement, proofNode = false, afterEdit = () => {}, setWrappers = () => {}} = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [isFocused, setFocused] = useState<boolean>(false);
-  const onFocus = () => setFocused(true);
-  const onBlur = () => setFocused(false);
-
+  const [oldValue, setOldValue] = useState<string>("");
+  const onFocus = () => {
+    setFocused(true);
+    setOldValue(statement.value);
+  };
+  const onBlur = () => {
+    setFocused(false);
+    if (statement.value !== oldValue) afterEdit();
+  };
+  
+  /**
+   * Popout for adding/deleting statement lines
+   */
   const moreOptions = 
     <Popover isOpen={isOpen} onClose={onClose}>
       <PopoverTrigger>
@@ -59,16 +72,16 @@ const Statement = (props: StatementPropsType) => {
 
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
+  const indentSize = 15 * statement.wrappers.length;
   const reasonsLabel = statement.reason && (statement.reason.dependencies.length === 0 ? 'lemma' : `from ${statement.reason.dependencies.map(r => `(${r + 1})`).join(", ")}`)
-
   return (
-    <div style={{display: 'flex'}}>
-      <div style={{margin: 'auto 5px'}}>({index + 1})</div>
+    <div style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
+      <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {statement.reason && <Tooltip label={reasonsLabel} fontSize='xs'>
         <CheckIcon style={{margin: 'auto 5px'}}/>
       </Tooltip>}
-      {moreOptions}
+      {proofNode && moreOptions}
     </div>
   )
 }

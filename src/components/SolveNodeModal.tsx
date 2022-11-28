@@ -3,18 +3,19 @@ import {
   ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Tooltip
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import { ASTSMTLIB2 } from '../parser/AST';
+import { ASTSMTLIB2, isTerm } from '../parser/AST';
 import Z3Solver from '../solver/Solver';
-import { NodeData } from '../types/Node';
+import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { z3Reason } from '../util/reasons';
+import { statementToZ3 } from '../util/statements';
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
   onClose: () => void,
-  node: NodeData,
+  node: StatementNodeData,
 }
 
 const SolveNodeModal = (props: SolveNodeModalPropsType) => {
@@ -42,37 +43,35 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   }
 
   const localZ3Solver = new Z3Solver.Z3Prover("");
-  const solveZ3 = async () => {
-    setCheckFailed(false);
+  const solveZ3 = () => {
     const reasonsIndexes = node.givens.concat(node.proofSteps, node.goals).map((g, i) => tags[i] === '1' ? i : -1).filter((i) => i >= 0)
     const reasons = node.givens.concat(node.proofSteps, node.goals).filter((g, i) => tags[i] === '1')
-    const conclusionType = node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goal" : "proofStep";
-    const conclusionIndex = conclusionType === "proofStep" ?
+    const conclusionType = node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goals" : "proofSteps";
+    const conclusionIndex = conclusionType === "proofSteps" ?
       node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') :
       node.goals.findIndex((s, i) => tags[node.givens.length + node.proofSteps.length + i] === '2');
-    const conclusion = conclusionType === "proofStep" ? node.proofSteps[conclusionIndex] : node.goals[conclusionIndex];
-    if (!conclusion) {
+    const conclusion = conclusionType === "proofSteps" ? node.proofSteps[conclusionIndex] : node.goals[conclusionIndex];
+    if (reasons.some(r => !r.parsed) || !conclusion.parsed) {
       setCheckFailed(true);
       return;
     }
-    const declarations = node.declarationsRef.current.map(declaration => {
-      return ASTSMTLIB2(declaration.parsed);
-    }).join("\n");
+    const declarations = node.declarationsRef.current.map(statementToZ3).join("\n");
     const smtReasons = reasons.map(reason => {
-      if (reason.parsed?.kind === "FunctionDeclaration" || reason.parsed?.kind === "VariableDeclaration") {
-        return ASTSMTLIB2(reason.parsed);
-      }
-      return `(assert ${ASTSMTLIB2(reason.parsed)})`
+      const reasonStr = statementToZ3(reason);
+      if (!reason.parsed) return "";
+      if (isTerm(reason.parsed)) return `(assert ${reasonStr})`;
+      else return reasonStr;
     }).join("\n");
     console.log(declarations);
     console.log(smtReasons);
-    const smtConclusion = "(assert (not " + ASTSMTLIB2(conclusion?.parsed) + "))";
+    const smtConclusion = "(assert (not " + ASTSMTLIB2(conclusion.parsed) + "))";
     console.log(smtConclusion);
     localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
       if (output === "unsat\n") {
-        node.thisNode.statementList(conclusionType).addReason(conclusionIndex, z3Reason(reasonsIndexes));
+        node.thisNode[conclusionType].addReason(conclusionIndex, z3Reason(reasonsIndexes));
+        setCheckFailed(false);
       } else {
-        node.thisNode.statementList(conclusionType).removeReason(conclusionIndex);
+        node.thisNode[conclusionType].removeReason(conclusionIndex);
         setCheckFailed(true);
       }
     })
@@ -94,7 +93,8 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
                 tag={tags[index]}
                 setTag={(v: string) => onChange(v, index)}
                 isReasonDisabled={isReasonDisabled(index)}
-                isConclusionDisabled={true} />
+                isConclusionDisabled={true} 
+                key={index}/>
             )}
           </div>
           <Text>Proof Steps</Text>
@@ -105,7 +105,8 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
                 index={node.givens.length + index}
                 tag={tags[node.givens.length + index]}
                 setTag={(v: string) => onChange(v, node.givens.length + index)}
-                isReasonDisabled={isReasonDisabled(node.givens.length + index)} />
+                isReasonDisabled={isReasonDisabled(node.givens.length + index)} 
+                key={index}/>
             )}
           </div>
           <Text>Goals</Text>
@@ -116,7 +117,8 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
                 index={node.givens.length + node.proofSteps.length + index}
                 tag={tags[node.givens.length + node.proofSteps.length + index]}
                 setTag={(v: string) => onChange(v, node.givens.length + node.proofSteps.length + index)}
-                isReasonDisabled={isReasonDisabled(node.givens.length + node.proofSteps.length + index)} />
+                isReasonDisabled={isReasonDisabled(node.givens.length + node.proofSteps.length + index)} 
+                key={index}/>
             )}
           </div>
         </ModalBody>
