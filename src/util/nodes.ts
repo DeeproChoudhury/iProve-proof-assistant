@@ -109,19 +109,19 @@ export const invalidateReasonForNode = (
     const proofSteps = [...oldProofSteps];
     const goals = [...oldGoals];
     const absI = index + givens.length + (k === "goals" ? proofSteps.length : 0);
-    const removed = [absI];
     for (let i = absI; i < givens.length + proofSteps.length + goals.length; i++) {
       const [statements, relI] = i < givens.length + proofSteps.length ? [proofSteps, i - givens.length] : [goals, i - givens.length - proofSteps.length];
       const statement = statements[relI];
       if (!statement.reason) continue;
-
       const deps = statement.reason.dependencies;
 
-      if (deps.some(x => removed.includes(x))) {
-        removed.push(i);
+      if (relI === index || deps.includes(absI)) {
         statements[relI] = {
           ...statement,
-          reason: undefined
+          reason: {
+            ...statement.reason,
+            status: "unchecked"
+          }
         }
       }
     }
