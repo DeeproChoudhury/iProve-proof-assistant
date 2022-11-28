@@ -1,9 +1,29 @@
+/*
+    combinator.ts
+
+    This file declares utility functions which use the combinator style
+    to operate on ASTs
+*/
 import { StatefulTransformer } from "../types/LogicInterface";
 import * as AST from "../types/AST";
 
-// Given a function f: Term -> Term, returns a function which, given an AST A,
-// returns the AST corresponding to a recursive application of f to the terms
-// of A.
+/**
+ * This function allows for applying term transformations recursively over
+ * a whole AST, given a function which operates over one node at a time.
+ * It takes a function from (Term, T) => (Term, T), where T is a mutable state
+ * variable which can be threaded through recursive calls. For types
+ * passed by reference, the state will **not** be copied during recursive calls
+ *
+ * @typeParam T - The internal state type
+ * 
+ * @param f    - The function to be mapped
+ * @param init - The initial state supplied to the function at the root node
+ * @param lazy - If true, the function will be applied to itself before its
+ *               children (top-down), otherwise it will be applied bottom-up
+ *               (default: false)
+ * @returns The function which recursively applies f to Terms
+ * 
+ */
 export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy: boolean = false): (A: AST.Term) => [AST.Term, T] {
     var R: StatefulTransformer<AST.ASTNode, T>
     var RT: (A: AST.Term, st: T, seen?: boolean) => [AST.Term, T]
@@ -319,11 +339,22 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
     return (x: AST.Term) => RT(x, init);
 }
 
-export function stateless_map_terms(f: (x: AST.Term) => AST.Term): (x: AST.Term) => AST.Term {
-    //console.log(MT)
-    let MT = map_terms((x: AST.Term, st) => ([f(x), undefined]), undefined)
+/**
+ * This function provides a wrapped for stateless functios Term => Term to
+ * be mapped with map_term
+ * 
+ * @param f    - The function to be mapped
+ * @param lazy - If true, the function will be applied to itself before its
+ *               children (top-down), otherwise it will be applied bottom-up
+ *               (default: false)
+ * @returns The function which recursively applies f to Terms
+ * 
+ */
+export function stateless_map_terms(f: (x: AST.Term) => AST.Term, lazy: boolean = false): (x: AST.Term) => AST.Term {
+    let MT = map_terms((x: AST.Term, st) => ([f(x), undefined]), undefined, lazy)
     return (x: AST.Term) => {
         //console.log(x)
+        //console.log(x, MT(x))
         return MT(x)[0];
     }
 }

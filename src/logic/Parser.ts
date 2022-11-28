@@ -1,14 +1,26 @@
-import { Parser, ParserOutput, ParseResult, Token } from 'typescript-parsec';
-import { buildLexer, expectEOF, expectSingleResult, rule, ParseError } from 'typescript-parsec';
-import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb } from 'typescript-parsec';
+import { Parser, ParserOutput, Token, ParseError } from 'typescript-parsec';
+import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
+import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb, lrec_sc } from 'typescript-parsec';
 import * as AST from "../types/AST"
+import { UnifyScope } from '../types/LogicInterface';
+import { display } from '../util/trees';
+import { unifies } from './unifier';
 Error.stackTraceLimit = Infinity;
 
+/**
+ * A parser combinator which, given an unsafe (can throw unhandled errors)
+ * parser, will handle any error thrown at parse time, and instead 
+ * convert this error into a ts-parsec error
+ * 
+ * @param P - The unsafe parser
+ * @returns The safe equivalent of `P`
+ * 
+ */
 function handle<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResult> {
     return {
         parse(token: Token<TKind> | undefined): ParserOutput<TKind, TResult> {
             try {
-            return P.parse(token)
+                return P.parse(token)
             } catch (E) {
                 return {
                     successful: false,
@@ -23,12 +35,32 @@ function handle<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResul
     }
 }
 
+/**
+ * A parser combinator which, given a ambiguous parser `P`, will return a
+ * deterministic parser which takes the first match of `P`
+ * 
+ * @param P - The non-deterministic parser
+ * @returns The deterministic equivalent of `P`
+ * 
+ */
 function prec<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResult> {
     return apply(
         amb(P),
         (x: TResult[]) => x[0]
     )
 }
+
+/**
+ * A parser combinator which allows debug output to be added to parsers
+ * on success
+ * 
+ * @param P - Parser
+ * @param msg - debug message to print alongside parser output
+ * @returns Debugging Parser
+ * 
+ */
+function debug<T,S>(P: Parser<T,S>, msg: string): Parser<T,S>
+    { return apply(P, (v) => { console.log(msg, v); return v }) }
 
 enum TokenKind {
     NumberLiteral,
@@ -56,16 +88,18 @@ enum TokenKind {
     Guard,
     TypeKW,
     CurlyBrace,
-    Times
+    Times,
+    Colon
 }
 
 const lexer = buildLexer([
     [true, /^(FA|EX)/g, TokenKind.QntToken],
     [true, /^(::=)/g, TokenKind.DirEqToken],
-    [true, /^(×)/g, TokenKind.Times],
-    [true, /^(:=)/g, TokenKind.FunDefToken],
-    [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(::)/g, TokenKind.DoubleColon],
+    [true, /^(:=)/g, TokenKind.FunDefToken],
+    [true, /^(:)/g, TokenKind.Colon],
+    [true, /^(×)/g, TokenKind.Times],
+    [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(\[\])/g, TokenKind.EmptyArray],
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(\}|\{)/g, TokenKind.CurlyBrace],
@@ -167,10 +201,7 @@ LIST_TYPE.setPattern(apply(
 ));
 
 TUPLE_TYPE.setPattern(apply(
-    alt(
-        kmid(str("("), list_sc(TYPE, str(",")), str(")")),
-        list_sc(TYPE, tok(TokenKind.Times))
-    ),
+    kmid(str("("), list_sc(TYPE, alt(tok(TokenKind.Times), str(","))), str(")")),
     (value): AST.TupleType =>
         ({ kind: "TupleType", params: value })
 ));
@@ -218,7 +249,7 @@ TYPE_EXT.setPattern(apply(
 ));
 
 VAR_BIND.setPattern(apply(
-    seq(VARIABLE, opt_sc(kright(str(":"), TYPE))),
+    seq(VARIABLE, kright(str(":"), TYPE)),
     (value: [AST.Variable, AST.Type | undefined]): AST.VariableBinding => {
         return { kind: "VariableBinding", symbol: value[0], type: value[1] }
     }
@@ -323,6 +354,7 @@ TERM.setPattern(handle(
             )
         ),
         (value: [TermOperator[], AtomicTerm, [[TermOperator, TermOperator[]], AtomicTerm][]]): AST.Term => {
+            //console.log(value)
             let head: AST.Term = value[1]
             let queue: (TermOperator | AST.Term)[] = value[0]
             queue = queue.concat([head]).concat(value[2].map(
@@ -354,14 +386,14 @@ TERM.setPattern(handle(
                                 case "Unary": {
                                     let x = out_stack.pop();
                                     if (!x) 
-                                        throw new Error("Syntax Error: Expected 1 argument, got none");
+                                        throw new Error("Expected 1 argument, got none");
                                     out_stack.push(stack_top.apply(x));
                                     break;
                                 } case "Binary": {
                                     let y = out_stack.pop();
                                     let x = out_stack.pop();
                                     if (!x || !y) 
-                                        throw new Error("Syntax Error: Expected 2 arguments, got 1 or none")
+                                        throw new Error("Expected 2 arguments, got 1 or none")
                                         
                                     out_stack.push(stack_top.apply(x, y));
                                     break;
@@ -376,7 +408,7 @@ TERM.setPattern(handle(
                         if (prev_atom) {
                             let fname = out_stack.pop()
                             if (!fname || fname.kind != "Variable") 
-                                throw new Error("Syntax Error: Cannot apply Term to Term")
+                                throw new Error("Cannot apply Term to Term")
                         } else {
                             prev_atom = true;
                             out_stack.push(token);
@@ -386,9 +418,9 @@ TERM.setPattern(handle(
                 }
             }
             if (out_stack.length > 1) 
-                throw new Error("Syntax Error: Cannot apply Term to Term")
+                throw new Error("Cannot apply Term to Term")
             if (out_stack.length < 1)
-                throw new Error("Syntax Error: Malformed Term")
+                throw new Error("Malformed Term")
 
             return out_stack[0];
         }))
@@ -439,6 +471,7 @@ OPERATOR.setPattern(alt(
                 kmid(str("("), list_sc(VAR_BIND, str(",")), kleft(str(")"),str(".")))
                 )
         ), (value: [Token<TokenKind.QntToken>, AST.Variable[] | AST.VariableBinding[]]): UnaryOperator => {
+            //console.log(value)
             let decs : AST.VariableBinding[] = [];
             for (let v of value[1]) {
                 switch (v.kind) {
@@ -454,7 +487,7 @@ OPERATOR.setPattern(alt(
                 apply: (t: AST.Term): AST.Term => {
                     if (t.kind == "ParenTerm"
                         && !t.isSquare)
-                        throw new Error("Syntax Error: Quantifiers must be followed by square braces");
+                        throw new Error("Quantifiers must be followed by square braces");
                     return {
                         kind: "QuantifierApplication",
                         term: t,
@@ -616,15 +649,19 @@ PROOF_LINE.setPattern(alt(
 ));
 
 
-
+/**
+ * The main entry point for the FOL parser. Given a string, returns either
+ * the AST which results from parsing it as a line in the iProve language
+ * syntax, or a ParseError.
+ * 
+ * @param line - The iProve language line to parse
+ * @returns An iProve AST or ParseError
+ * 
+ */
 export function evaluate(line: string): AST.ASTNode | ParseError {
-    try {
-        let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
-        if (!A.successful) return A.error;
-        return expectSingleResult(A);
-    } catch (E) {
-        return { kind: "Error", message: (E as Error).message, pos: undefined }
-    }
+    let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
+    if (!A.successful) return A.error;
+    return expectSingleResult(A);
 }
 
 export default evaluate;

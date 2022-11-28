@@ -13,13 +13,14 @@ export const CommOperators: Set<string> = new Set([
     "||"
 ])
 
-// TODO: this function should be able to squash quantifiers down when what they
-// quantify over only appears in one parameter of a function application
-// but this requires leaf->root recursion over AST (or gross memoization :/)
-// EDIT: Because JS isn't lazy, our recursion actually IS leaf-> root so now
-// I've added a state to thread through this can get refactored
-// EDIT: Need to think more about what allowing Prop-valued parameters
-// does to our ability to do this in a PNF-syle.
+/**
+ * Given an AST Term, if it's a quantifier whose child term is a quantifier
+ * of the same type, then the term and its child will be merged
+ * 
+ * @param A - The term to squash
+ * @returns The squashed term
+ * 
+ */
 function squash_quantifier(A: AST.Term): AST.Term {
     return (
         A.kind == "QuantifierApplication"
@@ -32,16 +33,26 @@ function squash_quantifier(A: AST.Term): AST.Term {
         quantifier: A.quantifier
     } : A
 }
+
+/**
+ * This function merges all adjacent quantifiers in a term into each other by
+ * concatenating their variable bindings
+ * 
+ * @param A - The term to squash
+ * @returns The squashed term
+ * 
+ */
 export const squash_quantifiers = stateless_map_terms(squash_quantifier)
 
-// An associative chain is any repeated application of associative binary
-// operators. This function extracts them either with the ignore_parens
-// flag set to false (in which case this simply flattens nested left-associative)
-// applications), or true (in which case this flattens THROUGH parentheses).
-//
-// In the way we're using it, ignore_parens means that we are exploiting
-// associativity of (& / | / +(over ints) / *(over ints)), whereas disabling
-// it allows us to account for commutativity without exploiting associativity
+/**
+ * This is the private single-term function from which extract_assoc is
+ * built
+ * 
+ * @param A             - The term to merge
+ * @param ignore_parens - The merge-through-parens flag
+ * @returns The merged term
+ * 
+ */
 function assoc_chain(A: AST.Term, ignore_parens: Boolean = false): AST.Term {
     return (
         A.kind == "FunctionApplication"
@@ -61,12 +72,39 @@ function assoc_chain(A: AST.Term, ignore_parens: Boolean = false): AST.Term {
         }).flat()
     } : A
 }
+
+/**
+ * An associative chain is any repeated application of associative binary
+ * operators. This function, given an ignore_parens flag, returns a function which
+ * extracts them into a single application to many arguments.
+ *
+ * @remarks
+ * 
+ * If `ignore_parens` is set, then associativity will actually be exploited
+ * in the reduction by ignoring any explicit parenthesisation of terms. Otherwise
+ * this will be respected, only flattening out structure imposed by the term
+ * parser itself.
+ * In the way we're using it, it that we are exploiting associativity of (& / |),
+ * whereas disabling it allows us to account for commutativity without exploiting
+ * associativity
+ * 
+ * @param ignore_parens - The merge-through-parens flag
+ * @returns The merging function
+ * 
+ */
 export function extract_assoc(ignore_parens: Boolean = false)
 : (x: AST.Term) => AST.Term {
     return stateless_map_terms((x_: AST.Term): AST.Term => assoc_chain(x_, ignore_parens))
 } 
 
-// 0-ary functions can be normalized to variables
+/**
+ * Given a 0-ary function application, will return a variable of the same
+ * identifier
+ * 
+ * @param A - The term to normalize
+ * @returns The normalized term
+ * 
+ */
 function variablize(A: AST.Term): AST.Term {
     return (A.kind == "FunctionApplication"
         && (A.appType == "PrefixFunc"
@@ -80,16 +118,49 @@ function variablize(A: AST.Term): AST.Term {
         }
         : A
 }
+/**
+ * Given a term, will normalize all instances of 0-ary function application to
+ * variable nodes
+ * 
+ * @param A - The term to normalize
+ * @returns The normalized term
+ * 
+ */
 export const normalize_constants = stateless_map_terms(variablize);
 
-// Once in the AST, we can remove all unneccessary parens
+/**
+ * Removes parentheses from a ParenTerm
+ * 
+ * @param A - The term to normalize
+ * @returns The normalized term
+ * 
+ */
 function unparenthesize(A: AST.Term): AST.Term {
     return (A.kind == "ParenTerm")
         ? A.term
         : A
 }
+/**
+ * Given a term, will remove all explicit parentheses, since these are not
+ * required (other than for display purposes) once the AST is built from input
+ * 
+ * @param A - The term to normalize
+ * @returns The normalized term
+ * 
+ */
 export const remove_parens = stateless_map_terms(unparenthesize)
 
+/**
+ * The constituent function for renaming_pass. Given a term and a state
+ * counting the nested occurrences of each identifier as a bound variable up
+ * to this depth in the AST, appropriately renames any identifiers in a
+ * QuantifierApplication or Variable node
+ * 
+ * @param A - The term to rename
+ * @param S - The current renaming state
+ * @returns A pair of the renamed term, and state updated to reflect new identifiers
+ * 
+ */
 function rename_vars(A: AST.Term, S: RenameState): [AST.Term, RenameState] {
     switch(A.kind) {
         case "ArrayLiteral":
@@ -135,9 +206,25 @@ function rename_vars(A: AST.Term, S: RenameState): [AST.Term, RenameState] {
     }
 }
 
+/**
+ * Given a term, will rewrite all bound variables such that they have unique
+ * identifiers which cannot conflict with free variables.
+ * 
+ * @param A - The term to rename
+ * @returns The term after a renaming pass
+ * 
+ */
 export function rename_pass(A: AST.Term): AST.Term
     { return map_terms(rename_vars, new Map, true)(A)[0]; }
 
+/**
+ * Given a term, nondestructively normalizes by squashing quantifiers,
+ * renaming bound variables, and normalizing 0-ary functions
+ * 
+ * @param A - The term to process
+ * @returns The term after processing
+ * 
+ */
 export function basic_preprocess(A: AST.Term): AST.Term {
     return squash_quantifiers(
         rename_pass (
@@ -146,6 +233,14 @@ export function basic_preprocess(A: AST.Term): AST.Term {
     )
 }
 
+/**
+ * Given a term, prepares it for unification by performing basic_preprocess
+ * followed by removing all parentheses and merging associative chains
+ * 
+ * @param A - The term to process
+ * @returns The term after processing
+ * 
+ */
 export function unify_preprocess(A: AST.Term): AST.Term {
     return extract_assoc()(
         remove_parens(
@@ -155,9 +250,22 @@ export function unify_preprocess(A: AST.Term): AST.Term {
 }
 
 const alpha_regex: RegExp = /^IProveAlpha_(\d+)_/
+/**
+ * Given a map from strings to strings, returns the simplifier function
+ * which replaces all occurences of identifiers in the keys of `M` with
+ * their value in `M`
+ * 
+ * @param M - The identifier renaming lookup table
+ * @param unalpha - If set, this function will also undo rename_vars processing
+ *                  (default: true) 
+ * @returns The term after renaming
+ * 
+ */
 function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: AST.Term) => AST.Term {
-    let MGet = (xi: string): string | undefined => 
-        (unalpha) ? M.get(xi) : M.get(xi)?.replace(alpha_regex, '')
+    let MGet_ = (xi: string): string =>
+        { let R = M.get(xi); return (R) ? R : xi; }
+    let MGet = (xi: string): string => 
+        (unalpha) ? MGet_(xi) : MGet_(xi)?.replace(alpha_regex, '')
     return (A: AST.Term): AST.Term => {
         switch (A.kind) {
             case "ArrayLiteral":
@@ -169,14 +277,11 @@ function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: AST.T
             case "QuantifierApplication": {
                 let VL: AST.VariableBinding[] = []
                 for (let vb of A.vars) {
-                    let MG = MGet(vb.symbol.ident)
-                    if (MG) {
-                        VL.push({
-                            kind: "VariableBinding",
-                            symbol: mk_var(MG),
-                            type: vb.type
-                        })
-                    }
+                    VL.push({
+                        kind: "VariableBinding",
+                        symbol: mk_var(MGet(vb.symbol.ident)),
+                        type: vb.type
+                    })
                 }
                 return {
                     kind: "QuantifierApplication",
@@ -185,11 +290,8 @@ function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: AST.T
                     vars: VL
                 }
             }
-            case "Variable": {
-                let MG = MGet(A.ident)
-                if (MG) return mk_var(MG)
-                return A
-            }
+            case "Variable":
+                return mk_var(MGet(A.ident))
 
         }
     }

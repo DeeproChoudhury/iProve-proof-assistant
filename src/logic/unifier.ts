@@ -29,7 +29,22 @@ function gen_unify_poss(
     }
 }
 
-export function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: UnifyScope): Unification {
+/**
+ * The recursive driver function around which `unifies` is a wrapper.
+ * 
+ * @remarks
+ * 
+ * This process uses recursion with backtracking to attempt to find a satisfying
+ * alpha-assignment, and on failure will reorder any conjunctions. This
+ * is factorial in the number of nested commutative operations.
+ * 
+ * @param A - The first term
+ * @param B - The second term
+ * @param scope - The scope containing current assignments and sorts
+ * @returns Either an unpdated assignment, or a UnifyFail
+ * 
+ */
+function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: UnifyScope): Unification {
     if (!A || !B) {
         return ((!A) && (!B))
             ? scope : UNIFY_FAIL
@@ -139,7 +154,26 @@ export function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scop
     }
 }
 
-export function unifies(A_: AST.Term, B_: AST.Term): AlphaAssignment | UnifyFail {
+/**
+ * Given terms A,B, attempts to generate an alpha-equivalence between them,
+ * applying axioms of associativity and commutativity of operators if
+ * needed.
+ * 
+ * @remarks
+ * 
+ * We call this process of alpha-equivalence finding *unification*, as we
+ * are specifically employing the axioms that
+ *   - `AND, OR` are commutative
+ *   - `AND, OR` are associative
+ * Hence given the terms `A & [B & A]` and `[X & X] & Y`, the equivalence X => A,
+ * Y => B will be found even though these are not structurally equal terms.
+ * 
+ * @param A_ - The first term (whose variables will be the keys of the mapping)
+ * @param B_ - The second term (whose variables will be the values of the mapping)
+ * @returns Either a satisfying assignment, or undefined if there is none
+ * 
+ */
+export function unifies(A_: AST.Term, B_: AST.Term): AlphaAssignment | undefined {
     let A: AST.Term = unify_preprocess(A_)
     let B: AST.Term = unify_preprocess(B_)
 
@@ -151,7 +185,7 @@ export function unifies(A_: AST.Term, B_: AST.Term): AlphaAssignment | UnifyFail
     })
 
     return (verdict.kind == "UnifyFail")
-    ? verdict
+    ? undefined
     : { kind: "AlphaAssignment",
         term: replace_vars(verdict.assignments.reduce((x, y) => {
             return new Map([...y,...x])
