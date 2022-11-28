@@ -1,7 +1,7 @@
 import { opt_sc, Token } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule, ParseError } from 'typescript-parsec';
 import { alt, apply, kmid, opt, seq, str, tok, kright, kleft, list_sc, rep_sc, nil } from 'typescript-parsec';
-import * as AST from './AST'
+import * as AST from "../types/AST"
 Error.stackTraceLimit = Infinity;
 
 enum TokenKind {
@@ -558,91 +558,3 @@ export function evaluate(line: string): AST.ASTNode | ParseError {
 }
 
 export default evaluate;
-
-
-let TD = (evaluate("type Listyy ::= Emptyyy | Consyy Listyy") as AST.TypeDef)
-let motive = (evaluate("FA (y:Listyy).[Q(x) & Q(y)]") as AST.Term)
-let motive2 = (evaluate("FA (y:Listyy).[Q(x) & Q(x)]") as AST.Term)
-let motive3 = (evaluate("Q(x)") as AST.Term)
-let pt: AST.PrimitiveType = {
-    kind: "PrimitiveType",
-    ident: "Listyy"
-}
-const util = require("util")
-
-//console.log(util.inspect(
-//    AST.rec_on(pt, TD)('x', motive)
-//, false, null, true))
-//console.log(AST.display(AST.rec_on(pt, TD)('x', motive)))
-
-AST.LI.newProof();
-AST.LI.addGlobal(TD);
-console.log(`${AST.LI}`);
-AST.LI.newProof();
-//console.log(AST.Z3Unifies(AST.rec_on(pt, TD)('x', motive), AST.rec_on(pt, TD)('x', motive2)))
-const EMPTY_SCOPE: AST.UnifyScope = {
-    kind: "UnifyScope",
-    sort_ctx_a: new Map,
-    sort_ctx_b: new Map,
-    assignments: [new Map]
-}
-//console.log(util.inspect(AST.unify_preprocess((evaluate("x & FA (x:Int).x") as AST.Term)),
-//   false, null, true))
-/*
-console.log(util.inspect(AST.unifies(
-        (evaluate("x & FA (x:Int,y:Int).[x & y]") as AST.Term),
-        (evaluate("x & FA (z:Int,y:Int).[y & z]") as AST.Term)
-    ),
-    false, null, true))
-*/
-let verdict = AST.unifies(
-    (evaluate("x & FA (x:Int,y:Int).[x & y & x & y]") as AST.Term),
-    (evaluate("x & FA (z:Int,y:Int).[[y & y] & [z & z]]") as AST.Term)
-)
-if (verdict.kind == "UnifyFail") {
-    console.log("ERROR")
-} else {
-    console.log(AST.display(verdict.term))
-}
-/*
-console.log(util.inspect(AST.gen_unify((evaluate("x & y") as AST.Term), (evaluate("x & y") as AST.Term), {
-    kind: "UnifyScope",
-    free_variables: new Set,
-    assignments: []
-}), false, null, true))
-*/
-/*
-const util = require("util")
-let ASTN0 = (evaluate("length :: [Int] -> Int") as AST.FunctionDeclaration)
-let ASTN1 = (evaluate("length (_::as) ::= 1 + length(as)")  as AST.FunctionDefinition)
-let ASTN2 = (evaluate("length [] ::= 0")  as AST.FunctionDefinition)
-
-let ASTN4 = (evaluate("length(x) > 0") as AST.Term)
-let ASTN3 = (evaluate("var x : [Int]") as AST.ASTNode)
-console.log(util.inspect(ASTN0, false, null, true));
-console.log(util.inspect(ASTN1, false, null, true));
-console.log(util.inspect(ASTN2, false, null, true));
-
-AST.LI.addFnDecl(ASTN0);
-AST.LI.addFnDef(ASTN1);
-AST.LI.addFnDef(ASTN2);
-
-AST.LI.addGiven(ASTN3)
-
-AST.LI.setGoal(ASTN4)
-
-console.log(`${AST.LI}`);
-*/
-
-/*
-(assert (implies
-(and (P (as seq.empty (Seq Int)))
-(forall ((x (Seq Int))) (forall ((y Int)) (implies (P x) (P (seq.++ x (seq.unit y)))))))
-(forall ((x (Seq Int))) (P x))
-))
-
-(assert (P (as seq.empty (Seq Int))))
-(assert (forall ((x (Seq Int))) (forall ((y Int)) (implies (P x) (P (seq.++ x (seq.unit y)))))))
-
-(assert (not (forall ((x (Seq Int))) (P x))))
-*/

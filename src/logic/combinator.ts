@@ -110,7 +110,7 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
         }
     }
 
-    RT = (A: Term, st: T, seen?: boolean): [Term, T] => {
+    RT = (A: AST.Term, st: T, seen?: boolean): [AST.Term, T] => {
         if (!lazy) {
             switch (A.kind) {
                 // ARE TERMS AND CAN CONTAIN THEM
@@ -163,7 +163,7 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
                             let [new_param_1, st_1] = RT(A.params[0], st)
                             let [new_param_2, st_2] = RT(A.params[1], st_1)
                             let [new_param_3, st_3] = RT_(A.params[2], st_2)
-                            let new_params : [Term, Term, Term] | [Term, Term]
+                            let new_params : [AST.Term, AST.Term, AST.Term] | [AST.Term, AST.Term]
                                 = (new_param_3)
                                     ? [new_param_1, new_param_2, new_param_3]
                                     : [new_param_1, new_param_2]
@@ -265,7 +265,7 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
                             let [new_param_1, st_1] = RT(A.params[0], st)
                             let [new_param_2, st_2] = RT(A.params[1], st_1)
                             let [new_param_3, st_3] = RT_(A.params[2], st_2)
-                            let new_params : [Term, Term, Term] | [Term, Term]
+                            let new_params : [AST.Term, AST.Term, AST.Term] | [AST.Term, AST.Term]
                                 = (new_param_3)
                                     ? [new_param_1, new_param_2, new_param_3]
                                     : [new_param_1, new_param_2]
@@ -314,13 +314,13 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
         }
     }
 
-    return (x: Term) => RT(x, init);
+    return (x: AST.Term) => RT(x, init);
 }
 
-export function stateless_map_terms(f: (x: Term) => Term): (x: Term) => Term {
+export function stateless_map_terms(f: (x: AST.Term) => AST.Term): (x: AST.Term) => AST.Term {
     //console.log(MT)
-    let MT = map_terms((x: Term, st) => ([f(x), undefined]), undefined)
-    return (x: Term) => {
+    let MT = map_terms((x: AST.Term, st) => ([f(x), undefined]), undefined)
+    return (x: AST.Term) => {
         //console.log(x)
         return MT(x)[0];
     }

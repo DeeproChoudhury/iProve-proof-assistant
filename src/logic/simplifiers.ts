@@ -1,9 +1,14 @@
-const AssocOperators: Set<string> = new Set([
+import * as AST from "../types/AST"
+import { RenameState } from "../types/LogicInterface"
+import { mk_var, seek_parens } from "../util/trees"
+import { map_terms, stateless_map_terms } from "./combinator"
+
+export const AssocOperators: Set<string> = new Set([
     "&",
     "||"
 ])
 
-const CommOperators: Set<string> = new Set([
+export const CommOperators: Set<string> = new Set([
     "&",
     "||"
 ])
@@ -15,7 +20,7 @@ const CommOperators: Set<string> = new Set([
 // I've added a state to thread through this can get refactored
 // EDIT: Need to think more about what allowing Prop-valued parameters
 // does to our ability to do this in a PNF-syle.
-function squash_quantifier(A: Term): Term {
+function squash_quantifier(A: AST.Term): AST.Term {
     return (
         A.kind == "QuantifierApplication"
         && A.term.kind == "QuantifierApplication"
@@ -37,7 +42,7 @@ export const squash_quantifiers = stateless_map_terms(squash_quantifier)
 // In the way we're using it, ignore_parens means that we are exploiting
 // associativity of (& / | / +(over ints) / *(over ints)), whereas disabling
 // it allows us to account for commutativity without exploiting associativity
-function assoc_chain(A: Term, ignore_parens: Boolean = false): Term {
+function assoc_chain(A: AST.Term, ignore_parens: Boolean = false): AST.Term {
     return (
         A.kind == "FunctionApplication"
         && A.appType != "ArrayElem" && A.appType != "ArraySlice"
@@ -46,8 +51,8 @@ function assoc_chain(A: Term, ignore_parens: Boolean = false): Term {
         kind: "FunctionApplication",
         appType: "PrefixOp",
         fn: A.fn,
-        params: A.params.map((sub: Term): Term[] => {
-            let w_sub: Term = (ignore_parens) ? seek_parens(sub) : sub
+        params: A.params.map((sub: AST.Term): AST.Term[] => {
+            let w_sub: AST.Term = (ignore_parens) ? seek_parens(sub) : sub
             return (w_sub.kind == "FunctionApplication"
                 && w_sub.appType != "ArrayElem" && w_sub.appType != "ArraySlice"
                 && A.fn == w_sub.fn)
@@ -57,12 +62,12 @@ function assoc_chain(A: Term, ignore_parens: Boolean = false): Term {
     } : A
 }
 export function extract_assoc(ignore_parens: Boolean = false)
-: (x: Term) => Term {
-    return stateless_map_terms((x_: Term): Term => assoc_chain(x_, ignore_parens))
+: (x: AST.Term) => AST.Term {
+    return stateless_map_terms((x_: AST.Term): AST.Term => assoc_chain(x_, ignore_parens))
 } 
 
 // 0-ary functions can be normalized to variables
-function variablize(A: Term): Term {
+function variablize(A: AST.Term): AST.Term {
     return (A.kind == "FunctionApplication"
         && (A.appType == "PrefixFunc"
             || A.appType == "PrefixOp"
@@ -78,14 +83,14 @@ function variablize(A: Term): Term {
 export const normalize_constants = stateless_map_terms(variablize);
 
 // Once in the AST, we can remove all unneccessary parens
-function unparenthesize(A: Term): Term {
+function unparenthesize(A: AST.Term): AST.Term {
     return (A.kind == "ParenTerm")
         ? A.term
         : A
 }
 export const remove_parens = stateless_map_terms(unparenthesize)
 
-function rename_vars(A: Term, S: RenameState): [Term, RenameState] {
+function rename_vars(A: AST.Term, S: RenameState): [AST.Term, RenameState] {
     switch(A.kind) {
         case "ArrayLiteral":
         case "EquationTerm":
@@ -94,7 +99,7 @@ function rename_vars(A: Term, S: RenameState): [Term, RenameState] {
             return [A, S]
 
         case "QuantifierApplication": {
-            let nvd: VariableBinding[] = []
+            let nvd: AST.VariableBinding[] = []
             for (let v of A.vars) {
                 let VI = S.get(v.symbol.ident)
                 if (VI && VI > 0) {
@@ -130,10 +135,10 @@ function rename_vars(A: Term, S: RenameState): [Term, RenameState] {
     }
 }
 
-export function rename_pass(A: Term): Term
+export function rename_pass(A: AST.Term): AST.Term
     { return map_terms(rename_vars, new Map, true)(A)[0]; }
 
-export function basic_preprocess(A: Term): Term {
+export function basic_preprocess(A: AST.Term): AST.Term {
     return squash_quantifiers(
         rename_pass (
             normalize_constants(A)
@@ -141,7 +146,7 @@ export function basic_preprocess(A: Term): Term {
     )
 }
 
-export function unify_preprocess(A: Term): Term {
+export function unify_preprocess(A: AST.Term): AST.Term {
     return extract_assoc()(
         remove_parens(
             basic_preprocess(A)
@@ -150,10 +155,10 @@ export function unify_preprocess(A: Term): Term {
 }
 
 const alpha_regex: RegExp = /^IProveAlpha_(\d+)_/
-function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: Term) => Term {
+function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: AST.Term) => AST.Term {
     let MGet = (xi: string): string | undefined => 
         (unalpha) ? M.get(xi) : M.get(xi)?.replace(alpha_regex, '')
-    return (A: Term): Term => {
+    return (A: AST.Term): AST.Term => {
         switch (A.kind) {
             case "ArrayLiteral":
             case "EquationTerm":
@@ -162,7 +167,7 @@ function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: Term)
                 return A
             
             case "QuantifierApplication": {
-                let VL: VariableBinding[] = []
+                let VL: AST.VariableBinding[] = []
                 for (let vb of A.vars) {
                     let MG = MGet(vb.symbol.ident)
                     if (MG) {
@@ -189,6 +194,6 @@ function replace_var(M: Map<string, string>, unalpha: boolean = true): (A: Term)
         }
     }
 }
-function replace_vars(M: Map<string, string>, unalpha: boolean = false): (x: Term) => Term {
+export function replace_vars(M: Map<string, string>, unalpha: boolean = false): (x: AST.Term) => AST.Term {
     return stateless_map_terms(replace_var(M, unalpha))
 }

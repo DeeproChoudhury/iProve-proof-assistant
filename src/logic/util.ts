@@ -1,8 +1,13 @@
+import * as AST from "../types/AST"
+import { UnifyScope } from "../types/LogicInterface";
+import { AssocOperators } from "./simplifiers";
+import { map_terms } from "./combinator"
+
 /*
     Display Functions
 */
 
-function fnDisplay(fn: string): string {
+export function fnDisplay(fn: string): string {
     switch (fn) {
         case "~": return "¬"; 
         case "&": return "∧";
@@ -14,7 +19,7 @@ function fnDisplay(fn: string): string {
     }
 }
 
-function fnSMT(fn: string): string {
+export function fnSMT(fn: string): string {
     switch (fn) {
         case "~": return "not";
         case "&": return "and";
@@ -72,10 +77,10 @@ export function set_bit(N: number, i: number): number {
     Complexity safety functions
 */
 
-function assoc_length(A: Term, c: number): [Term, number] {
+function assoc_length(A: AST.Term, c: number): [AST.Term, number] {
     return [A, (A.kind == "FunctionApplication" && AssocOperators.has(A.fn))
         ? Math.max(A.params.length, c)
         : c]
 }
 const mapped_AL = map_terms(assoc_length, 0)
-export const max_assoc_length = (x: Term): number => mapped_AL(x)[1]
+export const max_assoc_length = (x: AST.Term): number => mapped_AL(x)[1]

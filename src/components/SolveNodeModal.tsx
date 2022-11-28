@@ -3,12 +3,13 @@ import {
   ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Tooltip
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import { ASTSMTLIB2, isTerm } from '../logic/AST';
 import Z3Solver from '../solver/Solver';
 import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { z3Reason } from '../util/reasons';
 import { statementToZ3 } from '../util/statements';
+import { isTerm } from '../util/trees';
+import { ASTSMTLIB2 } from "../logic/LogicInterface";
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
 

@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { Button, IconButton, useDisclosure } from '@chakra-ui/react';
 import {
   Popover,
@@ -11,10 +12,8 @@ import {
   Text,
 } from '@chakra-ui/react';
 import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
-import './Statement.css';
-import { useRef, useState../logic/ASTt";
-import { display } from "../parser/AST";
 import { StatementType } from '../types/Statement';
+import { display } from '../util/trees';
 
 export type StatementPropsType = {
   statement: StatementType;

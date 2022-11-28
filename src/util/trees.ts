@@ -1,4 +1,8 @@
-function d(a: ASTNode): string {
+import { stateless_map_terms } from "../logic/combinator";
+import { fnDisplay } from "../logic/util";
+import * as AST from "../types/AST"
+
+function d(a: AST.ASTNode): string {
     switch (a.kind) {
         case "PrimitiveType": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
@@ -54,9 +58,9 @@ function d(a: ASTNode): string {
         case "ArrayLiteral": return `{ ${a.elems.map(d).join(", ")} }`
     }
 }
-export const display: (line: Line) => string = d
+export const display: (line: AST.ASTNode) => string = d
 
-export const isTerm = (line: Line): line is Term => (
+export const isTerm = (line: AST.Line): line is AST.Term => (
     line.kind === "Variable"
         || line.kind === "FunctionApplication"
         || line.kind === "QuantifierApplication"
@@ -64,7 +68,7 @@ export const isTerm = (line: Line): line is Term => (
         || line.kind === "ParenTerm"
 )
 
-export function construct_type(con: TypeConstructor, params: Variable[]): PrefixApplication {
+export function construct_type(con: AST.TypeConstructor, params: AST.Variable[]): AST.PrefixApplication {
     return {
         kind: "FunctionApplication",
         appType: "PrefixFunc",
@@ -73,19 +77,19 @@ export function construct_type(con: TypeConstructor, params: Variable[]): Prefix
     }
 }
 
-export function mk_var(ident: string): Variable {
+export function mk_var(ident: string): AST.Variable {
     return {
         kind: "Variable",
         ident: ident
     }
 }
 
-export function range_over(t: Term, vars: [Variable, Type][]): Term {
+export function range_over(t: AST.Term, vars: [AST.Variable, AST.Type][]): AST.Term {
     return vars.length ?
     {
         kind: "QuantifierApplication",
         term: parenthesize(t),
-        vars: vars.map((v: [Variable, Type]) => ({
+        vars: vars.map((v: [AST.Variable, AST.Type]) => ({
             kind: "VariableBinding",
             symbol: v[0],
             type: v[1]
@@ -95,7 +99,7 @@ export function range_over(t: Term, vars: [Variable, Type][]): Term {
     : t
 }
 
-export function imply(L: Term | undefined, R: Term): Term {
+export function imply(L: AST.Term | undefined, R: AST.Term): AST.Term {
     if (!L) return R;
     return {
         kind: "FunctionApplication",
@@ -105,7 +109,7 @@ export function imply(L: Term | undefined, R: Term): Term {
     }
 }
 
-export function parenthesize(t: Term): ParenTerm {
+export function parenthesize(t: AST.Term): AST.ParenTerm {
     return {
         kind: "ParenTerm",
         term: t
@@ -113,16 +117,67 @@ export function parenthesize(t: Term): ParenTerm {
 }
 
 // NOTE: For obvious reasons, this will not rewrite in itself. 
-export function strict_rw(goal: Term, L: Term, R: Term): Term {
-    let f = (x: Term): Term => {
+export function strict_rw(goal: AST.Term, L: AST.Term, R: AST.Term): AST.Term {
+    let f = (x: AST.Term): AST.Term => {
         let term_equal: Boolean = JSON.stringify(L) == JSON.stringify(x);
         return term_equal ? R : x
     }
     return stateless_map_terms(f)(goal);
 }
 
-export function seek_parens(A: Term): Term {
-    let c_t: Term = A;
+export function seek_parens(A: AST.Term): AST.Term {
+    let c_t: AST.Term = A;
     while (c_t.kind == "ParenTerm") c_t = c_t.term
     return c_t
 }
+
+// utility rec function which takes in an array of terms and returns their
+    // (left-associative) dis(/con)junction. See above comment to motivate existence.
+export function combineTerms(ts: AST.Term[], conjunct: string = "||"): AST.Term | undefined {
+    let A = ts.shift();
+    if (!A) return undefined;
+    let tail = combineTerms(ts, conjunct);
+    if (!tail) return A;
+
+    return {
+        kind: "FunctionApplication",
+        appType: "InfixOp",
+        fn: conjunct,
+        params: [A, tail]
+    }
+}
+export const disjunct = combineTerms
+export const conjunct = (ts: AST.Term[]): AST.Term | undefined => combineTerms(ts, "&")
+
+export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
+    return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";
+ }
+ 
+ export const isBlockEnd = (line: AST.Line): line is AST.EndScope => {
+    return line.kind === "EndScope";
+ }
+ 
+ export const toWrapperFunc = (w: AST.BlockStart): ((term: AST.Term) => AST.Term) => {
+   if (w.kind === "VariableDeclaration") {
+     return term => ({
+       kind: "QuantifierApplication",
+       quantifier: "A",
+       vars: [{
+         kind: "VariableBinding",
+         symbol: w.symbol,
+         type: w.type
+       }],
+       term
+     });
+   } else if (w.kind === "Assumption") {
+     return term => ({
+       kind: "FunctionApplication",
+       appType: "InfixOp",
+       fn: "=>",
+       params: [w.arg, term]
+     });
+   } else if (w.kind === "BeginScope") {
+     return term => term
+ } throw "unsupported BlockStart"; // why isn't this unreachable
+ }
+ 

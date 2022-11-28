@@ -1,8 +1,10 @@
-import { ASTSMTLIB2, isTerm, Line, toWrapperFunc } from "../logic/AST";
+import { Line } from "../types/AST";
 import evaluate from "../logic/Parser";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";
+import { isTerm, toWrapperFunc } from "./trees";
+import { ASTSMTLIB2 } from "../logic/LogicInterface";
 
 export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);

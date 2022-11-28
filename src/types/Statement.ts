@@ -1,4 +1,4 @@
-import { Assumption, BeginScope, Line, VariableDeclaration } from "../logic/AST";
+import { Assumption, BeginScope, Line, VariableDeclaration } from "./AST";
 import { Reason } from "./Reason";
 
 export type StatementType = {

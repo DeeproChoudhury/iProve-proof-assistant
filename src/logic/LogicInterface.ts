@@ -1,6 +1,10 @@
+import * as AST from "../types/AST";
+import { FunctionData, PatternData } from "../types/LogicInterface";
+import { fnSMT } from "./util";
+
 export class LogicInterface {
     // persist after reset
-    globals: Map<number, ASTNode> = new Map();
+    globals: Map<number, AST.ASTNode> = new Map();
     rendered_globals: Map<number, string> = new Map();
     rendered_tuples: Map<number, string> = new Map();
     functions: Map<string, FunctionData> = new Map();
@@ -8,8 +12,8 @@ export class LogicInterface {
 
 
     // change on reset
-    givens: ASTNode[] = [];
-    goal: ASTNode | undefined;
+    givens: AST.ASTNode[] = [];
+    goal: AST.ASTNode | undefined;
     rendered_givens: string[] = [];
     rendered_goal: string | undefined;
 
@@ -44,7 +48,7 @@ export class LogicInterface {
     }
 
     // Add a global given. Returns the item ID (used for removing in future)
-    addGlobal(n: ASTNode): number | undefined {
+    addGlobal(n: AST.ASTNode): number | undefined {
         let cID = this.insID++;
         this.globals.set(cID, n);
         this.renderGlobal(cID);
@@ -57,7 +61,7 @@ export class LogicInterface {
     }
 
     // Add instance given
-    addGiven(n: ASTNode): boolean {
+    addGiven(n: AST.ASTNode): boolean {
         this.givens.push(n)
         return true;
     }
@@ -69,29 +73,11 @@ export class LogicInterface {
     // For now, we do not allow function definitions as goals. This would
     // be useful sugar in proving the equivalence of function definitions
     // but also a bit trickier and not encountered in 1/2 year.
-    setGoal(n: Term): ASTNode | undefined {
+    setGoal(n: AST.Term): AST.ASTNode | undefined {
         let old = this.goal;
         this.goal = n;
         return old
     }
-
-    // utility rec function which takes in an array of terms and returns their
-    // (left-associative) dis(/con)junction. See above comment to motivate existence.
-    combineTerms(ts: Term[], conjunct: string = "||"): Term | undefined {
-        let A = ts.shift();
-        if (!A) return undefined;
-        let tail = this.combineTerms(ts, conjunct);
-        if (!tail) return A;
-
-        return {
-            kind: "FunctionApplication",
-            appType: "InfixOp",
-            fn: conjunct,
-            params: [A, tail]
-        }
-    }
-    disjunct = this.combineTerms
-    conjunct = (ts: Term[]): Term | undefined => (this.combineTerms(ts, "&"))
 
     // Adds tuples of particular length to the global context. Returns true
     // iff the tuple length wasn't already handled
@@ -120,7 +106,7 @@ export class LogicInterface {
     }
 
 
-    renderPattern(a: Pattern, name: string): PatternData {
+    renderPattern(a: AST.Pattern, name: string): PatternData {
         switch(a.kind) {
             case "SimpleParam":
                 return { conditions: [], bindings: [`(${a.ident} ${name})`] }
@@ -154,7 +140,7 @@ export class LogicInterface {
         for (let i = 0; i < nparams; i++)
             params.push(`IProveParameter${i}`)
 
-        let pdatas: [PatternData, Term][] = [];
+        let pdatas: [PatternData, AST.Term][] = [];
         for (let [i, a] of A.defs) {
             if (a.params.length != nparams) return undefined;
 
@@ -162,7 +148,7 @@ export class LogicInterface {
             for (let p of a.params) {
                 pdatas.push([
                     this.renderPattern(p, `IProveParameter${idx}`),
-                    (a.def as Term)
+                    (a.def as AST.Term)
                 ]);
                 idx++;
             }
@@ -203,7 +189,7 @@ export class LogicInterface {
         return true;
     }
 
-    addFnDecl(a: FunctionDeclaration): FunctionDeclaration | undefined {
+    addFnDecl(a: AST.FunctionDeclaration): AST.FunctionDeclaration | undefined {
         this.newFunction(a.symbol);
         let A = this.functions.get(a.symbol);
         if (!A) return undefined; // error case for typechecking
@@ -215,7 +201,7 @@ export class LogicInterface {
 
     // Adds a function definition and returns its id within the definition of
     // this particular function
-    addFnDef(a: FunctionDefinition): number {
+    addFnDef(a: AST.FunctionDefinition): number {
         this.newFunction(a.ident);
 
         let A = this.functions.get(a.ident);
@@ -236,7 +222,7 @@ export class LogicInterface {
         return A.defs.delete(id);
     }
 
-    renderNode(a: ASTNode | undefined): string {
+    renderNode(a: AST.ASTNode | undefined): string {
         if (!a) return "NULL";
 
         switch (a.kind) {
@@ -306,7 +292,7 @@ export class LogicInterface {
     }
 
     // LEGACY DONT USE
-    ast2smtlib(a: ASTNode | undefined) : string {
+    ast2smtlib(a: AST.ASTNode | undefined) : string {
         if(a === undefined) return "NULL"
         var ancillae: string[] = []
         let renderedNode: string = this.renderNode(a)
@@ -354,4 +340,4 @@ export class LogicInterface {
 }
 
 export const LI = new LogicInterface();
-export const ASTSMTLIB2: (line: Line | undefined) => string = LI.ast2smtlib;
+export const ASTSMTLIB2: (line: AST.Line | undefined) => string = LI.ast2smtlib;

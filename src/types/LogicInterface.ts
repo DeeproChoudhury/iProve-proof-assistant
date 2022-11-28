@@ -1,12 +1,14 @@
+import * as AST from "./AST"
+
 export type PatternData = {
     conditions: string[],
     bindings: string[]
 }
 
 export type FunctionData = {
-    decl: FunctionDeclaration | undefined,
+    decl: AST.FunctionDeclaration | undefined,
     cid: number,
-    defs: Map<number, FunctionDefinition>
+    defs: Map<number, AST.FunctionDefinition>
 }
 
 export type StatefulTransformer<T, S> = (x: T, st: S) => [T, S]
@@ -23,7 +25,6 @@ export type RenameState = Map<string, number>
 
 export type Unification = UnifyFail | UnifyScope
 export type UnifyFail = { kind: "UnifyFail" }
-export const UNIFY_FAIL: UnifyFail = { kind: "UnifyFail" }
 
 export type UnifyScope = {
     kind: "UnifyScope";
@@ -35,5 +36,5 @@ export type UnifyScope = {
 export type AlphaAssignment = {
     kind: "AlphaAssignment",
     assn: Map<string, string>,
-    term: Term
+    term: AST.Term
 }

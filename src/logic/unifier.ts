@@ -1,7 +1,15 @@
+import * as AST from "../types/AST"
+import { AlphaAssignment, Unification, UnifyFail, UnifyScope } from "../types/LogicInterface"
+import { display } from "../util/trees"
+import { basic_preprocess, CommOperators, replace_vars, unify_preprocess } from "./simplifiers"
+import { bitmap_mex, get_from_scope, pop_scope, push_scope, set_bit, set_in_scope } from "./util"
+
+export const UNIFY_FAIL: UnifyFail = { kind: "UnifyFail" }
+
 function gen_unify_poss(
     i: number,
-    A: Term[],
-    B: Term[],
+    A: AST.Term[],
+    B: AST.Term[],
     bitmap: number,
     scope: UnifyScope): Unification 
 {
@@ -21,7 +29,7 @@ function gen_unify_poss(
     }
 }
 
-export function gen_unify(A: Term | undefined, B: Term | undefined, scope: UnifyScope): Unification {
+export function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: UnifyScope): Unification {
     if (!A || !B) {
         return ((!A) && (!B))
             ? scope : UNIFY_FAIL
@@ -77,9 +85,9 @@ export function gen_unify(A: Term | undefined, B: Term | undefined, scope: Unify
                 return UNIFY_FAIL
 
             let type_cnts: Map<string, number> = new Map
-            let d_ = (x: Type | undefined): string => {
+            let d_ = (x: AST.Type | undefined): string => {
                 if (!x) return "any"
-                return d(x)
+                return display(x)
             }
             for (let i = 0; i < A.vars.length; i++) {
                 scope.sort_ctx_a.set(A.vars[i].symbol.ident, d_(A.vars[i].type))
@@ -131,9 +139,9 @@ export function gen_unify(A: Term | undefined, B: Term | undefined, scope: Unify
     }
 }
 
-export function unifies(A_: Term, B_: Term): AlphaAssignment | UnifyFail {
-    let A: Term = unify_preprocess(A_)
-    let B: Term = unify_preprocess(B_)
+export function unifies(A_: AST.Term, B_: AST.Term): AlphaAssignment | UnifyFail {
+    let A: AST.Term = unify_preprocess(A_)
+    let B: AST.Term = unify_preprocess(B_)
 
     let verdict: Unification = gen_unify(B, A, {
         kind: "UnifyScope",
