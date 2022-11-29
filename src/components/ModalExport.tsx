@@ -4,7 +4,6 @@ import { display } from "../parser/AST";
 import { NodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 
-
 /**
  * Modal contents for Exporting proofs in JSON format
  * 
@@ -12,7 +11,21 @@ import { StatementType } from '../types/Statement';
  */
 const ModalExport = (props: { data : string}) => {
 
-    /**
+	/**
+	 * Download proof as json file
+	 * 
+	 * Uses JS implementation
+	 * */ 
+	 
+    const DownloadProof = () => {
+		const a = document.createElement("a");
+		const file = new Blob([props.data], { type: "text/plain" });
+		a.href = URL.createObjectURL(file);
+		a.download = "proof.json";
+		a.click();
+	}
+
+	/**
      * Box for exporting
      */
     return (
@@ -29,9 +42,19 @@ const ModalExport = (props: { data : string}) => {
                 isDisabled
             />
         </div>
+
+        {/* START : Copy to Clipboard Button */}
         <Button colorScheme="blackAlpha" onClick={() => {navigator.clipboard.writeText(props.data)}} style={{margin: '5px 0'}}>
             Copy to Clipboard
         </Button>
+        {/* END : Copy to Clipboard Button */}
+
+		{/* START : Download Proof Button */}
+		<Button colorScheme="blackAlpha" onClick={() => {DownloadProof()}} style={{margin: '5px 0'}}>
+			Download Proof
+		</Button>
+		{/* END : Download Proof Button */}		
+
       </Box>
     )
   }
