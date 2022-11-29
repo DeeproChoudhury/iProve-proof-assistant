@@ -33,7 +33,22 @@ export const makeNodeCallbacks = (
   const proofSteps = makeStatementListCallbacks(setStatementsForNode(setNode, "proofSteps"));
   const goals = makeStatementListCallbacks(setStatementsForNode(setNode, "goals"));
   const statementLists = {
-      givens,
+      givens: {
+        ...givens,
+        add: (index?: number) => {
+          shiftReasons("givens", index, 1);
+          givens.add(index);
+        },
+        update: (index: number, statementValue: string) => {
+          invalidateReason("givens", index);
+          givens.update(index, statementValue);
+        },
+        remove: (index: number) => {
+          invalidateReason("givens", index);
+          shiftReasons("givens", index, -1);
+          givens.remove(index);
+        },
+      },
       proofSteps: {
         ...proofSteps,
         add: (index?: number) => {
