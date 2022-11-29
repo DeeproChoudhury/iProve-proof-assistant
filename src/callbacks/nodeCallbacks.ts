@@ -1,15 +1,15 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
-import { ASTSMTLIB2, isBlockEnd, isBlockStart, isTerm } from "../parser/AST";
+import { isBlockEnd, isBlockStart, isTerm } from "../util/trees";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { absoluteIndexToLocal, invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
-import { checkReason } from "../util/reasons";
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
+import { ASTSMTLIB2 } from "../logic/LogicInterface";
 
 
 export const makeNodeCallbacks = (

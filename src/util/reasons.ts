@@ -1,4 +1,4 @@
-import { isTerm, Line } from "../parser/AST";
+import { isTerm  } from "../util/trees";
 import Z3Solver from "../solver/Solver";
 import { StatementNodeData } from "../types/Node";
 import { CheckStatus, Z3Reason } from "../types/Reason";

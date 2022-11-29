@@ -12,8 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import './Statement.css';
-import { useRef, useState } from "react";
-import { display } from "../parser/AST";
+import { display } from "../util/trees";
 import { StatementType } from '../types/Statement';
 import ReasonIndicator from './ReasonIndicator';
 
