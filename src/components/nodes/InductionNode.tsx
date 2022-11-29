@@ -61,14 +61,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 					<option value={index}>{type.value}</option>
 				)}
 			</Select>
-			<Statement
-				onChange={e => onChange(e, "types", 0)}
-				statement={nodeData.types[0]}
-				addAbove={() => {}}
-				addBelow={() => {}}
-				deleteStatement={() => {}}
-				index={0}
-				proofNode={false}/>
 			{/* END : Type */}
 
 			{/* BEGIN : Motive */}
@@ -82,6 +74,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 				addAbove={() => {}}
 				addBelow={() => {}}
 				deleteStatement={() => {}}
+				afterEdit={() => afterStatementEdit()}
 				proofNode={false}/>
 			<Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} />
 			{/* END : Motive */}

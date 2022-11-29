@@ -1,22 +1,23 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
-import { conjunct, isBlockEnd, isBlockStart, isTerm } from "../util/trees";
+import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { StatementNodeType } from "../types/Node";
+import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { absoluteIndexToLocal, invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { LogicInterface } from "../logic/LogicInterface";
-import { ASTNode, Term } from "../types/AST";
+import { Term } from "../types/AST";
 
 
 
 export const makeNodeCallbacks = (
   nodesRef: MutableRefObject<StatementNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
+  inductionNodesRef: MutableRefObject<InductionNodeType[]>,
   declarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<StatementNodeType[]>,
   setEdges: Setter<Edge[]>,
@@ -150,15 +151,19 @@ export const makeNodeCallbacks = (
       // TODO: Fix this
       const currEdges = edgesRef.current;
       const currNodes = nodesRef.current;
+      const currInductionNodes = inductionNodesRef.current;
       const node = currNodes.find((n) => n.id === nodeId);
       if (!node) return true;
-
+      
       const incomingEdges = currEdges.filter((e) => e.target === nodeId);
+      console.log(incomingEdges)
       // get all nodes that have incoming edge to nodeId
       // should probably use getIncomers from reactflow
       const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
       const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
-      const givens = incomingNodes.flatMap(node => node.data.goals);
+      const incomingInductionNodes = currInductionNodes.filter(node => incomingNodesIds.has(node.id));
+      const inductionGivens = incomingInductionNodes.map(node => node.data.motive[0]);
+      const givens = [...incomingNodes.flatMap(node => node.data.goals), ...inductionGivens];
       const expImplications = node.data.givens;
       
       if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
