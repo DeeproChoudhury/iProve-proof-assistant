@@ -4,8 +4,7 @@ import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";
 import { isTerm, toWrapperFunc } from "./trees";
-import { ASTSMTLIB2, LogicInterface } from "../logic/LogicInterface";
-import { flattenDiagnosticMessageText, TypePredicateKind } from "typescript";
+import { LogicInterface } from "../logic/LogicInterface";
 
 export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);

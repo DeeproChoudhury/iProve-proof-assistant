@@ -342,4 +342,3 @@ export class LogicInterface {
 }
 
 export const LI = new LogicInterface();
-export const ASTSMTLIB2: (line: AST.Line | undefined) => string = LI.ast2smtlib;

@@ -1,4 +1,3 @@
-import { isTerm  } from "../util/trees";
 import Z3Solver from "../solver/Solver";
 import { StatementNodeData } from "../types/Node";
 import { CheckStatus, Z3Reason } from "../types/Reason";
@@ -7,7 +6,6 @@ import { absoluteIndexToLocal } from "./nodes";
 import { Setter } from "./setters";
 import { statementToZ3 } from "./statements";
 import { LogicInterface } from "../logic/LogicInterface";
-import { stat } from "fs";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 

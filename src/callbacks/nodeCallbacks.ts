@@ -9,7 +9,7 @@ import { absoluteIndexToLocal, invalidateReasonForNode, setNodeWithId, setStatem
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
-import { ASTSMTLIB2, LI, LogicInterface } from "../logic/LogicInterface";
+import { LogicInterface } from "../logic/LogicInterface";
 import { ASTNode, Term } from "../types/AST";
 
 
