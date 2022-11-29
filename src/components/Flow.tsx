@@ -186,19 +186,19 @@ function Flow() {
   }, [nextId, makeThisNode, makeThisInductionNode]);
 
 
-  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[]) => {
+  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[], jsonEdges: any[]) => {
     const nodeData = jsonNodes.map(node => {
       // const newCount = nextId();
-      const id = Math.random();
+      // const id = Math.random();
       return {
-        id: `${id}`,
+        id: `${node.id}`,
         data: {
-          label: `Node ${id}`,
+          label: `Node ${node.id}`,
           givens: node.givens === undefined ? [] : node.givens.map((e: string) => { return { value: e, wrappers: [] } }),
           proofSteps: node.proofs === undefined ? [] : node.proofs.map((e: string) => { return { value: e, wrappers: [] } }),
           goals: node.goals === undefined ? [] : node.goals.map((e: string) => { return { value: e, wrappers: [] } }),
           declarationsRef,
-          thisNode: makeThisNode(`${id}`)
+          thisNode: makeThisNode(`${node.id}`)
         },
         position: { x: 300, y: 0 },
         type: node.type,
@@ -215,10 +215,15 @@ function Flow() {
         value: t,
         wrappers: []
       }
-    });;
+    });
+
+    console.log(jsonEdges);
+    // const edges = jsonEdges;
+
     setDeclarations(declarationsData);
     setTypeDeclarations(typeDeclarations);
     setNodes(nodeData);
+    setEdges(jsonEdges)
   }, [makeThisNode]);
 
   const verifyProofGlobal = async () => {
@@ -281,7 +286,7 @@ function Flow() {
                 nodes: nodes.map(n => { return { id: n.id, type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value) } }),
                 declarations: declarations.map(decl => decl.value),
                 types: typeDeclarations.map(type => type.value),
-                edges: edges.map(n => { return { start: n.source, end: n.target}})
+                edges: edges
               })
             } />
           </ModalBody>

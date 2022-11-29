@@ -16,7 +16,7 @@ const ModalImport = (props: any) => {
      */
     const parseJSONAddNode = () => {
         const importedProof = JSON.parse(textAreaValue);
-        props.addImportedProof(importedProof.nodes, importedProof.declarations, importedProof.types)
+        props.addImportedProof(importedProof.nodes, importedProof.declarations, importedProof.types, importedProof.edges)
     }
 
     return (
