@@ -3,6 +3,7 @@ import { Handle, NodeProps, Position } from "reactflow";
 import { StatementNodeData } from "../../types/Node";
 import StatementList from "../StatementList";
 import { DeleteNodePopover } from "./GeneralNode";
+import { NodeHandle } from "./NodeHandle";
 
 export default function GivenNode({ data }: NodeProps<StatementNodeData>) {
   return (
@@ -17,7 +18,10 @@ export default function GivenNode({ data }: NodeProps<StatementNodeData>) {
         <DeleteNodePopover deleteNode={data.thisNode.delete} />
         <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button>
       </div>
-      <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />
+      
+      {/* BEGIN : Bottom Handle */}
+      <NodeHandle type="source"/>
+      {/* END : Bottom Handle */}
     </Box>
   )
 }
