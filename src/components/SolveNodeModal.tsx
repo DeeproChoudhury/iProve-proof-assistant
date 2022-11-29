@@ -3,13 +3,10 @@ import {
   ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Tooltip
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import { ASTSMTLIB2, isTerm } from '../parser/AST';
-import Z3Solver from '../solver/Solver';
 import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { absoluteIndexToLocal } from '../util/nodes';
 import { checkReason, z3Reason } from '../util/reasons';
-import { statementToZ3 } from '../util/statements';
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
 
@@ -25,7 +22,6 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const { isOpen, onClose, node } = props;
   const [tags, setTags] = useState<Tag[]>(Array(node.givens.length + node.proofSteps.length + node.goals.length).fill('0'));
   const relevantTags = tags.slice(0, node.givens.length + node.proofSteps.length + node.goals.length);
-  console.log(tags);
   const [checkFailed, setCheckFailed] = useState(false);
 
   const onChange = (v: string, index: number) => {
@@ -53,8 +49,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     if (conclusionAbsIndex === -1) return;
     const [conclusionType, conclusionRelIndex] = absoluteIndexToLocal(node, conclusionAbsIndex);
     const conclusion = node[conclusionType][conclusionRelIndex];
-
-    node.thisNode[conclusionType].addReason(conclusionRelIndex, z3Reason(reasonsIndexes))
+    node.thisNode[conclusionType].addReason(conclusionRelIndex, z3Reason(reasonsIndexes));
     checkReason(node, conclusion, status => (node.thisNode[conclusionType].updateReasonStatus(conclusionRelIndex, status)), setCheckFailed);
   }
 

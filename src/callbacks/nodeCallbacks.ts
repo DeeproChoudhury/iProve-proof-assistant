@@ -1,15 +1,15 @@
 import { MutableRefObject } from "react";
-import { Edge, Node } from "reactflow";
+import { Edge } from "reactflow";
 import { ASTSMTLIB2, isBlockEnd, isBlockStart, isTerm } from "../parser/AST";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { ListField, StatementNodeData, StatementNodeType } from "../types/Node";
-import { CheckStatus } from "../types/Reason";
+import { StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { absoluteIndexToLocal, invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { checkReason } from "../util/reasons";
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
-import { makeStatementListCallbacks, StatementListCallbacks } from "./statementListCallbacks";
+import { makeStatementListCallbacks } from "./statementListCallbacks";
 
 
 export const makeNodeCallbacks = (
@@ -78,18 +78,32 @@ export const makeNodeCallbacks = (
   return {
     delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     ...statementLists,
-    checkSyntax: () => setNode(node => {
-      setError(undefined);
-      return {
+    checkSyntax: () => {
+      setNode(node => {return {
         ...node,
         data: {
           ...node.data,
-          givens: node.data.givens.map(updateWithParsed(setError)),
-          proofSteps: node.data.proofSteps.map(updateWithParsed(setError)),
-          goals: node.data.goals.map(updateWithParsed(setError))
+          parsed: undefined
         }
-      };
-    }),
+      }})
+      setNode(node => {
+        setError(undefined);
+        const givens = node.data.givens.map(updateWithParsed(setError));
+        const proofSteps = node.data.proofSteps.map(updateWithParsed(setError));
+        const goals = node.data.goals.map(updateWithParsed(setError));
+        const parsed = [...givens, ...proofSteps, ...goals].every((statement) => statement.parsed)
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            givens: givens,
+            proofSteps: proofSteps,
+            goals: goals,
+            parsed: parsed
+          }
+        };
+      })
+    },
     checkInternalAssertions: async () => {
       const localZ3Solver = new Z3Solver.Z3Prover("");
       const node = nodesRef.current.find((n) => n.id === nodeId);
@@ -116,12 +130,12 @@ export const makeNodeCallbacks = (
         const parsed = s.parsed;
         return !(parsed.kind === "VariableDeclaration" || 
           parsed.kind === "EndScope" || 
-          parsed.kind == "BeginScope" || 
-          parsed.kind == "FunctionDeclaration" || 
-          parsed.kind == "Assumption"); 
+          parsed.kind === "BeginScope" || 
+          parsed.kind === "FunctionDeclaration" || 
+          parsed.kind === "Assumption"); 
       }
 
-      for (const goal of goals) {
+      goals.forEach(async (goal, index) => {
         if (!goal.parsed || !shouldProve(goal)) {
           if (!goal.parsed) {
             setStopGlobalCheck(true);
@@ -131,6 +145,8 @@ export const makeNodeCallbacks = (
           }
           return;
         }
+        // const [conclusionType, conclusionRelIndex] = absoluteIndexToLocal(node.data, index);
+        // checkReason(node.data, goal, status => (node.data.thisNode[conclusionType].updateReasonStatus(conclusionRelIndex, status)), setStopGlobalCheck);
         const goalStr = statementToZ3(goal);
         const smtConclusion = "(assert (not " + goalStr + "))";
         const output = await localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)")
@@ -141,7 +157,7 @@ export const makeNodeCallbacks = (
           setStopGlobalCheck(true);
           return;
         }
-      }
+      })
     },
     checkEdges: async () => {
       // here we should get all incoming edges & nodes to nodeID

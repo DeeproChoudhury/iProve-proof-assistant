@@ -16,7 +16,7 @@ export default function GivenNode({ data }: NodeProps<StatementNodeData>) {
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
         <DeleteNodePopover deleteNode={data.thisNode.delete} />
-        <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button>
+        {/* <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button> */}
       </div>
       
       {/* BEGIN : Bottom Handle */}
