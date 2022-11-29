@@ -8,16 +8,20 @@ import { NodeHandle } from "./NodeHandle";
 export default function GivenNode({ data }: NodeProps<StatementNodeData>) {
   return (
     <Box className="given-node">
+      
       <StatementList
         title="Givens"
         statements={data.goals}
         callbacks={data.thisNode.goals}
         afterStatementEdit={data.thisNode.checkSyntax}
       />
+
+      {/* BEGIN : Delete Node Popover */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
         <DeleteNodePopover deleteNode={data.thisNode.delete} />
-        {/* <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button> */}
       </div>
+      {/* END : Delete Node Popover */}
+
       
       {/* BEGIN : Bottom Handle */}
       <NodeHandle type="source"/>
