@@ -16,7 +16,15 @@ const ModalImport = (props: any) => {
      */
     const parseJSONAddNode = () => {
         const importedProof = JSON.parse(textAreaValue);
-        props.addImportedProof(importedProof.nodes, importedProof.declarations, importedProof.types)
+
+		// add nodes to graph
+        props.addImportedProof(
+          importedProof.nodes, 
+          importedProof.declarations,
+          importedProof.types,
+          importedProof.edges,
+          importedProof.inductionNodes
+        )
     }
 
     return (
@@ -35,7 +43,7 @@ const ModalImport = (props: any) => {
         </div>
         <Button colorScheme="blackAlpha" onClick={parseJSONAddNode} style={{margin: '5px 0'}}>Import</Button>
       </Box>
-)
-  }
+	)
+}
   
   export default ModalImport;

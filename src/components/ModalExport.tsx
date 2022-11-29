@@ -10,7 +10,7 @@ import { StatementType } from '../types/Statement';
  * 
  * @returns box for modal contents
  */
-const ModalExport = (props: any) => {
+const ModalExport = (props: { data : string}) => {
 
     /**
      * Box for exporting
