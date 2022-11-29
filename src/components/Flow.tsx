@@ -134,7 +134,8 @@ function Flow() {
   { value: 'iff', symbol: '<->' },
   { value: 'implies', symbol: '->' },
   { value: 'for all x', symbol: 'FA x.' },
-  { value: 'exists x', symbol: 'E x.' }]
+  { value: 'exists x', symbol: 'E x.' },
+  { value: 'negation', symbol: '~'} ]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
@@ -397,11 +398,11 @@ function Flow() {
             Verify Entire Proof
           </Button>
           <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
-            Settings
+            {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
           </Button>
           <Popover>
             <PopoverTrigger>
-              <Button>Help</Button>
+              <Button>Symbols</Button>
             </PopoverTrigger>
             <PopoverContent style={{ width: "400px" }}>
               <PopoverArrow />
