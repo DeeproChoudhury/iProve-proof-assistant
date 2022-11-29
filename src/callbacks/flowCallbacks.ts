@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 import { Edge, NodeChange, applyNodeChanges, EdgeChange, applyEdgeChanges, Connection, addEdge, Node } from "reactflow";
-import { InductionNodeData, InductionNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
+import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { collided } from "../util/nodes";
 import { Setter } from "../util/setters";
@@ -43,6 +43,13 @@ export const makeFlowCallbacks = (nodes: StatementNodeType[], inductionNodes: In
   },
   onEdgesChange: (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
   onConnect: (params: Connection) => {
+    const sourceGoals = nodes.find(node => node.id === params.source)?.data.goals || [];
+    setNodes(nds => nds.map((node) => {
+      if (node.id !== params.target) {
+        return node;
+      }
+      return {...node, data: {...node.data, givens: [...node.data.givens, ...sourceGoals]}};
+    }));
     setEdges((eds) => addEdge({...params, 
       type:"implication", 
       id: `${params.source}-${params.target}`,
