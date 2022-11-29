@@ -16,7 +16,6 @@ const ModalExport = (props: { data : string}) => {
 	 * 
 	 * Uses JS implementation
 	 * */ 
-	 
     const DownloadProof = () => {
 		const a = document.createElement("a");
 		const file = new Blob([props.data], { type: "text/plain" });

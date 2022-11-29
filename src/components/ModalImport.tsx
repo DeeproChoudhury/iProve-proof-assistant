@@ -27,6 +27,31 @@ const ModalImport = (props: any) => {
         )
     }
 
+	const [file, setFile] = useState("");
+
+	const UploadProof = () => {
+
+		const parseFile = (e : any) => {
+			const fileReader = new FileReader();
+			fileReader.readAsText(e.target.files[0], "UTF-8");
+			
+			fileReader.onload = (e : any) => {
+				setFile(e.target.result);
+				console.log("e.target.result", file);
+			};
+		};
+	
+		return (
+			<Box>
+				<form id="upload">
+					<Button colorScheme="blackAlpha" onClick={() => {
+						setTextAreaValue(file)}}>Upload</Button>
+					<input type="file" id="file" accept=".json" onChange={parseFile}/>
+				</form>		
+			</Box>
+		);
+	}
+
     return (
       <Box borderRadius='md' my='1'>
         <div style={{display: 'flex'}}>
@@ -38,11 +63,13 @@ const ModalImport = (props: any) => {
                 background='gray.100'
                 textColor='blackAlpha.900'
                 _placeholder={{ color: 'gray.400'}}
+				value={textAreaValue}
                 onChange={(e) => {setTextAreaValue(e.target.value)}}
             />        
         </div>
         <Button colorScheme="blackAlpha" onClick={parseJSONAddNode} style={{margin: '5px 0'}}>Import</Button>
-      </Box>
+		<UploadProof/>
+	  </Box>
 	)
 }
   
