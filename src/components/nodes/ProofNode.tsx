@@ -47,10 +47,10 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
   return (
     <Box className="proof-node">
       {targetHandle}
-      <SolveNodeModal 
+      {isSolveModalOpen && <SolveNodeModal 
         isOpen={isSolveModalOpen} 
         onClose={onSolveModalClose} 
-        node={data}/>
+        node={data}/>}
       <div style={{display: 'flex', justifyContent: 'center'}}>
       {data.correctImplication === undefined &&
       <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>

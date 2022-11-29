@@ -20,7 +20,7 @@ type Tag = '0' | '1' | '2';
 
 const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const { isOpen, onClose, node } = props;
-  const [tags, setTags] = useState<Tag[]>(Array(100).fill('0'));
+  const [tags, setTags] = useState<Tag[]>(Array(node.givens.length + node.proofSteps.length + node.goals.length).fill('0'));
   const relevantTags = tags.slice(0, node.givens.length + node.proofSteps.length + node.goals.length);
   const [checkFailed, setCheckFailed] = useState(false);
 
