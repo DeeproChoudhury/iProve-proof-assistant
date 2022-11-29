@@ -7,10 +7,9 @@ import {
   PopoverBody,
   PopoverArrow,
   PopoverCloseButton,
-  Tooltip,
   Text,
 } from '@chakra-ui/react';
-import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon } from "@chakra-ui/icons";
 import './Statement.css';
 import { useRef, useState } from "react";
 import { display } from "../parser/AST";
@@ -70,7 +69,6 @@ const Statement = (props: StatementPropsType) => {
         </PopoverBody>
       </PopoverContent>
     </Popover>
-
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
   const indentSize = 15 * statement.wrappers.length;
