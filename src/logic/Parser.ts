@@ -111,7 +111,6 @@ const lexer = buildLexer([
     [true, /^(begin)/g, TokenKind.Begin],
     [true, /^(end)/g, TokenKind.End],
     [true, /^(type)/g, TokenKind.TypeKW],
-    [true, /^(\|)/g, TokenKind.Guard],
 
     [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
     [true, /^(\+|-|=|>|<|\/|\.|\*|!|&|\||~)+/g, TokenKind.InfixSymbol],
@@ -334,7 +333,7 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
     "=": [7, true, true],
 
     "&": [6, true, true],
-    "|": [6, true, true],
+    "||": [6, true, true],
     "^": [6, true, true],
 
     "->": [4, true, true],
@@ -660,6 +659,7 @@ PROOF_LINE.setPattern(alt(
  */
 export function evaluate(line: string): AST.ASTNode | ParseError {
     let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
+    console.log(A)
     if (!A.successful) return A.error;
     return expectSingleResult(A);
 }

@@ -1,6 +1,6 @@
 import evaluate from "./Parser"
 const util = require("util")
-const D = (x) => {
+const D = (x: Object) => {
   console.log(util.inspect(x, false, null, true))
 }
 
