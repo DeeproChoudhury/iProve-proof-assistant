@@ -71,20 +71,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 				proofNode={false}/>
 			{/* END : Type */}
 
-			{/* BEGIN : Variable */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-				<Text>Variable Name</Text>
-			</div>
-			<Statement
-				onChange={e => onChange(e, "identifier", 0)}
-				statement={nodeData.identifier[0]}
-				index={0}
-				addAbove={() => {}}
-				addBelow={() => {}}
-				deleteStatement={() => {}}
-				proofNode={false}/>
-			{/* END : Variable */}
-
 			{/* BEGIN : Motive */}
 			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
 				<Text>Induction Goal</Text>
@@ -97,6 +83,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 				addBelow={() => {}}
 				deleteStatement={() => {}}
 				proofNode={false}/>
+			<Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} />
 			{/* END : Motive */}
 
 			{/* BEGIN : Base Case */}

@@ -27,13 +27,12 @@ export type InductionNodeData = {
   types: StatementType[];
   thisNode: InductionNodeCallbacks;
 
-  identifier: StatementType[];
   inductiveCases: StatementType[];
   baseCases: StatementType[];
   motive: StatementType[];
 }; 
 
-export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "identifier" | "inductiveCases" | "baseCases" | "motive") : never
+export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "inductiveCases" | "baseCases" | "motive") : never
 
 export type AnyNodeData = StatementNodeData | InductionNodeData;
 

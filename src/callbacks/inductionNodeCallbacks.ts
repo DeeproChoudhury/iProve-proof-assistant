@@ -3,9 +3,8 @@ import { Edge } from "reactflow";
 import { rec_on } from "../logic/induction";
 import { unifies } from "../logic/unifier";
 import Z3Solver from "../solver/Solver";
-import { ASTNode, Line, PrimitiveType, Term, TypeDef } from "../types/AST";
+import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { Unification } from "../types/LogicInterface";
 import { InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { setNodeWithId, setStatementsForNode } from "../util/nodes";
@@ -33,7 +32,6 @@ export const makeInductionNodeCallbacks = (
     motive: makeStatementListCallbacks(setStatementsForNode(setNode, "motive")),
     baseCases: makeStatementListCallbacks(setStatementsForNode(setNode, "baseCases")),
     inductiveCases: makeStatementListCallbacks(setStatementsForNode(setNode, "inductiveCases")),
-    identifier: makeStatementListCallbacks(setStatementsForNode(setNode, "identifier")),
     checkSyntax: (): void => setNode(node => {
       setError(undefined);
 
@@ -44,8 +42,7 @@ export const makeInductionNodeCallbacks = (
           types: node.data.types.map(updateWithParsed(setError)),
           motive: node.data.motive.map(updateWithParsed(setError)),
           baseCases: node.data.baseCases.map(updateWithParsed(setError)),
-          inductiveCases: node.data.inductiveCases.map(updateWithParsed(setError)),
-          identifier: node.data.identifier.map(updateWithParsed(setError)),
+          inductiveCases: node.data.inductiveCases.map(updateWithParsed(setError))
         }
       };
     }),
@@ -60,20 +57,17 @@ export const makeInductionNodeCallbacks = (
       let type: Line = type_.parsed
       if (type.kind != "TypeDef") return;
       let tdef: TypeDef = type
-      let tident: PrimitiveType = {
-        kind: "PrimitiveType",
-        ident: type.ident
-      }
 
-      let identifier_: StatementType | undefined = node.data.identifier[0]
-      if (!identifier_ || !identifier_.parsed) return;
-      let identifier: Line = identifier_.parsed
-      if (identifier.kind != "Variable") return;
-    
       let motive_: StatementType | undefined = node.data.motive[0]
       if (!motive_ || !motive_.parsed) return;
       let motive: Line = motive_.parsed
-      if (!isTerm(motive)) return;
+      if (motive.kind != "QuantifierApplication" || motive.vars.length != 1) 
+        return;
+      let vbind: VariableBinding = motive.vars[0];
+      let identifier: Variable = vbind.symbol
+      let tident: Type | undefined = vbind.type
+      if (!tident) return;
+      motive = motive.term
 
       let cases: Line[] = 
         node.data.baseCases
