@@ -278,9 +278,10 @@ function Flow() {
           <ModalBody>
             <ModalExport data={
               JSON.stringify({
-                nodes: nodes.map(n => { return { type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value) } }),
+                nodes: nodes.map(n => { return { id: n.id, type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value) } }),
                 declarations: declarations.map(decl => decl.value),
-                types: typeDeclarations.map(type => type.value)
+                types: typeDeclarations.map(type => type.value),
+                edges: edges.map(n => { return { start: n.source, end: n.target}})
               })
             } />
           </ModalBody>
