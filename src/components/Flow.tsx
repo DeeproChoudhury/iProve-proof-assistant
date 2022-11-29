@@ -225,7 +225,12 @@ function Flow() {
     setStopGlobalCheck(undefined);
     for await (const node of nodes) {
       // check might not be necessary with the onBlur, but better make sure
-      await node.data.thisNode.checkSyntax();
+      node.data.thisNode.checkSyntax();
+    }
+    for (const node of nodes) {
+      if (node.data.parsed !== true) {
+        return;
+      }
     }
     let correctEdges = true;
     for await (const node of nodes) {

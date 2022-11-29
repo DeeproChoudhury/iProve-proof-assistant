@@ -9,7 +9,7 @@ import { statementToZ3 } from "./statements";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
-export const checkReason = (data: StatementNodeData, statement: StatementType, updateReasonStatus: (status: CheckStatus) => void, setCheckFailed: Setter<boolean>) => {
+export const checkReason = (data: StatementNodeData, statement: StatementType, updateReasonStatus: (status: CheckStatus) => void, setCheckFailed: Setter<boolean> | Setter<boolean | undefined>) => {
   if (!statement.reason) return;
   const depStatements = statement.reason.dependencies.map(absIndex => {
     const [listField, relIndex] = absoluteIndexToLocal(data, absIndex);

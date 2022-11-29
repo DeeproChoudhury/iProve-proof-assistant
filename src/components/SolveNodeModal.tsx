@@ -49,7 +49,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     if (conclusionAbsIndex === -1) return;
     const [conclusionType, conclusionRelIndex] = absoluteIndexToLocal(node, conclusionAbsIndex);
     const conclusion = node[conclusionType][conclusionRelIndex];
-    node.thisNode[conclusionType].addReason(conclusionRelIndex, z3Reason(reasonsIndexes))
+    node.thisNode[conclusionType].addReason(conclusionRelIndex, z3Reason(reasonsIndexes));
     checkReason(node, conclusion, status => (node.thisNode[conclusionType].updateReasonStatus(conclusionRelIndex, status)), setCheckFailed);
   }
 
