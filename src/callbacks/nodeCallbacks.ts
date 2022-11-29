@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
-import { isBlockEnd, isBlockStart, isTerm } from "../util/trees";
+import { conjunct, isBlockEnd, isBlockStart, isTerm } from "../util/trees";
 import Z3Solver from "../solver/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementNodeType } from "../types/Node";
@@ -9,7 +9,9 @@ import { absoluteIndexToLocal, invalidateReasonForNode, setNodeWithId, setStatem
 import { Setter } from "../util/setters";
 import { statementToZ3, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
-import { ASTSMTLIB2 } from "../logic/LogicInterface";
+import { ASTSMTLIB2, LI, LogicInterface } from "../logic/LogicInterface";
+import { ASTNode, Term } from "../types/AST";
+
 
 
 export const makeNodeCallbacks = (
@@ -113,51 +115,32 @@ export const makeNodeCallbacks = (
       }
       let reasons = node.data.givens;
       let goals = node.data.proofSteps.concat(node.data.goals);
-      const declarations = node.data.declarationsRef.current.map(declaration => {
-        return statementToZ3(declaration);
-      }).join("\n");
-      let smtReasons = reasons.map(reason => {
-        const reasonStr = statementToZ3(reason);
-        if (!reason.parsed) return "";
-        if (isTerm(reason.parsed)) return `(assert ${reasonStr})`;
-        else return reasonStr;
-      }).join("\n");
-      
-      const shouldProve = (s: StatementType) => {
-        if (!s.parsed) {
-          return false;
-        }
-        const parsed = s.parsed;
-        return !(parsed.kind === "VariableDeclaration" || 
-          parsed.kind === "EndScope" || 
-          parsed.kind === "BeginScope" || 
-          parsed.kind === "FunctionDeclaration" || 
-          parsed.kind === "Assumption"); 
-      }
 
-      goals.forEach(async (goal, index) => {
-        if (!goal.parsed || !shouldProve(goal)) {
-          if (!goal.parsed) {
-            setStopGlobalCheck(true);
+      {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+      const LI = new LogicInterface;
+
+      // Add globals/givens to the LogicInterface state
+      node.data.declarationsRef.current.forEach(
+        (declaration: StatementType) => statementToZ3(declaration, LI, "global")
+      );
+      reasons.forEach(
+        (reason: StatementType) => statementToZ3(reason, LI, "given")
+      );
+
+      // Iterate over each node goal, setting it as the goal in LogicInterface
+      // before rendering as SMT and sending to Z3
+      goals.forEach(
+        async (goal: StatementType) => {
+          if (statementToZ3(goal, LI, "goal")) {
+            const output = await localZ3Solver.solve(`${LI}`)
+            if (output === "unsat\n") {
+              statementToZ3(goal, LI, "goal")
+              return
+            }
           }
-          if (goal.parsed?.kind === "VariableDeclaration" || goal.parsed?.kind === "FunctionDeclaration") {
-            smtReasons = smtReasons + `\n ${statementToZ3(goal)}\n`;
-          }
-          return;
-        }
-        // const [conclusionType, conclusionRelIndex] = absoluteIndexToLocal(node.data, index);
-        // checkReason(node.data, goal, status => (node.data.thisNode[conclusionType].updateReasonStatus(conclusionRelIndex, status)), setStopGlobalCheck);
-        const goalStr = statementToZ3(goal);
-        const smtConclusion = "(assert (not " + goalStr + "))";
-        const output = await localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)")
-        if (output === "unsat\n") {
-          // check passed so can add goal to reasons and move on to next goal 
-          smtReasons = smtReasons + `\n (assert ${goalStr})\n`;
-        } else {
           setStopGlobalCheck(true);
-          return;
-        }
-      })
+        })
+      {/* END LOGIC INTERFACE CRITICAL REGION */}
     },
     checkEdges: async () => {
       // here we should get all incoming edges & nodes to nodeID
@@ -184,26 +167,37 @@ export const makeNodeCallbacks = (
       
       // check that exp_implications follows from givens with z3
       console.log(declarationsRef.current);
-      const smtDeclarations = declarationsRef.current.map((declaration: StatementType) => {
-        if (!declaration.parsed) return "";
-        return ASTSMTLIB2(declaration.parsed);
-      }).join("\n");
-      const smtReasons = givens.map(given => {
-        if (!given.parsed) return "";
-        if (given.parsed?.kind === "FunctionDeclaration" || given.parsed?.kind === "VariableDeclaration") {
-          return ASTSMTLIB2(given.parsed);
-        }
-        return `(assert ${ASTSMTLIB2(given.parsed)})`
-      }).join("\n");
-      console.log(smtDeclarations);
-      console.log(smtReasons);
-      const smtConclusions = expImplications.map((conclusion: StatementType) => {
-        if (!conclusion.parsed) return "";
-        return "(assert (not " + ASTSMTLIB2(conclusion.parsed) + "))";
-      }).join("\n");
-      console.log(smtConclusions);
-      const output = await z3.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)")
-      const success = output === "unsat\n";
+
+      {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+      const LI = new LogicInterface;
+
+      // Add globals/givens to the LogicInterface state
+      declarationsRef.current.forEach(
+        (declaration: StatementType) => statementToZ3(declaration, LI, "global")
+      );
+      givens.forEach(
+        (reason: StatementType) => statementToZ3(reason, LI, "global")
+      );
+
+      // Iterate over each node goal, setting it as the goal in LogicInterface
+      // before rendering as SMT and sending to Z3
+      let goal: Term | undefined = conjunct(
+        expImplications
+          .map(v => v.parsed)
+          .filter(v => v != undefined)
+          .map(v => v as Term)
+      );
+
+      let success: boolean = true;
+      if (goal) {
+        LI.setGoal(goal)
+        const output = await z3.solve(`${LI}`)
+        success = output === "unsat\n"
+      }
+
+      {/* END LOGIC INTERFACE CRITICAL REGION */}
+
+
       setNode((node) => {
         //set nodes
         return {

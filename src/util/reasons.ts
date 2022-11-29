@@ -6,6 +6,8 @@ import { StatementType } from "../types/Statement";
 import { absoluteIndexToLocal } from "./nodes";
 import { Setter } from "./setters";
 import { statementToZ3 } from "./statements";
+import { LogicInterface } from "../logic/LogicInterface";
+import { stat } from "fs";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
@@ -20,23 +22,33 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
     updateReasonStatus("invalid");
     return;
   }
+
   updateReasonStatus("checking");
-  const depSMTs = depStatements.map(stat => {
-    const smtStr = statementToZ3(stat);
-    if (!stat.parsed) return "";
-    if (isTerm(stat.parsed)) return `(assert ${smtStr})`;
-    else return smtStr;
-  });
-  const concSMT = `(assert (not ${statementToZ3(statement)}))`;
-  const z3Input = data.declarationsRef.current.map(statementToZ3).concat(depSMTs, [concSMT]).join("\n") + "\n(check-sat)";
-  (new Z3Solver.Z3Prover("")).solve(z3Input).then(output => {
-    if (output === "unsat\n") {
-      setCheckFailed(false);
-      updateReasonStatus("valid");
-    } else {
-      setCheckFailed(true);
-      updateReasonStatus("invalid");
-    }
-  });
+
+  {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+  const LI = new LogicInterface;
+
+  // Add globals/givens to the LogicInterface state
+  data.declarationsRef.current.forEach(
+    (declaration: StatementType) => statementToZ3(declaration, LI, "global")
+  );
+  depStatements.forEach(
+    (declaration: StatementType) => statementToZ3(declaration, LI, "global")
+  );
   
+  if (statementToZ3(statement, LI, "goal")) {
+    (new Z3Solver.Z3Prover("")).solve(`${LI}`).then(output => {
+      if (output === "unsat\n") {
+        setCheckFailed(false);
+        updateReasonStatus("valid");
+      } else {
+        setCheckFailed(true);
+        updateReasonStatus("invalid");
+      }
+    });
+  }
+
+  setCheckFailed(true);
+  updateReasonStatus("invalid");
+  {/* END LOGIC INTERFACE CRITICAL REGION */}
 }

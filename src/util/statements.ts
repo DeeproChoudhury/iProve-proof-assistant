@@ -1,10 +1,11 @@
-import { Line } from "../types/AST";
+import { Line, Term } from "../types/AST";
 import evaluate from "../logic/Parser";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";
 import { isTerm, toWrapperFunc } from "./trees";
-import { ASTSMTLIB2 } from "../logic/LogicInterface";
+import { ASTSMTLIB2, LogicInterface } from "../logic/LogicInterface";
+import { flattenDiagnosticMessageText, TypePredicateKind } from "typescript";
 
 export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);
@@ -19,8 +20,32 @@ export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) =>
   return statement;
 }
 
-export const statementToZ3 = (statement: StatementType): string => {
-  if (!statement.parsed) return "";
-  else if (isTerm(statement.parsed)) return ASTSMTLIB2(statement.wrappers.map(toWrapperFunc).reduceRight((accTerm, wrapperFunc) => wrapperFunc(accTerm), statement.parsed)) ?? "";
-  else return ASTSMTLIB2(statement.parsed);
+export const statementToZ3 = (statement: StatementType, LI: LogicInterface, kind: "given" | "global" |"goal"): boolean => {
+  if (!statement.parsed) return false;
+  
+  let st: Line = statement.parsed
+  let toRender: Line = (isTerm(st))
+    ? statement.wrappers
+      .map(toWrapperFunc)
+      .reduceRight(
+        (accTerm: Term, wrapperFunc): Term => wrapperFunc(accTerm),
+        st)
+    : st
+
+  switch (toRender.kind) {
+    case "FunctionDeclaration":
+      LI.addFnDecl(toRender); break;
+    case "FunctionDefinition":
+      LI.addFnDef(toRender); break;
+    default: 
+      switch (kind) {
+        case "given": LI.addGiven(toRender); break;
+        case "global": LI.addGlobal(toRender); break;
+        case "goal":
+          if (isTerm(toRender)) LI.setGoal(toRender);
+          else return false
+      }
+  }
+
+  return true;
 }
