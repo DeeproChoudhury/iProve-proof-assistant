@@ -187,26 +187,9 @@ function Flow() {
 
 
   const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[], jsonEdges: any[], jsonInduction: any[]) => {
-    const nodeData = jsonNodes;
-    const declarationsData = jsonDeclarations.map(d => {
-      return {
-        value: d,
-        wrappers: []
-      }
-    });
-    const typeDeclarations = jsonTypes.map(t => {
-      return {
-        value: t,
-        wrappers: []
-      }
-    });
-
-    console.log(jsonEdges);
-    // const edges = jsonEdges;
-
-    setDeclarations(declarationsData);
-    setTypeDeclarations(typeDeclarations);
-    setNodes(nodeData);
+    setDeclarations(jsonDeclarations);
+    setTypeDeclarations(jsonTypes);
+    setNodes(jsonNodes);
     setEdges(jsonEdges);
     setInductionNodes(jsonInduction);
   }, [makeThisNode]);
@@ -269,8 +252,8 @@ function Flow() {
             <ModalExport data={
               JSON.stringify({
                 nodes: nodes,
-                declarations: declarations.map(decl => decl.value),
-                types: typeDeclarations.map(type => type.value),
+                declarations: declarations,
+                types: typeDeclarations,
                 edges: edges,
                 inductionNodes: inductionNodes,
               })
