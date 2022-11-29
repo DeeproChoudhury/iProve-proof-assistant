@@ -8,12 +8,14 @@ import {
   PopoverBody,
   PopoverArrow,
   PopoverCloseButton,
-  Tooltip,
   Text,
 } from '@chakra-ui/react';
-import { ChevronDownIcon,CheckIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon } from "@chakra-ui/icons";
+import './Statement.css';
+import { useRef, useState } from "react";
+import { display } from "../parser/AST";
 import { StatementType } from '../types/Statement';
-import { display } from '../util/trees';
+import ReasonIndicator from './ReasonIndicator';
 
 export type StatementPropsType = {
   statement: StatementType;
@@ -68,18 +70,14 @@ const Statement = (props: StatementPropsType) => {
         </PopoverBody>
       </PopoverContent>
     </Popover>
-
   const inputStyle = "statement-input" + (statement.syntaxCorrect === false ? " syntax-error" : "") 
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
   const indentSize = 15 * statement.wrappers.length;
-  const reasonsLabel = statement.reason && (statement.reason.dependencies.length === 0 ? 'lemma' : `from ${statement.reason.dependencies.map(r => `(${r + 1})`).join(", ")}`)
   return (
     <div style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
       <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
-      {statement.reason && <Tooltip label={reasonsLabel} fontSize='xs'>
-        <CheckIcon style={{margin: 'auto 5px'}}/>
-      </Tooltip>}
+      {statement.reason && <ReasonIndicator reason={statement.reason} />}
       {proofNode && moreOptions}
     </div>
   )

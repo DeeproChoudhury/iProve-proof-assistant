@@ -3,13 +3,10 @@ import {
   ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalOverlay, Text, Tooltip
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import Z3Solver from '../solver/Solver';
 import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
-import { z3Reason } from '../util/reasons';
-import { statementToZ3 } from '../util/statements';
-import { isTerm } from '../util/trees';
-import { ASTSMTLIB2 } from "../logic/LogicInterface";
+import { absoluteIndexToLocal } from '../util/nodes';
+import { checkReason, z3Reason } from '../util/reasons';
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
 
@@ -19,9 +16,12 @@ export type SolveNodeModalPropsType = {
   node: StatementNodeData,
 }
 
+type Tag = '0' | '1' | '2'; 
+
 const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const { isOpen, onClose, node } = props;
-  const [tags, setTags] = useState(new Array(100).fill('0'));
+  const [tags, setTags] = useState<Tag[]>(Array(node.givens.length + node.proofSteps.length + node.goals.length).fill('0'));
+  const relevantTags = tags.slice(0, node.givens.length + node.proofSteps.length + node.goals.length);
   const [checkFailed, setCheckFailed] = useState(false);
 
   const onChange = (v: string, index: number) => {
@@ -30,7 +30,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
         return '0';
       }
       if (i === index) {
-        return v;
+        return v as Tag;
       }
       if (i > index && v === '2') {
         return '0';
@@ -43,39 +43,14 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     return tags.slice(0, index).findIndex((tag) => tag === '2') !== -1;
   }
 
-  const localZ3Solver = new Z3Solver.Z3Prover("");
   const solveZ3 = () => {
-    const reasonsIndexes = node.givens.concat(node.proofSteps, node.goals).map((g, i) => tags[i] === '1' ? i : -1).filter((i) => i >= 0)
-    const reasons = node.givens.concat(node.proofSteps, node.goals).filter((g, i) => tags[i] === '1')
-    const conclusionType = node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goals" : "proofSteps";
-    const conclusionIndex = conclusionType === "proofSteps" ?
-      node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') :
-      node.goals.findIndex((s, i) => tags[node.givens.length + node.proofSteps.length + i] === '2');
-    const conclusion = conclusionType === "proofSteps" ? node.proofSteps[conclusionIndex] : node.goals[conclusionIndex];
-    if (reasons.some(r => !r.parsed) || !conclusion.parsed) {
-      setCheckFailed(true);
-      return;
-    }
-    const declarations = node.declarationsRef.current.map(statementToZ3).join("\n");
-    const smtReasons = reasons.map(reason => {
-      const reasonStr = statementToZ3(reason);
-      if (!reason.parsed) return "";
-      if (isTerm(reason.parsed)) return `(assert ${reasonStr})`;
-      else return reasonStr;
-    }).join("\n");
-    console.log(declarations);
-    console.log(smtReasons);
-    const smtConclusion = "(assert (not " + ASTSMTLIB2(conclusion.parsed) + "))";
-    console.log(smtConclusion);
-    localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)").then((output: string) => {
-      if (output === "unsat\n") {
-        node.thisNode[conclusionType].addReason(conclusionIndex, z3Reason(reasonsIndexes));
-        setCheckFailed(false);
-      } else {
-        node.thisNode[conclusionType].removeReason(conclusionIndex);
-        setCheckFailed(true);
-      }
-    })
+    const reasonsIndexes = relevantTags.map((t, i) => t === '1' ? i : -1).filter(i => i !== -1);
+    const conclusionAbsIndex = relevantTags.indexOf('2') //node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goals" : "proofSteps";
+    if (conclusionAbsIndex === -1) return;
+    const [conclusionType, conclusionRelIndex] = absoluteIndexToLocal(node, conclusionAbsIndex);
+    const conclusion = node[conclusionType][conclusionRelIndex];
+    node.thisNode[conclusionType].addReason(conclusionRelIndex, z3Reason(reasonsIndexes));
+    checkReason(node, conclusion, status => (node.thisNode[conclusionType].updateReasonStatus(conclusionRelIndex, status)), setCheckFailed);
   }
 
   return (

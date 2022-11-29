@@ -1,5 +1,4 @@
-import { Box, Button } from "@chakra-ui/react";
-import { ReactNode } from "react";
+import { Box } from "@chakra-ui/react";
 import './TypeDeclarations.css';
 import { StatementType } from "../types/Statement";
 import StatementList from "./StatementList";
@@ -12,9 +11,6 @@ export type TypesPropsType = DeclarationCallbacks & {
 
 const TypeDeclarations = (props: TypesPropsType) => {
   const { statements, update, add, remove, checkSyntax, visible } = props;
-
-  const checkSyntaxButton: ReactNode = 
-    <Button size='xs' colorScheme='blackAlpha' onClick={() => { checkSyntax() }}>Check Syntax</Button>;
   return (
     <Box className={"types " + (visible ? 'closed' : 'open')}>
       <StatementList
@@ -24,7 +20,6 @@ const TypeDeclarations = (props: TypesPropsType) => {
         isScrollable={true}
         afterStatementEdit={() => checkSyntax()}
       />
-      {checkSyntaxButton}
     </Box>
   )
 }

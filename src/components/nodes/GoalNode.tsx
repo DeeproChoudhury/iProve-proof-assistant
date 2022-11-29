@@ -24,13 +24,13 @@ export default function GoalNode({ data }: NodeProps<StatementNodeData>) {
       </div>
       <StatementList
         title="Goals"
-        statements={data.goals}
-        callbacks={data.thisNode.goals}
+        statements={data.givens}
+        callbacks={data.thisNode.givens}
         afterStatementEdit={data.thisNode.checkSyntax}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
         <DeleteNodePopover deleteNode={data.thisNode.delete} />
-        <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button>
+        {/* <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button> */}
       </div>
     </Box>
   )

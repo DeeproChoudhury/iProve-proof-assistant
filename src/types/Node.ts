@@ -14,6 +14,7 @@ export type StatementNodeData = {
   givens: StatementType[];
   proofSteps: StatementType[];
   goals: StatementType[];
+  parsed?: boolean;
   thisNode: NodeCallbacks;
 };
 

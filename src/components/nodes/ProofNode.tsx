@@ -1,11 +1,9 @@
 import {
   Box, Button, Popover, PopoverArrow, PopoverCloseButton, PopoverContent,
-  PopoverHeader, PopoverTrigger, useDisclosure
-} from '@chakra-ui/react';
+  PopoverHeader, PopoverTrigger, useDisclosure} from '@chakra-ui/react';
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, NodeProps, Position } from 'reactflow';
 import { StatementNodeData } from '../../types/Node';
-import { StatementType } from '../../types/Statement';
 import { localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
@@ -23,17 +21,17 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
-  const checkSyntaxButton: ReactNode = <Button size='xs' colorScheme='blackAlpha' onClick={() => { data.thisNode.checkSyntax() }}>Check Syntax</Button>;
   const checkSatButton: ReactNode = 
     <Button size='xs' 
       colorScheme='blackAlpha' 
       onClick={() => { 
+        data.thisNode.checkSyntax();
         onSolveModalOpen();
       }}>
       Solve
     </Button>;
   
-  const checkSolveReady = data.givens.concat(data.proofSteps, data.goals, data.declarationsRef.current).every((s: StatementType) => s.parsed !== undefined);
+  const checkSolveReady = data.parsed === true;
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
       <PopoverTrigger>
@@ -49,10 +47,10 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
   return (
     <Box className="proof-node">
       {targetHandle}
-      <SolveNodeModal 
+      {isSolveModalOpen && <SolveNodeModal 
         isOpen={isSolveModalOpen} 
         onClose={onSolveModalClose} 
-        node={data}/>
+        node={data}/>}
       <div style={{display: 'flex', justifyContent: 'center'}}>
       {data.correctImplication === undefined &&
       <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
@@ -67,7 +65,6 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
           Check failed. Check again?
         </Button>}
       </div>
-      
       {/* BEGIN: Givens */}
       <StatementList 
         title="Givens"
@@ -105,7 +102,7 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
         <DeleteNodePopover deleteNode={data.thisNode.delete} />
         {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
         {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
-        {checkSyntaxButton}
+        {/* {checkSyntaxButton} */}
         {checkSolveReady ? checkSatButton : solveNotReadyPopover}
       </div>
       {/* END: Node End Buttons */}

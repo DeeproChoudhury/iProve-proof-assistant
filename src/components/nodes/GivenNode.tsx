@@ -9,13 +9,13 @@ export default function GivenNode({ data }: NodeProps<StatementNodeData>) {
     <Box className="given-node">
       <StatementList
         title="Givens"
-        statements={data.givens}
-        callbacks={data.thisNode.givens}
+        statements={data.goals}
+        callbacks={data.thisNode.goals}
         afterStatementEdit={data.thisNode.checkSyntax}
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
         <DeleteNodePopover deleteNode={data.thisNode.delete} />
-        <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button>
+        {/* <Button size='xs' colorScheme='blackAlpha' onClick={data.thisNode.checkSyntax}>Check Syntax</Button> */}
       </div>
       <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />
     </Box>
