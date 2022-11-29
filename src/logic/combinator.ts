@@ -69,7 +69,6 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
             case "PrimitiveType":
             case "FunctionType":
             case "VariableBinding":
-            case "TypeExt": 
             case "FunctionDeclaration":
             case "VariableDeclaration":
             case "TypeDef":

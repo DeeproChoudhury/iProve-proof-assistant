@@ -125,7 +125,6 @@ const FN_TYPE = rule<TokenKind, AST.FunctionType>();
 const PROOF_LINE = rule<TokenKind, AST.Line>();
 const FN_DEC = rule<TokenKind, AST.FunctionDeclaration>();
 const VAR_DEC = rule<TokenKind, AST.VariableDeclaration>();
-const TYPE_EXT = rule<TokenKind, AST.TypeExt>();
 
 const VAR_BIND = rule<TokenKind, AST.VariableBinding>();
 
@@ -236,14 +235,6 @@ VAR_DEC.setPattern(apply(
         opt_sc(kright(str(":"), TYPE))),
     (value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration => {
         return { kind: "VariableDeclaration", symbol: value[0], type: value[1] }
-    }
-));
-TYPE_EXT.setPattern(apply(
-    seq(
-        kleft(TYPE, str("⊆")), 
-        TYPE),
-    (value: [AST.Type, AST.Type]): AST.TypeExt => {
-        return { kind: "TypeExt", subType: value[0], superType: value[1] }
     }
 ));
 

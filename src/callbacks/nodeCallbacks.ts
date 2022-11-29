@@ -7,7 +7,7 @@ import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
-import { statementToZ3, unwrap_statements, updateWithParsed } from "../util/statements";
+import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
 import { Line, Term } from "../types/AST";

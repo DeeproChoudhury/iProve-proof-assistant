@@ -1,6 +1,6 @@
 import * as AST from "../types/AST";
 import { FunctionData, PatternData } from "../types/LogicInterface";
-import { isTerm } from "../util/trees";
+import { getSelector, isTerm } from "../util/trees";
 import Z3Solver from "./Solver";
 import { fnSMT } from "./util";
 
