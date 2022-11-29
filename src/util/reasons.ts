@@ -1,4 +1,4 @@
-import Z3Solver from "../solver/Solver";
+import Z3Solver from "../logic/Solver";
 import { StatementNodeData } from "../types/Node";
 import { CheckStatus, Z3Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";

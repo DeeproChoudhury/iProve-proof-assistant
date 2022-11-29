@@ -1,5 +1,5 @@
 import './App.css';
-import Z3Solver from '../solver/Solver';
+import Z3Solver from '../logic/Solver';
 import { useEffect, useState } from 'react';
 import Flow from './Flow';
 import { ChakraProvider, Spinner } from '@chakra-ui/react'

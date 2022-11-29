@@ -98,13 +98,7 @@ export type VariableBinding = {
     type?: Type
 }
 export type BlockStart = VariableDeclaration | Assumption | BeginScope;
-export type Line = TypeExt | Declaration | Term | Tactic | FunctionDefinition | TypeDef
-
-export type TypeExt = {
-    kind: "TypeExt",
-    subType: Type,
-    superType: Type
-}
+export type Line = Declaration | Term | Tactic | FunctionDefinition | TypeDef
 
 export type Declaration = FunctionDeclaration | VariableDeclaration
 

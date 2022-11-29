@@ -9,7 +9,7 @@ import { makeDeclarationCallbacks } from '../callbacks/declarationsCallbacks';
 import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
-import Z3Solver from '../solver/Solver';
+import Z3Solver from '../logic/Solver';
 import { ErrorLocation } from '../types/ErrorLocation';
 import { InductionNodeType, NodeType, StatementNodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';

@@ -2,7 +2,7 @@ import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
 import { rec_on } from "../logic/induction";
 import { unifies } from "../logic/unifier";
-import Z3Solver from "../solver/Solver";
+import Z3Solver from "../logic/Solver";
 import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { InductionNodeType } from "../types/Node";

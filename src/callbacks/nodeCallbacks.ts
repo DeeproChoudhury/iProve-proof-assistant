@@ -1,7 +1,7 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
 import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
-import Z3Solver from "../solver/Solver";
+import Z3Solver from "../logic/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
@@ -118,7 +118,6 @@ export const makeNodeCallbacks = (
       let goals = node.data.proofSteps.concat(node.data.goals);
 
       {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-      const LI = new LogicInterface;
 
       // Add globals/givens to the LogicInterface state
       node.data.declarationsRef.current.forEach(

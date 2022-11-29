@@ -1,12 +1,12 @@
 import { stateless_map_terms } from "../logic/combinator";
 import { fnDisplay } from "../logic/util";
 import * as AST from "../types/AST"
+import { StatementType } from "../types/Statement";
 
 function d(a: AST.ASTNode): string {
     switch (a.kind) {
         case "PrimitiveType": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
-        case "TypeExt": return `${d(a.subType)} ⊆ ${d(a.superType)}`;
         case "VariableBinding": return d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
@@ -59,6 +59,12 @@ function d(a: AST.ASTNode): string {
     }
 }
 export const display: (line: AST.ASTNode) => string = d
+
+export function unwrap_statements(S: StatementType[]): AST.Line[] {
+    let R: AST.Line[] = []
+    for (let s of S) { if (s.parsed) R.push(s.parsed); }
+    return R;
+}
 
 export const isTerm = (line: AST.Line): line is AST.Term => (
     line.kind === "Variable"
