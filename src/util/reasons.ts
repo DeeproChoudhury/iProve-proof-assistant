@@ -4,8 +4,9 @@ import { CheckStatus, Z3Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { absoluteIndexToLocal } from "./nodes";
 import { Setter } from "./setters";
-import { statementToZ3 } from "./statements";
-import { LogicInterface } from "../logic/LogicInterface";
+import { unwrap_statements } from "./statements";
+import { LI, LogicInterface } from "../logic/LogicInterface";
+import { Line, Term } from "../types/AST";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
@@ -24,29 +25,23 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
   updateReasonStatus("checking");
 
   {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-  const LI = new LogicInterface;
 
-  // Add globals/givens to the LogicInterface state
-  data.declarationsRef.current.forEach(
-    (declaration: StatementType) => statementToZ3(declaration, LI, "global")
-  );
-  depStatements.forEach(
-    (declaration: StatementType) => statementToZ3(declaration, LI, "global")
-  );
-  
-  if (statementToZ3(statement, LI, "goal")) {
-    (new Z3Solver.Z3Prover("")).solve(`${LI}`).then(output => {
-      if (output === "unsat\n") {
-        setCheckFailed(false);
-        updateReasonStatus("valid");
-      } else {
-        setCheckFailed(true);
-        updateReasonStatus("invalid");
+  LI.setDeclarations(unwrap_statements(data.declarationsRef.current))
+  if (statement.parsed)
+    LI.entails(unwrap_statements(depStatements), statement.parsed).then(
+      verdict => {
+        if (verdict.kind == "Valid") {
+          setCheckFailed(false);
+          updateReasonStatus("valid");
+        } else {
+          setCheckFailed(false);
+          updateReasonStatus("invalid");
+        }
       }
-    });
-  }
+    );
 
-  setCheckFailed(true);
+  setCheckFailed(false);
   updateReasonStatus("invalid");
+  
   {/* END LOGIC INTERFACE CRITICAL REGION */}
 }

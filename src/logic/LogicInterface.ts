@@ -1,9 +1,10 @@
 import * as AST from "../types/AST";
 import { FunctionData, PatternData } from "../types/LogicInterface";
+import { isTerm } from "../util/trees";
 import Z3Solver from "./Solver";
 import { fnSMT } from "./util";
 
-type ProofOutcome = ProofError | ProofVerdict
+export type ProofOutcome = ProofError | ProofVerdict
 type ProofVerdict = {
     kind: "Valid" | "False" | "Unknown",
     info?: string
@@ -19,25 +20,23 @@ export class LogicInterface {
     types: AST.TypeDef[] = [];
     rendered_types: string[] = [];
     declarations: AST.Line[] = [];
-
     function_declarations: Map<string, AST.FunctionDeclaration> = new Map();
-
     rendered_tuples: Map<number, string> = new Map();
     global_fn_defs: Map<string, AST.FunctionDefinition[]> = new Map();
-    insID: number = 0;
 
     // change on reset
     givens: AST.Line[] = [];
-    goal: AST.ASTNode | undefined;
+    goal: AST.Term | undefined;
     rendered_givens: string[] = [];
     rendered_goal: string | undefined;
     local_fn_defs: Map<string, AST.FunctionDefinition[]> = new Map();
-
     error_state: string | undefined;
 
     error(state: string) { this.error_state = state; }
     resolve_error() 
         { let e = this.error_state; this.error_state = undefined; return e; }
+    
+    reset_tuples() { this.rendered_tuples = new Map; }
 
     async context_free_entails(
         declarations: AST.Line[], types: AST.TypeDef[], reasons: AST.Line[], goal: AST.Term)
@@ -47,7 +46,7 @@ export class LogicInterface {
             return this.entails(reasons, goal)
         }
 
-    async entails(reasons: AST.Line[], goal: AST.Term, reset: boolean = true): Promise<ProofOutcome> {
+    async entails(reasons: AST.Line[], goal: AST.Line, reset: boolean = true): Promise<ProofOutcome> {
         if (reset) this.newProof()
 
         let E: string | undefined
@@ -58,6 +57,8 @@ export class LogicInterface {
         }
 
         this.setGoal(goal)
+        E = this.resolve_error();
+        if (E) return { kind: "Error", emitter: "IProve", msg: E }
         const rendered = `${LI}`;
         E = this.resolve_error();
         if (E) return { kind: "Error", emitter: "IProve", msg: E }
@@ -120,24 +121,8 @@ export class LogicInterface {
     }
 
     // Add instance given
-    pushGiven(n: AST.ASTNode): boolean {
+    pushGiven(n: AST.Line): boolean {
         switch(n.kind) {
-            case "PrimitiveType":
-            case "ListType":
-            case "ParamType":
-            case "TupleType":
-            case "FunctionType":
-            case "VariableBinding":
-            case "SimpleParam":
-            case "ConstructedType":
-            case "TuplePattern":
-            case "EmptyList":
-            case "ConsParam":
-            case "TypeConstructor":
-            case "Guard":
-                this.error("Cannot insert non-line constructs into proof state")
-                return false
-
             case "FunctionDeclaration":
                 this.error("Cannot declare functions outside of Declarations")
                 return false
@@ -167,9 +152,13 @@ export class LogicInterface {
     // For now, we do not allow function definitions as goals. This would
     // be useful sugar in proving the equivalence of function definitions
     // but also a bit trickier and not encountered in 1/2 year.
-    setGoal(n: AST.Term): AST.ASTNode | undefined {
-        let old = this.goal;
-        this.goal = n;
+    setGoal(n: AST.Line): AST.Term | undefined {
+        if (!isTerm(n)) {
+            this.error(`Only terms can be set as goals (not ${n.kind})`)
+            return
+        }
+
+        const old = this.goal; this.goal = n;
         return old
     }
 
@@ -298,14 +287,6 @@ export class LogicInterface {
     }
 }
 
-function getSelector(n: number): string {
-    switch (n) {
-        case 1: return "fst";
-        case 2: return "snd";
-        default: return `elem${n}`;
-    }
-}
-
 function renderPattern(a: AST.Pattern, name: string): PatternData {
     switch(a.kind) {
         case "SimpleParam":
@@ -363,7 +344,7 @@ function renderNode(a: AST.ASTNode | undefined): string {
             return `(Seq ${renderNode(a.param)})`
         case "TupleType": {
             let N = a.params.length;
-            this.createTuple(N);
+            LI.createTuple(N);
             return `(IProveTuple${N} ${a.params.map(renderNode).join(" ")})`;
         }
         
@@ -373,13 +354,11 @@ function renderNode(a: AST.ASTNode | undefined): string {
             return `(seq.++ ${units.join(" ")})`
         }
 
-        // THESE CASES NEED TO BE HANDLED SOMEHOW?
         case "BeginScope":
         case "EndScope":
         case "Assumption":
         case "Skolemize":
             return "";
-        // ^^
         
         // THESE CASES SHOULD NEVER BE ENCOUNTERED \/
         case "FunctionDefinition":

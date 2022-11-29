@@ -60,12 +60,6 @@ function d(a: AST.ASTNode): string {
 }
 export const display: (line: AST.ASTNode) => string = d
 
-export function unwrap_statements(S: StatementType[]): AST.Line[] {
-    let R: AST.Line[] = []
-    for (let s of S) { if (s.parsed) R.push(s.parsed); }
-    return R;
-}
-
 export const isTerm = (line: AST.Line): line is AST.Term => (
     line.kind === "Variable"
         || line.kind === "FunctionApplication"
@@ -140,10 +134,11 @@ export function seek_parens(A: AST.Term): AST.Term {
 
 // utility rec function which takes in an array of terms and returns their
     // (left-associative) dis(/con)junction. See above comment to motivate existence.
-export function combineTerms(ts: AST.Term[], conjunct: string = "||"): AST.Term | undefined {
+export function combineTerms(ts: AST.Line[], conjunct: string = "||"): AST.Term | undefined {
     let A = ts.shift();
     if (!A) return undefined;
     let tail = combineTerms(ts, conjunct);
+    if (!isTerm(A)) return tail;
     if (!tail) return A;
 
     return {
@@ -154,7 +149,7 @@ export function combineTerms(ts: AST.Term[], conjunct: string = "||"): AST.Term 
     }
 }
 export const disjunct = combineTerms
-export const conjunct = (ts: AST.Term[]): AST.Term | undefined => combineTerms(ts, "&")
+export const conjunct = (ts: AST.Line[]): AST.Term | undefined => combineTerms(ts, "&")
 
 export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
     return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";
@@ -188,3 +183,10 @@ export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
  } throw "unsupported BlockStart"; // why isn't this unreachable
  }
  
+ export function getSelector(n: number): string {
+    switch (n) {
+        case 1: return "fst";
+        case 2: return "snd";
+        default: return `elem${n}`;
+    }
+}

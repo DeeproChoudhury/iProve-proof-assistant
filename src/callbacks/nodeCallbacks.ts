@@ -7,10 +7,10 @@ import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
-import { statementToZ3, updateWithParsed } from "../util/statements";
+import { statementToZ3, unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
-import { LogicInterface } from "../logic/LogicInterface";
-import { Term } from "../types/AST";
+import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
+import { Line, Term } from "../types/AST";
 
 
 
@@ -119,27 +119,16 @@ export const makeNodeCallbacks = (
 
       {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
 
-      // Add globals/givens to the LogicInterface state
-      node.data.declarationsRef.current.forEach(
-        (declaration: StatementType) => statementToZ3(declaration, LI, "global")
-      );
-      reasons.forEach(
-        (reason: StatementType) => statementToZ3(reason, LI, "given")
-      );
+      // TODO: WIRE UP TYPES BOX?
+      LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
 
-      // Iterate over each node goal, setting it as the goal in LogicInterface
-      // before rendering as SMT and sending to Z3
-      goals.forEach(
-        async (goal: StatementType) => {
-          if (statementToZ3(goal, LI, "goal")) {
-            const output = await localZ3Solver.solve(`${LI}`)
-            if (output === "unsat\n") {
-              statementToZ3(goal, LI, "goal")
-              return
-            }
-          }
-          setStopGlobalCheck(true);
-        })
+      let c_givens: Line[] = unwrap_statements(reasons);
+      for (let G of unwrap_statements(goals)) {
+        const verdict: ProofOutcome = await LI.entails(c_givens, G)
+        if (verdict.kind == "Valid") c_givens.push(G)
+        else setStopGlobalCheck(true);
+      }
+
       {/* END LOGIC INTERFACE CRITICAL REGION */}
     },
     checkEdges: async () => {
@@ -173,34 +162,18 @@ export const makeNodeCallbacks = (
       console.log(declarationsRef.current);
 
       {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-      const LI = new LogicInterface;
+      let success: boolean = false;
 
-      // Add globals/givens to the LogicInterface state
-      declarationsRef.current.forEach(
-        (declaration: StatementType) => statementToZ3(declaration, LI, "global")
-      );
-      givens.forEach(
-        (reason: StatementType) => statementToZ3(reason, LI, "global")
-      );
+      // TODO: WIRE UP TYPES BOX?
+      LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
 
-      // Iterate over each node goal, setting it as the goal in LogicInterface
-      // before rendering as SMT and sending to Z3
-      let goal: Term | undefined = conjunct(
-        expImplications
-          .map(v => v.parsed)
-          .filter(v => v != undefined)
-          .map(v => v as Term)
-      );
-
-      let success: boolean = true;
-      if (goal) {
-        LI.setGoal(goal)
-        const output = await z3.solve(`${LI}`)
-        success = output === "unsat\n"
+      let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
+      if (goal) { 
+        const verdict = await LI.entails(unwrap_statements(givens), goal)
+        success = (verdict.kind == "Valid")
       }
-
+      
       {/* END LOGIC INTERFACE CRITICAL REGION */}
-
 
       setNode((node) => {
         //set nodes

@@ -19,32 +19,8 @@ export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) =>
   return statement;
 }
 
-export const statementToZ3 = (statement: StatementType, LI: LogicInterface, kind: "given" | "global" |"goal"): boolean => {
-  if (!statement.parsed) return false;
-  
-  let st: Line = statement.parsed
-  let toRender: Line = (isTerm(st))
-    ? statement.wrappers
-      .map(toWrapperFunc)
-      .reduceRight(
-        (accTerm: Term, wrapperFunc): Term => wrapperFunc(accTerm),
-        st)
-    : st
-
-  switch (toRender.kind) {
-    case "FunctionDeclaration":
-      LI.addFnDecl(toRender); break;
-    case "FunctionDefinition":
-      LI.addFnDef(toRender); break;
-    default: 
-      switch (kind) {
-        case "given": LI.addGiven(toRender); break;
-        case "global": LI.addGlobal(toRender); break;
-        case "goal":
-          if (isTerm(toRender)) LI.setGoal(toRender);
-          else return false
-      }
-  }
-
-  return true;
+export const unwrap_statements = (S: StatementType[]): Line[] => {
+  let R: Line[] = []
+  for (let s of S) { if (s.parsed) R.push(s.parsed); }
+  return R;
 }
