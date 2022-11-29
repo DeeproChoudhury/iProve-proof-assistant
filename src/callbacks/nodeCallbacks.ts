@@ -149,8 +149,8 @@ export const makeNodeCallbacks = (
           parsed.kind === "FunctionDeclaration" || 
           parsed.kind === "Assumption"); 
       }
-
-      goals.forEach(async (goal, index) => {
+      for (let index = 0; index < goals.length; index++) {
+        const goal = goals[index];
         if (!goal.parsed || !shouldProve(goal)) {
           if (!goal.parsed) {
             setStopGlobalCheck(true);
@@ -160,8 +160,6 @@ export const makeNodeCallbacks = (
           }
           return;
         }
-        // const [conclusionType, conclusionRelIndex] = absoluteIndexToLocal(node.data, index);
-        // checkReason(node.data, goal, status => (node.data.thisNode[conclusionType].updateReasonStatus(conclusionRelIndex, status)), setStopGlobalCheck);
         const goalStr = statementToZ3(goal);
         const smtConclusion = "(assert (not " + goalStr + "))";
         const output = await localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)")
@@ -172,7 +170,7 @@ export const makeNodeCallbacks = (
           setStopGlobalCheck(true);
           return;
         }
-      })
+      }
     },
     checkEdges: async () => {
       // here we should get all incoming edges & nodes to nodeID
