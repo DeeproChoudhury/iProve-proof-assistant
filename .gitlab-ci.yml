@@ -65,7 +65,7 @@ deploy-job:      # This job runs in the deploy stage.
     - CI= yarn build
     - export GEM_HOME="$HOME/.gem"
     - gem install dpl
-    # - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
+    - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
 
   artifacts:
     paths:
