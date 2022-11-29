@@ -147,6 +147,7 @@ function Flow() {
 
   const addNode = useCallback((nodeType: NodeType) => {
     const count = nextId();
+    console.log(nodes);
 
     if (nodeType === "inductionNode") {
       setInductionNodes(nds => [...nds, {
@@ -187,11 +188,55 @@ function Flow() {
 
 
   const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[], jsonEdges: any[], jsonInduction: any[]) => {
+    const nodeData = jsonNodes.map(node => {
+      // const newCount = nextId();
+      const id = node.id;
+      setCount(Math.max(count, id) + 1);
+
+      return {
+        id: `${id}`,
+        data: {
+          label: `Node ${id}`,
+          givens: node.data.givens,
+          proofSteps: node.data.proofSteps,
+          goals: node.data.goals,
+          declarationsRef,
+          thisNode: makeThisNode(`${id}`)
+        },
+        position: node.position,
+        type: node.type,
+      }
+    });
+
+    const inductionData = jsonInduction.map(node => {
+      // const newCount = nextId();
+      const count = node.id;
+      setCount(Math.max(count, count) + 1);
+
+      return {
+        id: `${count}`,
+        data: {
+          label: `Node ${count}`,
+          types: node.data.types,
+          predicate: node.data.predicate,
+          inductiveCases: node.data.inductiveCases,
+          baseCases: node.data.baseCases,
+          inductiveHypotheses: node.data.inductiveHypotheses,
+          declarationsRef,
+          typeDeclarationsRef,
+          thisNode: makeThisInductionNode(`${count}`)
+        },
+        position: node.position,
+        type: node.type,
+      }
+    });
+    
     setDeclarations(jsonDeclarations);
     setTypeDeclarations(jsonTypes);
-    setNodes(jsonNodes);
+    setNodes(nodeData);
+    setInductionNodes(inductionData);
     setEdges(jsonEdges);
-    setInductionNodes(jsonInduction);
+
   }, [makeThisNode]);
 
   const verifyProofGlobal = async () => {
