@@ -92,8 +92,6 @@ function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: Unif
                 : UNIFY_FAIL
         }
         case "QuantifierApplication": {
-            const util = require("util")
-            
             if (B.kind != "QuantifierApplication"
                 || B.quantifier != A.quantifier
                 || B.vars.length != A.vars.length)

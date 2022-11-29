@@ -1,5 +1,5 @@
 import * as AST from "../types/AST";
-import { conjunct, construct_type, imply, mk_var, range_over, strict_rw } from "../util/trees";
+import { conjunct, construct_type, display, imply, mk_var, range_over, strict_rw } from "../util/trees";
 
 /**
  * Given an inductively defined datatype, this combinator will return the *recursor map* of
@@ -27,7 +27,7 @@ export function rec_on(T: AST.Type, type_def: AST.TypeDef): (ident_: string, mot
             ));
 
             let precons: AST.Term[] = vars
-                .filter(pt => pt[1] == T)
+                .filter(pt => display(pt[1]) == display(T))
                 .map(pt => strict_rw(motive, ident, pt[0]))
             let final_case: AST.Term = imply(conjunct(precons), subbed)
             

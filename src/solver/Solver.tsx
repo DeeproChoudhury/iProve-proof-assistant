@@ -20,11 +20,12 @@ export namespace Z3Solver {
         constructor(context: string) { }
 
         public async solve(str : string) {
+            console.log(str)
             const cfg = Z3EvalLib.mk_config();
             Z3EvalLib.set_param_value(cfg, "proof", "true")
             const result = await Z3EvalLib.eval_smtlib2_string(
                 Z3EvalLib.mk_context(cfg),
-                str); 
+                str + "\n(check-sat)"); 
             console.log(result) ;
             return result;
         }

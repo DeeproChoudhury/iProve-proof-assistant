@@ -293,17 +293,6 @@ export class LogicInterface {
         }
     }
 
-    // LEGACY DONT USE
-    ast2smtlib(a: AST.ASTNode | undefined) : string {
-        if(a === undefined) return "NULL"
-        var ancillae: string[] = []
-        let renderedNode: string = this.renderNode(a)
-        let mapped = (ancillae.length)
-            ? `${ancillae.join("\n")}\n`
-            : "";
-        return `${mapped}${renderedNode}`
-    }
-
     toString(): string {
         let res = "";
 

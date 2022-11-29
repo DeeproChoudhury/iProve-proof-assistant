@@ -1,12 +1,17 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
+import { rec_on } from "../logic/induction";
+import { unifies } from "../logic/unifier";
 import Z3Solver from "../solver/Solver";
+import { ASTNode, Line, PrimitiveType, Term, TypeDef } from "../types/AST";
 import { ErrorLocation } from "../types/ErrorLocation";
+import { Unification } from "../types/LogicInterface";
 import { InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { setNodeWithId, setStatementsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { updateWithParsed } from "../util/statements";
+import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 
 
@@ -25,10 +30,10 @@ export const makeInductionNodeCallbacks = (
   return {
     delete: (): void => setInductionNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     types: makeStatementListCallbacks(setStatementsForNode(setNode, "types")),
-    predicate: makeStatementListCallbacks(setStatementsForNode(setNode, "predicate")),
+    motive: makeStatementListCallbacks(setStatementsForNode(setNode, "motive")),
     baseCases: makeStatementListCallbacks(setStatementsForNode(setNode, "baseCases")),
     inductiveCases: makeStatementListCallbacks(setStatementsForNode(setNode, "inductiveCases")),
-    inductiveHypotheses: makeStatementListCallbacks(setStatementsForNode(setNode, "inductiveHypotheses")),
+    identifier: makeStatementListCallbacks(setStatementsForNode(setNode, "identifier")),
     checkSyntax: (): void => setNode(node => {
       setError(undefined);
 
@@ -37,13 +42,69 @@ export const makeInductionNodeCallbacks = (
         data: {
           ...node.data,
           types: node.data.types.map(updateWithParsed(setError)),
-          predicate: node.data.predicate.map(updateWithParsed(setError)),
+          motive: node.data.motive.map(updateWithParsed(setError)),
           baseCases: node.data.baseCases.map(updateWithParsed(setError)),
-          inductiveCase: node.data.inductiveCases.map(updateWithParsed(setError)),
-          inductiveHypotheses: node.data.inductiveHypotheses.map(updateWithParsed(setError)),
+          inductiveCases: node.data.inductiveCases.map(updateWithParsed(setError)),
+          identifier: node.data.identifier.map(updateWithParsed(setError)),
         }
       };
     }),
+    checkPrinciple: async () => {
+      const node = inductionNodesRef.current.find((n) => n.id === nodeId);
+      if (!node) return;
+
+      node.data.thisNode.checkSyntax();
+
+      let type_: StatementType | undefined = node.data.types[0]
+      if (!type_ || !type_.parsed) return;
+      let type: Line = type_.parsed
+      if (type.kind != "TypeDef") return;
+      let tdef: TypeDef = type
+      let tident: PrimitiveType = {
+        kind: "PrimitiveType",
+        ident: type.ident
+      }
+
+      let identifier_: StatementType | undefined = node.data.identifier[0]
+      if (!identifier_ || !identifier_.parsed) return;
+      let identifier: Line = identifier_.parsed
+      if (identifier.kind != "Variable") return;
+    
+      let motive_: StatementType | undefined = node.data.motive[0]
+      if (!motive_ || !motive_.parsed) return;
+      let motive: Line = motive_.parsed
+      if (!isTerm(motive)) return;
+
+      let cases: Line[] = 
+        node.data.baseCases
+          .concat(node.data.inductiveCases)
+          .map(x => x.parsed)
+          .filter(x => x != undefined)
+          .map(x => x as Line);
+
+      for (let c of cases) {
+        if (!isTerm(c)) {
+          setError(undefined);
+          return;
+        }
+      }
+
+      let precond: Term | undefined = conjunct(cases as Term[])
+      let IP: Term = (precond)
+        ? imply(precond, range_over(motive, [[identifier, tident]]))
+        : range_over(motive, [[identifier, tident]])
+
+      let gt_IP: Term = rec_on(tident, tdef)(identifier.ident, motive)
+      console.log("GT", display(gt_IP))
+      console.log("USER", display(IP))
+      let verdict = unifies(IP, gt_IP)
+      if (!verdict) {
+        setError(undefined)
+        return;
+      }
+
+      console.log("VERDICT", display(verdict.term))
+    }
   };
 };
 
