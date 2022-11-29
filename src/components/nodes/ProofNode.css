@@ -22,3 +22,8 @@
   width: 350px;
 }
 
+.custom-node-handle{
+  height: 10px;
+  width: 20px;
+  background: rgb(0, 89, 141);
+}

@@ -8,6 +8,7 @@ import { localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
 import { DeleteNodePopover } from './GeneralNode';
+import { NodeHandle } from './NodeHandle';
 
 function ProofNode({ data }: NodeProps<StatementNodeData>) {
   const afterStatementEdit = useCallback(() => {
@@ -19,8 +20,6 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
   const { isOpen: isSolveNotReadyOpen, onOpen: onSolveNotReadyOpen, onClose: onSolveNotReadyClose } = useDisclosure();
   const { isOpen: isSolveModalOpen, onOpen: onSolveModalOpen, onClose: onSolveModalClose } = useDisclosure();
 
-  const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
-  const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const checkSatButton: ReactNode = 
     <Button size='xs' 
       colorScheme='blackAlpha' 
@@ -46,7 +45,10 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
 
   return (
     <Box className="proof-node">
-      {targetHandle}
+      {/* BEGIN : Top Handle */}
+      <NodeHandle type='target'/>
+      {/* END : Top Handle */}
+
       {isSolveModalOpen && <SolveNodeModal 
         isOpen={isSolveModalOpen} 
         onClose={onSolveModalClose} 
@@ -106,7 +108,8 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
         {checkSolveReady ? checkSatButton : solveNotReadyPopover}
       </div>
       {/* END: Node End Buttons */}
-      {sourceHandle}
+      
+      <NodeHandle type='source'/>
     </Box>
   );
 }

@@ -5,7 +5,7 @@ import { Box, Button, Textarea } from '@chakra-ui/react';
  * 
  * @returns box for modal contents
  */
-const ModalExport = (props: any) => {
+const ModalExport = (props: { data : string}) => {
 
     /**
      * Box for exporting

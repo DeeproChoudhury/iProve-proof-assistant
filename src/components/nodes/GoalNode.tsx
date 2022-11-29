@@ -3,11 +3,16 @@ import { Handle, NodeProps, Position } from "reactflow";
 import { StatementNodeData } from "../../types/Node";
 import StatementList from "../StatementList";
 import { DeleteNodePopover } from "./GeneralNode";
+import { NodeHandle } from "./NodeHandle";
 
 export default function GoalNode({ data }: NodeProps<StatementNodeData>) {
   return (
     <Box className="goal-node">
-      <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />
+      
+      {/* START : Top Handle */}
+      <NodeHandle type="target" />
+      {/* END : Top Handle */}
+
       <div style={{display: 'flex', justifyContent: 'center'}}>
       {data.correctImplication === undefined &&
       <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>

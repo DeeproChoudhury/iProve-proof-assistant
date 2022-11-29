@@ -51,26 +51,33 @@ export const collided = (node1: Node, node2: Node): boolean => {
 export const shiftReasonsForNode = (
   setNode: Setter<StatementNodeType>
 ) => (
-  k: "proofSteps" | "goals",
+  k: ListField<StatementNodeData>,
   index: number | undefined,
   offset: -1 | 1
 ) => {
   setNode(node => {
-    const {givens, proofSteps: oldProofSteps, goals: oldGoals} = node.data;
-    const proofSteps = [...oldProofSteps];
-    const goals = [...oldGoals];
-    const defaultIndex = k === "goals" ? goals.length : proofSteps.length;
-    const absI = (index ?? defaultIndex) + givens.length + (k === "goals" ? proofSteps.length : 0);
-    let start = absI;
-    for (let i = start; i < givens.length + proofSteps.length + goals.length; i++) {
-      const [statements, relI] = i < givens.length + proofSteps.length ? [proofSteps, i - givens.length] : [goals, i - givens.length - proofSteps.length];
-      const statement = statements[relI];
+    const newNode = {
+      ...node,
+      data: {
+        ...node.data,
+        proofSteps: [...node.data.proofSteps],
+        goals: [...node.data.goals]
+      }
+    }
+
+    const defaultIndex = node.data[k].length;
+    const changed = localIndexToAbsolute(node.data, k, index ?? defaultIndex);
+    const start = Math.max(changed, newNode.data.givens.length); // givens don't need to be updated
+    const end = newNode.data.givens.length + newNode.data.proofSteps.length + newNode.data.goals.length
+    for (let i = start; i < end; i++) {
+      const [field, relI] = absoluteIndexToLocal(newNode.data, i);
+      const statement = newNode.data[field][relI];
       if (!statement.reason) continue;
       const newDeps = [...statement.reason.dependencies];
       for (let depIndex = 0; depIndex < newDeps.length; depIndex++) {
-        if (newDeps[depIndex] >= start) newDeps[depIndex] += offset;
+        if (newDeps[depIndex] >= changed) newDeps[depIndex] += offset;
       }
-      statements[relI] = {
+      newNode.data[field][relI] = {
         ...statement,
         reason: {
           ...statement.reason,
@@ -78,36 +85,36 @@ export const shiftReasonsForNode = (
         }
       }
     }
-    return {
-      ...node,
-      data: {
-        ...node.data,
-        proofSteps,
-        goals
-      }
-    }
+    return newNode;
   });
 };
 
 export const invalidateReasonForNode = (
   setNode: Setter<StatementNodeType>
 ) => (
-  k: "proofSteps" | "goals",
+  k: ListField<StatementNodeData>,
   index: number
 ) => {
   setNode(node => {
-    const {givens, proofSteps: oldProofSteps, goals: oldGoals} = node.data;
-    const proofSteps = [...oldProofSteps];
-    const goals = [...oldGoals];
-    const absI = index + givens.length + (k === "goals" ? proofSteps.length : 0);
-    for (let i = absI; i < givens.length + proofSteps.length + goals.length; i++) {
-      const [statements, relI] = i < givens.length + proofSteps.length ? [proofSteps, i - givens.length] : [goals, i - givens.length - proofSteps.length];
-      const statement = statements[relI];
+    const newNode = {
+      ...node,
+      data: {
+        ...node.data,
+        proofSteps: [...node.data.proofSteps],
+        goals: [...node.data.goals]
+      }
+    }
+    const changed = localIndexToAbsolute(newNode.data, k, index);
+    const start = Math.max(changed, newNode.data.givens.length); // givens don't need to be updated
+    const end = newNode.data.givens.length + newNode.data.proofSteps.length + newNode.data.goals.length
+    for (let i = start; i < end; i++) {
+      const [field, relI] = absoluteIndexToLocal(newNode.data, i);
+      const statement = newNode.data[field][relI];
       if (!statement.reason) continue;
       const deps = statement.reason.dependencies;
 
-      if (relI === index || deps.includes(absI)) {
-        statements[relI] = {
+      if (i === changed || deps.includes(changed)) {
+        newNode.data[field][relI] = {
           ...statement,
           reason: {
             ...statement.reason,
@@ -116,13 +123,6 @@ export const invalidateReasonForNode = (
         }
       }
     }
-    return {
-      ...node,
-      data: {
-        ...node.data,
-        proofSteps,
-        goals
-      }
-    }
+    return newNode;
   });
 };

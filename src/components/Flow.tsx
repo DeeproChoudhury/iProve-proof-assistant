@@ -134,7 +134,8 @@ function Flow() {
   { value: 'iff', symbol: '<->' },
   { value: 'implies', symbol: '->' },
   { value: 'for all x', symbol: 'FA x.' },
-  { value: 'exists x', symbol: 'E x.' }]
+  { value: 'exists x', symbol: 'E x.' },
+  { value: 'negation', symbol: '~'} ]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, inductionNodesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
@@ -185,39 +186,12 @@ function Flow() {
   }, [nextId, makeThisNode, makeThisInductionNode]);
 
 
-  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[]) => {
-    const nodeData = jsonNodes.map(node => {
-      // const newCount = nextId();
-      const id = Math.random();
-      return {
-        id: `${id}`,
-        data: {
-          label: `Node ${id}`,
-          givens: node.givens === undefined ? [] : node.givens.map((e: string) => { return { value: e, wrappers: [] } }),
-          proofSteps: node.proofs === undefined ? [] : node.proofs.map((e: string) => { return { value: e, wrappers: [] } }),
-          goals: node.goals === undefined ? [] : node.goals.map((e: string) => { return { value: e, wrappers: [] } }),
-          declarationsRef,
-          thisNode: makeThisNode(`${id}`)
-        },
-        position: { x: 300, y: 0 },
-        type: node.type,
-      }
-    });
-    const declarationsData = jsonDeclarations.map(d => {
-      return {
-        value: d,
-        wrappers: []
-      }
-    });
-    const typeDeclarations = jsonTypes.map(t => {
-      return {
-        value: t,
-        wrappers: []
-      }
-    });;
-    setDeclarations(declarationsData);
-    setTypeDeclarations(typeDeclarations);
-    setNodes(nodeData);
+  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[], jsonEdges: any[], jsonInduction: any[]) => {
+    setDeclarations(jsonDeclarations);
+    setTypeDeclarations(jsonTypes);
+    setNodes(jsonNodes);
+    setEdges(jsonEdges);
+    setInductionNodes(jsonInduction);
   }, [makeThisNode]);
 
   const verifyProofGlobal = async () => {
@@ -277,9 +251,11 @@ function Flow() {
           <ModalBody>
             <ModalExport data={
               JSON.stringify({
-                nodes: nodes.map(n => { return { type: n.type, givens: n.data.givens.map(p => p.value), proofs: n.data.proofSteps.map(p => p.value), goals: n.data.goals.map(p => p.value) } }),
-                declarations: declarations.map(decl => decl.value),
-                types: typeDeclarations.map(type => type.value)
+                nodes: nodes,
+                declarations: declarations,
+                types: typeDeclarations,
+                edges: edges,
+                inductionNodes: inductionNodes,
               })
             } />
           </ModalBody>
@@ -397,11 +373,11 @@ function Flow() {
             Verify Entire Proof
           </Button>
           <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
-            Settings
+            {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
           </Button>
           <Popover>
             <PopoverTrigger>
-              <Button>Help</Button>
+              <Button>Symbols</Button>
             </PopoverTrigger>
             <PopoverContent style={{ width: "400px" }}>
               <PopoverArrow />
