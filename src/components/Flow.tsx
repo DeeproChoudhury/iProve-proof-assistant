@@ -147,6 +147,7 @@ function Flow() {
 
   const addNode = useCallback((nodeType: NodeType) => {
     const count = nextId();
+    console.log(nodes);
 
     if (nodeType === "inductionNode") {
       setInductionNodes(nds => [...nds, {
@@ -186,12 +187,64 @@ function Flow() {
   }, [nextId, makeThisNode, makeThisInductionNode]);
 
 
-  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[], jsonEdges: any[], jsonInduction: any[]) => {
-    setDeclarations(jsonDeclarations);
-    setTypeDeclarations(jsonTypes);
-    setNodes(jsonNodes);
-    setEdges(jsonEdges);
-    setInductionNodes(jsonInduction);
+  /**
+   * Import Proof given json data. Input list of node data.
+   * 
+   * @remarks does not need callback?
+   */
+  const addImportedProof = useCallback((json: any) => {
+    // Create Given, Proof, Goal Nodes from input data
+    const nodeData = json.nodes.map((node: any) => {
+      const id = node.id;
+      setCount(Math.max(count, id) + 1);
+
+      return {
+        id: `${id}`,
+        data: {
+          label: node.data.label,
+          givens: node.data.givens,
+          proofSteps: node.data.proofSteps,
+          goals: node.data.goals,
+          declarationsRef,
+          thisNode: makeThisNode(`${id}`)
+        },
+        position: node.position,
+        type: node.type,
+      }
+    });
+
+    // Create Induction Nodes from input data
+    const inductionData = json.inductionNodes.map((node : any) => {
+      const count = node.id;
+      setCount(Math.max(count, count) + 1);
+
+      return {
+        id: `${count}`,
+        data: {
+          label: node.data.label,
+          // predicate: node.data.predicate,
+          declarationsRef,
+          // inductiveHypotheses: node.data.inductiveHypotheses,
+          typeDeclarationsRef,
+          types: node.data.types,
+          thisNode: makeThisInductionNode(`${count}`),
+
+          inductiveCases: node.data.inductiveCases,
+          baseCases: node.data.baseCases,
+          motive: node.data.motive,
+
+        },
+        position: node.position,
+        type: node.type,
+      }
+    });
+    
+    setDeclarations(json.declarations);
+    setTypeDeclarations(json.types);
+    setNodes(nodeData);
+    setInductionNodes(inductionData);
+    setEdges(json.edges);
+
   }, [makeThisNode]);
 
   const verifyProofGlobal = async () => {
@@ -229,7 +282,6 @@ function Flow() {
       <Modal isOpen={importModalShow}
         onClose={() => { setImportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalImport />
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
           <ModalHeader>Import Proof</ModalHeader>
           <ModalCloseButton />
@@ -244,7 +296,6 @@ function Flow() {
       <Modal isOpen={exportModalShow && proofValid}
         onClose={() => { setExportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalImport />
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
           <ModalHeader>Export Proof</ModalHeader>
           <ModalCloseButton />
