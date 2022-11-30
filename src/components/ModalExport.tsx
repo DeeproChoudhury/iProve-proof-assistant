@@ -1,8 +1,4 @@
-import { Box, Button, Radio, RadioGroup, Textarea } from '@chakra-ui/react';
-import { useEffect, useState } from 'react';
-import { display } from "../parser/AST";
-import { NodeType } from '../types/Node';
-import { StatementType } from '../types/Statement';
+import { Box, Button, Textarea } from '@chakra-ui/react';
 
 /**
  * Modal contents for Exporting proofs in JSON format

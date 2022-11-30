@@ -16,18 +16,17 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
     nodeData.thisNode[k].update(updated, evt.target.value);
   }, [nodeData]);
 
+  const afterStatementEdit = useCallback(() => {
+    nodeData.thisNode.checkSyntax();
+  }, [nodeData]);
+
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
   const checkSatButton: ReactNode = 
     <Button size='xs'
       colorScheme='blackAlpha' 
       onClick={() => { 
-        console.log(nodeData.baseCases);
-        console.log(nodeData.inductiveCases);
-        console.log(nodeData.inductiveHypotheses[0]);
-        console.log(nodeData.types[0]);
-        console.log(nodeData.predicate[0]);
-				console.log('types: ', nodeData.typeDeclarationsRef.current);
+		nodeData.thisNode.checkPrinciple();
       }}>
       Solve
     </Button>;
@@ -62,29 +61,23 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 					<option value={index}>{type.value}</option>
 				)}
 			</Select>
-			<Statement
-				onChange={e => onChange(e, "types", 0)}
-				statement={nodeData.types[0]}
-				addAbove={() => {}}
-				addBelow={() => {}}
-				deleteStatement={() => {}}
-				index={0}
-				proofNode={false}/>
 			{/* END : Type */}
 
-			{/* BEGIN : Predicate */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-				<Text>Predicate</Text>
+			{/* BEGIN : Motive */}
+			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
+				<Text>Induction Goal</Text>
 			</div>
 			<Statement
-				onChange={e => onChange(e, "predicate", 0)}
-				statement={nodeData.predicate[0]}
+				onChange={e => onChange(e, "motive", 0)}
+				statement={nodeData.motive[0]}
 				index={0}
 				addAbove={() => {}}
 				addBelow={() => {}}
 				deleteStatement={() => {}}
+				afterEdit={() => afterStatementEdit()}
 				proofNode={false}/>
-			{/* END : Predicate */}
+			<Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} />
+			{/* END : Motive */}
 
 			{/* BEGIN : Base Case */}
 			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
@@ -135,21 +128,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 						key={index}/>)}
       </div>
 			{/* END : Induction Case */}
-
-
-			{/* BEGIN : Inductive Hypothesis */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
-				<Text>Inductive Hypothesis</Text>
-			</div>
-			<Statement
-				onChange={e => onChange(e, "inductiveHypotheses", 0)}
-				statement={nodeData.inductiveHypotheses[0]}
-				index={0}
-				addAbove={() => {}}
-				addBelow={() => {}}
-				deleteStatement={() => {}}
-				proofNode={false}/>
-			{/* END : Inductive Hypothesis */}
 
 			{/* START : Node Bottom Buttons */}
 			<NodeBottomButtons />

@@ -1,20 +1,23 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
-import { ASTSMTLIB2, isBlockEnd, isBlockStart, isTerm } from "../parser/AST";
-import Z3Solver from "../solver/Solver";
+import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
+import Z3Solver from "../logic/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { StatementNodeType } from "../types/Node";
+import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { absoluteIndexToLocal, invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
-import { checkReason } from "../util/reasons";
+import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
-import { statementToZ3, updateWithParsed } from "../util/statements";
+import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
+import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
+import { Line, Term } from "../types/AST";
+
 
 
 export const makeNodeCallbacks = (
   nodesRef: MutableRefObject<StatementNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
+  inductionNodesRef: MutableRefObject<InductionNodeType[]>,
   declarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<StatementNodeType[]>,
   setEdges: Setter<Edge[]>,
@@ -128,49 +131,20 @@ export const makeNodeCallbacks = (
       }
       let reasons = node.data.givens;
       let goals = node.data.proofSteps.concat(node.data.goals);
-      const declarations = node.data.declarationsRef.current.map(declaration => {
-        return statementToZ3(declaration);
-      }).join("\n");
-      let smtReasons = reasons.map(reason => {
-        const reasonStr = statementToZ3(reason);
-        if (!reason.parsed) return "";
-        if (isTerm(reason.parsed)) return `(assert ${reasonStr})`;
-        else return reasonStr;
-      }).join("\n");
-      
-      const shouldProve = (s: StatementType) => {
-        if (!s.parsed) {
-          return false;
-        }
-        const parsed = s.parsed;
-        return !(parsed.kind === "VariableDeclaration" || 
-          parsed.kind === "EndScope" || 
-          parsed.kind === "BeginScope" || 
-          parsed.kind === "FunctionDeclaration" || 
-          parsed.kind === "Assumption"); 
+
+      {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+
+      // TODO: WIRE UP TYPES BOX?
+      LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
+
+      let c_givens: Line[] = unwrap_statements(reasons);
+      for (let G of unwrap_statements(goals)) {
+        const verdict: ProofOutcome = await LI.entails(c_givens, G)
+        if (verdict.kind == "Valid") c_givens.push(G)
+        else setStopGlobalCheck(true);
       }
-      for (let index = 0; index < goals.length; index++) {
-        const goal = goals[index];
-        if (!goal.parsed || !shouldProve(goal)) {
-          if (!goal.parsed) {
-            setStopGlobalCheck(true);
-          }
-          if (goal.parsed?.kind === "VariableDeclaration" || goal.parsed?.kind === "FunctionDeclaration") {
-            smtReasons = smtReasons + `\n ${statementToZ3(goal)}\n`;
-          }
-          return;
-        }
-        const goalStr = statementToZ3(goal);
-        const smtConclusion = "(assert (not " + goalStr + "))";
-        const output = await localZ3Solver.solve(declarations + "\n" + smtReasons + "\n" + smtConclusion + "\n (check-sat)")
-        if (output === "unsat\n") {
-          // check passed so can add goal to reasons and move on to next goal 
-          smtReasons = smtReasons + `\n (assert ${goalStr})\n`;
-        } else {
-          setStopGlobalCheck(true);
-          return;
-        }
-      }
+
+      {/* END LOGIC INTERFACE CRITICAL REGION */}
     },
     checkEdges: async () => {
       // here we should get all incoming edges & nodes to nodeID
@@ -180,15 +154,19 @@ export const makeNodeCallbacks = (
       // TODO: Fix this
       const currEdges = edgesRef.current;
       const currNodes = nodesRef.current;
+      const currInductionNodes = inductionNodesRef.current;
       const node = currNodes.find((n) => n.id === nodeId);
       if (!node) return true;
-
+      
       const incomingEdges = currEdges.filter((e) => e.target === nodeId);
+      console.log(incomingEdges)
       // get all nodes that have incoming edge to nodeId
       // should probably use getIncomers from reactflow
       const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
       const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
-      const givens = incomingNodes.flatMap(node => node.data.goals);
+      const incomingInductionNodes = currInductionNodes.filter(node => incomingNodesIds.has(node.id));
+      const inductionGivens = incomingInductionNodes.map(node => node.data.motive[0]);
+      const givens = [...incomingNodes.flatMap(node => node.data.goals), ...inductionGivens];
       const expImplications = node.data.givens;
       
       if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
@@ -197,26 +175,21 @@ export const makeNodeCallbacks = (
       
       // check that exp_implications follows from givens with z3
       console.log(declarationsRef.current);
-      const smtDeclarations = declarationsRef.current.map((declaration: StatementType) => {
-        if (!declaration.parsed) return "";
-        return ASTSMTLIB2(declaration.parsed);
-      }).join("\n");
-      const smtReasons = givens.map(given => {
-        if (!given.parsed) return "";
-        if (given.parsed?.kind === "FunctionDeclaration" || given.parsed?.kind === "VariableDeclaration") {
-          return ASTSMTLIB2(given.parsed);
-        }
-        return `(assert ${ASTSMTLIB2(given.parsed)})`
-      }).join("\n");
-      console.log(smtDeclarations);
-      console.log(smtReasons);
-      const smtConclusions = expImplications.map((conclusion: StatementType) => {
-        if (!conclusion.parsed) return "";
-        return "(assert (not " + ASTSMTLIB2(conclusion.parsed) + "))";
-      }).join("\n");
-      console.log(smtConclusions);
-      const output = await z3.solve(smtDeclarations + "\n" + smtReasons + "\n" + smtConclusions + "\n (check-sat)")
-      const success = output === "unsat\n";
+
+      {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+      let success: boolean = false;
+
+      // TODO: WIRE UP TYPES BOX?
+      LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
+
+      let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
+      if (goal) { 
+        const verdict = await LI.entails(unwrap_statements(givens), goal)
+        success = (verdict.kind == "Valid")
+      }
+      
+      {/* END LOGIC INTERFACE CRITICAL REGION */}
+
       setNode((node) => {
         //set nodes
         return {

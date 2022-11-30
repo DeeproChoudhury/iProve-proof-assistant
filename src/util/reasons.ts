@@ -1,11 +1,12 @@
-import { isTerm, Line } from "../parser/AST";
-import Z3Solver from "../solver/Solver";
+import Z3Solver from "../logic/Solver";
 import { StatementNodeData } from "../types/Node";
 import { CheckStatus, Z3Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { absoluteIndexToLocal } from "./nodes";
 import { Setter } from "./setters";
-import { statementToZ3 } from "./statements";
+import { unwrap_statements } from "./statements";
+import { LI, LogicInterface } from "../logic/LogicInterface";
+import { Line, Term } from "../types/AST";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
@@ -20,23 +21,27 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
     updateReasonStatus("invalid");
     return;
   }
+
   updateReasonStatus("checking");
-  const depSMTs = depStatements.map(stat => {
-    const smtStr = statementToZ3(stat);
-    if (!stat.parsed) return "";
-    if (isTerm(stat.parsed)) return `(assert ${smtStr})`;
-    else return smtStr;
-  });
-  const concSMT = `(assert (not ${statementToZ3(statement)}))`;
-  const z3Input = data.declarationsRef.current.map(statementToZ3).concat(depSMTs, [concSMT]).join("\n") + "\n(check-sat)";
-  (new Z3Solver.Z3Prover("")).solve(z3Input).then(output => {
-    if (output === "unsat\n") {
-      setCheckFailed(false);
-      updateReasonStatus("valid");
-    } else {
-      setCheckFailed(true);
-      updateReasonStatus("invalid");
-    }
-  });
+
+  {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+
+  LI.setDeclarations(unwrap_statements(data.declarationsRef.current))
+  if (statement.parsed)
+    LI.entails(unwrap_statements(depStatements), statement.parsed).then(
+      verdict => {
+        if (verdict.kind == "Valid") {
+          setCheckFailed(false);
+          updateReasonStatus("valid");
+        } else {
+          setCheckFailed(false);
+          updateReasonStatus("invalid");
+        }
+      }
+    );
+
+  setCheckFailed(false);
+  updateReasonStatus("invalid");
   
+  {/* END LOGIC INTERFACE CRITICAL REGION */}
 }

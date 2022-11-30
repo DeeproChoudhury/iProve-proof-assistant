@@ -2,6 +2,7 @@ import { MutableRefObject } from "react";
 import { Node } from "reactflow";
 import { InductionNodeCallbacks } from "../callbacks/inductionNodeCallbacks";
 import { NodeCallbacks } from "../callbacks/nodeCallbacks";
+import { Variable } from "./AST";
 import { CheckStatus } from "./Reason";
 import { StatementType } from "./Statement";
 
@@ -24,14 +25,14 @@ export type InductionNodeData = {
   correctImplication?: CheckStatus;
   typeDeclarationsRef: MutableRefObject<StatementType[]>;
   types: StatementType[];
-  predicate: StatementType[];
+  thisNode: InductionNodeCallbacks;
+
   inductiveCases: StatementType[];
   baseCases: StatementType[];
-  inductiveHypotheses: StatementType[];
-  thisNode: InductionNodeCallbacks;
+  motive: StatementType[];
 }; 
 
-export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "predicate" | "inductiveCases" | "baseCases" | "inductiveHypotheses") : never
+export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "inductiveCases" | "baseCases" | "motive") : never
 
 export type AnyNodeData = StatementNodeData | InductionNodeData;
 

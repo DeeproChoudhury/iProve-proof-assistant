@@ -1,7 +1,6 @@
 import { Box, Button, Textarea } from '@chakra-ui/react';
 import { useCallback, useState } from 'react';
 
-
 /**
  * Modal contents for importing proofs in JSON format
  * 
