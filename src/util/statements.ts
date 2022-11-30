@@ -12,6 +12,7 @@ export const updateWithParsed = (setError: Setter<IProveError | undefined>) => (
     setError(mk_error({
       kind: "Syntax", statement: statement, column: parsedOrError.pos?.columnBegin,
       msg: parsedOrError.message
+        .replace("token: <END-OF-FILE>", "entire input")
     }));
   } else {
     console.log(parsedOrError);

@@ -1,6 +1,6 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { alt, apply, buildLexer, expectEOF, expectSingleResult, kmid, kright, Lexer, list_sc, opt, Parser, rep_sc, seq, str, tok, Token } from "typescript-parsec";
+import { alt, apply, buildLexer, expectEOF, expectSingleResult, kmid, kright, Lexer, list_sc, nil, opt, Parser, rep_sc, rule, seq, str, tok, Token } from "typescript-parsec";
 import { IProveError } from "../components/Flow";
 import { ListField, StatementNodeType, InductionNodeType, StatementNodeData } from "../types/Node";
 import { StatementType } from "../types/Statement";
@@ -173,54 +173,56 @@ export function mk_error({
   }
 }
 
-type ErrorToken = "(" | ")" | '"' | "Number" | "Other" | "Space";
+type ErrorToken = "(" | ")" | '"' | "Number" | "Word" | "Other" | "Space";
 const error_lexer: Lexer<ErrorToken> = buildLexer([
   [true, /^\)/g, ")"],
   [true, /^\(/g, "("],
   [true, /^\"/g, "\""],
   [true, /^\d+/g, "Number"],
-  [true, /^\S+/g, "Other"],
+  [true, /^\w+/g, "Word"],
+  [true, /^\S/g, "Other"],
 
-  [false, /^\s+/g, "Space"]
+  [false, /^(\s|\n)+/g, "Space"]
 ]);
 
-const STRING: Parser<ErrorToken, string>
-  = apply(rep_sc(alt(tok("Other"), tok("Number"))),
-    (v: Token<"Other" | "Number">[]): string =>
-    v.map((x) => x.text).join(" "))
+const STRING = rule<ErrorToken, string>()
+const Z3_ERRORS = rule<ErrorToken, (undefined | IProveError)[]>()
+STRING.setPattern(apply(rep_sc(alt(tok("Word"), tok("Number"))),
+    (v: Token<"Word" | "Number">[]): string =>
+    v.map((x) => x.text).join(" ")))
 
-const Z3_ERRORS: Parser<ErrorToken, IProveError[]>
-  = rep_sc(apply(
-      kmid(
-        tok("("), 
-        kright(
-          str("error"), 
-          kmid(
-            tok("\""),
-            seq(
-              opt(
-                seq(
-                  kright(str("line"), tok("Number")),
-                  kmid(str("column"), tok("Number"), str(":"))
-                )
-              ),
-              STRING
+Z3_ERRORS.setPattern(rep_sc(
+  apply(
+    kmid(
+      tok("("), 
+      kright(
+        str("error"), 
+        kmid(
+          tok("\""),
+          seq(
+            opt(
+              seq(
+                kright(str("line"), tok("Number")),
+                kmid(str("column"), tok("Number"), str(":"))
+              )
             ),
-            tok("\"")
-          )
-        ),
-        tok(")")
+            STRING
+          ),
+          tok("\"")
+        )
       ),
-      (v: [[Token<"Number">, Token<"Number">] | undefined, string])
-        : IProveError => (mk_error({
-          kind: "Semantic",
-          msg: v[1],
-        }))
-  ))
+      tok(")")
+    ),
+    (v: [[Token<"Number">, Token<"Number">] | undefined, string])
+      : IProveError => (mk_error({
+        kind: "Semantic",
+        msg: v[1],
+      }))
+  )
+))
 
 export function parse_z3_error(e: string): IProveError | undefined {
   let A = Z3_ERRORS.parse(error_lexer.parse(e));
-  console.log(A)
   if (!A.successful) return;
   return expectSingleResult(A)[0];
 }

@@ -105,7 +105,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
           </Button>
           {checkFailed ?
               <Tooltip label='Invalid proof! Please try again.' fontSize='xs'>
-                <Button colorScheme='red' onClick={solveZ3}>CheckAgain</Button>
+                <Button colorScheme='red' onClick={solveZ3}>Check Again</Button>
               </Tooltip> :
               <Button colorScheme='whatsapp' onClick={solveZ3}>Check</Button>}
         </ModalFooter>

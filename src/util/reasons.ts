@@ -30,17 +30,18 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
   if (statement.parsed)
     LI.entails(unwrap_statements(depStatements), statement.parsed).then(
       verdict => {
+        console.log("RVERD", verdict)
         if (verdict.kind == "Valid") {
           setCheckFailed(false);
           updateReasonStatus("valid");
         } else {
-          setCheckFailed(false);
+          setCheckFailed(true);
           updateReasonStatus("invalid");
         }
       }
     );
 
-  setCheckFailed(false);
+  setCheckFailed(true);
   updateReasonStatus("invalid");
   
   {/* END LOGIC INTERFACE CRITICAL REGION */}

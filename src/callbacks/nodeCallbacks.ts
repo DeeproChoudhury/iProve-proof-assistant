@@ -2,7 +2,6 @@ import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
 import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
 import Z3Solver from "../logic/Solver";
-import { ErrorLocation } from "../types/ErrorLocation";
 import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { invalidateReasonForNode, mk_error, parse_z3_error, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
@@ -141,7 +140,7 @@ export const makeNodeCallbacks = (
       let c_givens: Line[] = unwrap_statements(reasons);
       for (let G of unwrap_statements(goals)) {
         const verdict: ProofOutcome = await LI.entails(c_givens, G)
-        if (verdict.kind == "Valid") c_givens.push(G)
+        if (verdict.kind == "Valid") { c_givens.push(G); continue; }
         else if (verdict.kind == "Error") setError(parse_z3_error(verdict.msg))
         else { setStopGlobalCheck(true); setError(mk_error({
             kind: "Proof"
@@ -191,6 +190,13 @@ export const makeNodeCallbacks = (
       if (goal) { 
         const verdict = await LI.entails(unwrap_statements(givens), goal)
         success = (verdict.kind == "Valid")
+        
+        if (verdict.kind == "Error") {
+          console.log("WAAAAAH", verdict.msg, parse_z3_error(verdict.msg))
+          setError(parse_z3_error(verdict.msg))
+        }
+        else if (verdict.kind != "Valid")
+          setError(mk_error({ kind: "Proof" }))
       }
       
       {/* END LOGIC INTERFACE CRITICAL REGION */}
@@ -259,3 +265,7 @@ export const makeNodeCallbacks = (
 };
 
 export type NodeCallbacks = ReturnType<ReturnType<typeof makeNodeCallbacks>>;
+function setCheckFailed(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+
