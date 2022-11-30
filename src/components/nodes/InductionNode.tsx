@@ -25,8 +25,8 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 		translate: [0, 0],
 	});
 	useEffect(() => {
-		return setTarget(document.querySelector(`.induction-node`)!);
-	}, []);
+		return setTarget(document.querySelector(`#induction-node-${id}`)!);
+	}, [id]);
 
 	const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
 	const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
@@ -59,7 +59,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
  */
 	return (
 		<div>
-			<Box className={componentStyle} key={`induction-node-${id}`}>
+			<Box className={componentStyle} key={`induction-node-${id}`} id={`induction-node-${id}`}>
 				{targetHandle}
 				{/* BEGIN : Type */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>

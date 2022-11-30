@@ -7,18 +7,18 @@ import StatementList from "../StatementList";
 import { DeleteNodePopover } from "./GeneralNode";
 import { NodeHandle } from "./NodeHandle";
 
-export default function GoalNode({ data }: NodeProps<StatementNodeData>) {
+export default function GoalNode({ id, data }: NodeProps<StatementNodeData>) {
   const [target, setTarget] = useState<any>();
   const [frame] = useState<any>({
     translate: [0, 0],
   });
   useEffect(() => {
-    return setTarget(document.querySelector(".goal-node")!);
-  }, []);
+    return setTarget(document.querySelector(`#goal-node-${id}`)!);
+  }, [id]);
 
   return (
     <div>
-      <Box className="goal-node">
+      <Box className="goal-node" id={`goal-node-${id}`}>
 
         {/* START : Top Handle */}
         <NodeHandle type="target" />

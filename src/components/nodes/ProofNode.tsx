@@ -12,7 +12,7 @@ import StatementList from '../StatementList';
 import { DeleteNodePopover } from './GeneralNode';
 import { NodeHandle } from './NodeHandle';
 
-function ProofNode({ data }: NodeProps<StatementNodeData>) {
+function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
   const afterStatementEdit = useCallback(() => {
     data.thisNode.checkSyntax();
     data.thisNode.setWrappers();
@@ -22,8 +22,8 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
     translate: [0, 0],
   });
   useEffect(() => {
-    return setTarget(document.querySelector(".proof-node")!);
-  }, []);
+    return setTarget(document.querySelector(`#proof-node-${id}`)!);
+  }, [id]);
 
   const [isCollapsed, setCollapsed] = useState(false);
   const { isOpen: isSolveNotReadyOpen, onOpen: onSolveNotReadyOpen, onClose: onSolveNotReadyClose } = useDisclosure();
@@ -54,7 +54,7 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
 
   return (
     <div>
-      <Box className="proof-node">
+      <Box className="proof-node" id={`proof-node-${id}`}>
         {/* BEGIN : Top Handle */}
         <NodeHandle type='target' />
         {/* END : Top Handle */}

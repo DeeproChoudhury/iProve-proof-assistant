@@ -7,17 +7,17 @@ import StatementList from "../StatementList";
 import { DeleteNodePopover } from "./GeneralNode";
 import { NodeHandle } from "./NodeHandle";
 
-export default function GivenNode({ data }: NodeProps<StatementNodeData>) {
+export default function GivenNode({ id, data }: NodeProps<StatementNodeData>) {
   const [target, setTarget] = useState<any>();
   const [frame] = useState<any>({
     translate: [0, 0],
   });
   useEffect(() => {
-    return setTarget(document.querySelector(".given-node")!);
-  }, []);
+    return setTarget(document.querySelector(`#given-node-${id}`)!);
+  }, [id]);
   return (
     <div>
-      <Box className="given-node">
+      <Box className="given-node" id={`given-node-${id}`}>
 
         <StatementList
           title="Givens"
