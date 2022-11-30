@@ -189,7 +189,7 @@ export class LogicInterface {
             this.error(`Function ${ident} must be declared before it is defined`)
             return;
         } 
-        if (!defs.length) return renderNode(decl);
+        if (!defs.length) return `(declare-fun ${decl.symbol} ${renderNode(decl.type)})`;
 
         let params: string[] = []
         let nparams = decl.type.argTypes.length;
