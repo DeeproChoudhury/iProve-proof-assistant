@@ -5,9 +5,9 @@ import { unifies } from "../logic/unifier";
 import Z3Solver from "../logic/Solver";
 import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { InductionNodeData, InductionNodeType } from "../types/Node";
+import { AnyNodeType, InductionNodeData, InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { setNodeWithId, setStatementsForNode } from "../util/nodes";
+import { isInductionNode, setNodeWithId, setStatementsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { updateWithParsed } from "../util/statements";
 import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
@@ -16,17 +16,17 @@ import { makeStatementListCallbacks } from "./statementListCallbacks";
 export type InductionNodeCallbacks = InductionNodeData["thisNode"];
 
 export const makeInductionNodeCallbacks = (
-  inductionNodesRef: MutableRefObject<InductionNodeType[]>,
+  nodesRef: MutableRefObject<AnyNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
   declarationsRef: MutableRefObject<StatementType[]>,
-  setInductionNodes: Setter<InductionNodeType[]>,
+  setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<ErrorLocation | undefined>,
   z3: Z3Solver.Z3Prover
 ) => (
   nodeId: string
 ): InductionNodeCallbacks => {
-  const setNode = setNodeWithId(setInductionNodes, nodeId);
+  const setNode = setNodeWithId(setNodes, isInductionNode, nodeId);
   const statementLists = {
     types: makeStatementListCallbacks(setStatementsForNode(setNode, "types"), setError),
     motive: makeStatementListCallbacks(setStatementsForNode(setNode, "motive"), setError),
@@ -55,8 +55,8 @@ export const makeInductionNodeCallbacks = (
     });
   };
   const checkInternal = async () => {
-    const node = inductionNodesRef.current.find((n) => n.id === nodeId);
-    if (!node) return;
+    const node = nodesRef.current.find((n) => n.id === nodeId);
+    if (!node || node.type !== "inductionNode") return;
 
     setNode(node => ({...node, data: {...node.data, internalsStatus: "checking"}}));
     node.data.thisNode.parseAll();
@@ -113,7 +113,7 @@ export const makeInductionNodeCallbacks = (
   };
   const checkEdges = () => { throw "unimplemented" };
   return {
-    delete: (): void => setInductionNodes(nds => nds.filter(nd => nd.id !== nodeId)),
+    delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     ...statementLists,
     parseAll,
     checkInternal,

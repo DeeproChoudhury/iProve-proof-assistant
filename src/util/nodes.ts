@@ -36,11 +36,12 @@ export const setStatementsForNode = <K extends string, D extends Record<K, State
   });
 };
 
-export const setNodeWithId = <T extends StatementNodeType | InductionNodeType>(
-  setNodes: Setter<T[]>,
+export const setNodeWithId = <T extends AnyNodeType>(
+  setNodes: Setter<AnyNodeType[]>,
+  guard: (node: AnyNodeType) => node is T,
   nodeId: string
 ) => (action: SetStateAction<T>) => {
-  setNodes(nds => nds.map((nd) => nd.id === nodeId ? applyAction(action, nd) : nd));
+  setNodes(nds => nds.map((nd) => nd.id === nodeId && guard(nd) ? applyAction(action, nd) : nd));
 };
 
 export const collided = (node1: Node, node2: Node): boolean => {
@@ -174,5 +175,37 @@ export const edgesStatus = (node: AnyNodeProps): CheckStatus => {
       return "valid";
     default:
       return node.data.edgesStatus;
+  }
+}
+
+export const isInductionNode = (node: AnyNodeType): node is InductionNodeType => {
+  return node.type === "inductionNode";
+}
+
+export const isStatementNode = (node: AnyNodeType): node is StatementNodeType => {
+  return node.type !== "inductionNode";
+}
+
+export const getInputs = (node: AnyNodeProps): StatementType[] => {
+  switch (node.type) {
+    case "givenNode":
+      return [];
+    case "proofNode":
+    case "goalNode":
+      return node.data.givens;
+    case "inductionNode":
+      return node.data.baseCases.concat(node.data.inductiveCases);
+  }
+}
+
+export const getOutputs = (node: AnyNodeProps): StatementType[] => {
+  switch (node.type) {
+    case "givenNode":
+    case "proofNode":
+      return node.data.goals;
+    case "goalNode":
+      return [];
+    case "inductionNode":
+      return node.data.motive;
   }
 }

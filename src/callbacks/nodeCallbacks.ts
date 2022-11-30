@@ -3,9 +3,9 @@ import { Edge } from "reactflow";
 import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
 import Z3Solver from "../logic/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { InductionNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
+import { AnyNodeType, InductionNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { getInputs, getOutputs, invalidateReasonForNode, isStatementNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
@@ -16,11 +16,10 @@ import { z3Reason } from "../util/reasons";
 export type NodeCallbacks = StatementNodeData["thisNode"];
 
 export const makeNodeCallbacks = (
-  nodesRef: MutableRefObject<StatementNodeType[]>,
+  nodesRef: MutableRefObject<AnyNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
-  inductionNodesRef: MutableRefObject<InductionNodeType[]>,
   declarationsRef: MutableRefObject<StatementType[]>,
-  setNodes: Setter<StatementNodeType[]>,
+  setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<ErrorLocation | undefined>,
   setStopGlobalCheck: Setter<boolean | undefined>,
@@ -28,7 +27,7 @@ export const makeNodeCallbacks = (
 ) => (
   nodeId: string
 ): NodeCallbacks => {
-  const setNode = setNodeWithId(setNodes, nodeId);
+  const setNode = setNodeWithId(setNodes, isStatementNode, nodeId);
 
   const shiftReasons = shiftReasonsForNode(setNode);
   const invalidateReason = invalidateReasonForNode(setNode);
@@ -160,9 +159,8 @@ export const makeNodeCallbacks = (
       // TODO: Fix this
       const currEdges = edgesRef.current;
       const currNodes = nodesRef.current;
-      const currInductionNodes = inductionNodesRef.current;
       const node = currNodes.find((n) => n.id === nodeId);
-      if (!node) return true;
+      if (!node || !isStatementNode(node)) return true;
       
       const incomingEdges = currEdges.filter((e) => e.target === nodeId);
       console.log(incomingEdges)
@@ -170,10 +168,8 @@ export const makeNodeCallbacks = (
       // should probably use getIncomers from reactflow
       const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
       const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
-      const incomingInductionNodes = currInductionNodes.filter(node => incomingNodesIds.has(node.id));
-      const inductionGivens = incomingInductionNodes.map(node => node.data.motive[0]);
-      const givens = [...incomingNodes.flatMap(node => node.data.goals), ...inductionGivens];
-      const expImplications = node.data.givens;
+      const givens = incomingNodes.flatMap(getOutputs);
+      const expImplications = getInputs(node);
       
       if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
         return false; // TODO: show error message here
@@ -202,7 +198,7 @@ export const makeNodeCallbacks = (
           ...node,
           data: {
             ...node.data,
-            correctImplication: success ? "valid" : "invalid"
+            edgesStatus: success ? "valid" : "invalid"
           }
         };
       });
