@@ -173,7 +173,7 @@ function Flow() {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
-          givens: nodeType === 'goalNode' ? [blankStatement] : [],
+          givens: [],
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
           declarationsRef,
