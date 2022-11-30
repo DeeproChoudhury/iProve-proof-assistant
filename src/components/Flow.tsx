@@ -187,16 +187,21 @@ function Flow() {
   }, [nextId, makeThisNode, makeThisInductionNode]);
 
 
-  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[], jsonEdges: any[], jsonInduction: any[]) => {
-    const nodeData = jsonNodes.map(node => {
-      // const newCount = nextId();
+  /**
+   * Import Proof given json data. Input list of node data.
+   * 
+   * @remarks does not need callback?
+   */
+  const addImportedProof = useCallback((json: any) => {
+    // Create Given, Proof, Goal Nodes from input data
+    const nodeData = json.nodes.map((node: any) => {
       const id = node.id;
       setCount(Math.max(count, id) + 1);
 
       return {
         id: `${id}`,
         data: {
-          label: `Node ${id}`,
+          label: node.data.label,
           givens: node.data.givens,
           proofSteps: node.data.proofSteps,
           goals: node.data.goals,
@@ -208,15 +213,15 @@ function Flow() {
       }
     });
 
-    const inductionData = jsonInduction.map(node => {
-      // const newCount = nextId();
+    // Create Induction Nodes from input data
+    const inductionData = json.inductionNodes.map((node : any) => {
       const count = node.id;
       setCount(Math.max(count, count) + 1);
 
       return {
         id: `${count}`,
         data: {
-          label: `Node ${count}`,
+          label: node.data.label,
           types: node.data.types,
           predicate: node.data.predicate,
           inductiveCases: node.data.inductiveCases,
@@ -231,11 +236,11 @@ function Flow() {
       }
     });
     
-    setDeclarations(jsonDeclarations);
-    setTypeDeclarations(jsonTypes);
+    setDeclarations(json.declarations);
+    setTypeDeclarations(json.types);
     setNodes(nodeData);
     setInductionNodes(inductionData);
-    setEdges(jsonEdges);
+    setEdges(json.edges);
 
   }, [makeThisNode]);
 
@@ -274,7 +279,6 @@ function Flow() {
       <Modal isOpen={importModalShow}
         onClose={() => { setImportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalImport />
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
           <ModalHeader>Import Proof</ModalHeader>
           <ModalCloseButton />
@@ -289,7 +293,6 @@ function Flow() {
       <Modal isOpen={exportModalShow && proofValid}
         onClose={() => { setExportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalImport />
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
           <ModalHeader>Export Proof</ModalHeader>
           <ModalCloseButton />
