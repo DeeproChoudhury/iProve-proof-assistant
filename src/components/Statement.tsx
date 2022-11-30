@@ -1,3 +1,4 @@
+import { useRef, useState } from 'react';
 import { Button, IconButton, useDisclosure } from '@chakra-ui/react';
 import {
   Popover,
@@ -11,8 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import './Statement.css';
-import { useRef, useState } from "react";
-import { display } from "../parser/AST";
+import { display } from "../util/trees";
 import { StatementType } from '../types/Statement';
 import ReasonIndicator from './ReasonIndicator';
 
@@ -73,7 +73,7 @@ const Statement = (props: StatementPropsType) => {
   const value = statement.parsed && !isFocused ? display(statement.parsed) : statement.value;
   const indentSize = 15 * statement.wrappers.length;
   return (
-    <div style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
+    <div className="nodrag" style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
       <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
       <input ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
       {statement.reason && <ReasonIndicator reason={statement.reason} />}

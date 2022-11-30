@@ -1,8 +1,10 @@
-import { ASTSMTLIB2, isTerm, Line, toWrapperFunc } from "../parser/AST";
-import evaluate from "../parser/fol-parser";
+import { Line, Term } from "../types/AST";
+import evaluate from "../logic/Parser";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";
+import { isTerm, toWrapperFunc } from "./trees";
+import { LogicInterface } from "../logic/LogicInterface";
 
 export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);
@@ -17,8 +19,8 @@ export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) =>
   return statement;
 }
 
-export const statementToZ3 = (statement: StatementType): string => {
-  if (!statement.parsed) return "";
-  else if (isTerm(statement.parsed)) return ASTSMTLIB2(statement.wrappers.map(toWrapperFunc).reduceRight((accTerm, wrapperFunc) => wrapperFunc(accTerm), statement.parsed)) ?? "";
-  else return ASTSMTLIB2(statement.parsed);
+export const unwrap_statements = (S: StatementType[]): Line[] => {
+  let R: Line[] = []
+  for (let s of S) { if (s.parsed) R.push(s.parsed); }
+  return R;
 }

@@ -9,7 +9,7 @@ import { makeDeclarationCallbacks } from '../callbacks/declarationsCallbacks';
 import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
-import Z3Solver from '../solver/Solver';
+import Z3Solver from '../logic/Solver';
 import { ErrorLocation } from '../types/ErrorLocation';
 import { InductionNodeType, NodeType, StatementNodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
@@ -137,7 +137,7 @@ function Flow() {
   { value: 'exists x', symbol: 'E x.' },
   { value: 'negation', symbol: '~'} ]
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, inductionNodesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
@@ -154,10 +154,10 @@ function Flow() {
         data: {
           label: `Node ${count}`,
           types: [{ value: '', wrappers: [] }],
-          predicate: [{ value: '', wrappers: [] }],
+          identifier: [{ value: '', wrappers: [] }],
           inductiveCases: [],
           baseCases: [],
-          inductiveHypotheses: [{ value: '', wrappers: [] }],
+          motive: [{ value: '', wrappers: [] }],
           declarationsRef,
           typeDeclarationsRef,
           thisNode: makeThisInductionNode(`${count}`)
