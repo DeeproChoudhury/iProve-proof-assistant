@@ -4,7 +4,7 @@ import {
 import { ReactNode, useCallback, useState } from 'react';
 import { Handle, NodeProps, Position } from 'reactflow';
 import { StatementNodeData } from '../../types/Node';
-import { localIndexToAbsolute } from '../../util/nodes';
+import { allParsed, localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
 import { DeleteNodePopover } from './GeneralNode';
@@ -12,7 +12,7 @@ import { NodeHandle } from './NodeHandle';
 
 function ProofNode({ data }: NodeProps<StatementNodeData>) {
   const afterStatementEdit = useCallback(() => {
-    data.thisNode.checkSyntax();
+    data.thisNode.parseAll();
     data.thisNode.setWrappers();
   }, [data]);
 
@@ -24,13 +24,13 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
     <Button size='xs' 
       colorScheme='blackAlpha' 
       onClick={() => { 
-        data.thisNode.checkSyntax();
+        data.thisNode.parseAll();
         onSolveModalOpen();
       }}>
       Solve
     </Button>;
   
-  const checkSolveReady = data.parsed === true;
+  const checkSolveReady = allParsed({type: "proofNode", data});
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
       <PopoverTrigger>
@@ -54,15 +54,15 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
         onClose={onSolveModalClose} 
         node={data}/>}
       <div style={{display: 'flex', justifyContent: 'center'}}>
-      {data.correctImplication === undefined &&
+      {data.edgesStatus === undefined &&
       <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
         Check incoming implications
       </Button>}
-      {data.correctImplication === "valid" &&
+      {data.edgesStatus === "valid" &&
         <Button colorScheme='whatsapp' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
           Check passed. Check again?
         </Button>}
-      {data.correctImplication === "invalid" &&
+      {data.edgesStatus === "invalid" &&
         <Button colorScheme='red' size='xs' onClick={() => {data.thisNode.checkEdges()}}>
           Check failed. Check again?
         </Button>}

@@ -16,8 +16,11 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
     nodeData.thisNode[k].update(updated, evt.target.value);
   }, [nodeData]);
 
-  const afterStatementEdit = useCallback(() => {
-    nodeData.thisNode.checkSyntax();
+  const afterStatementEdit = useCallback((k: ListField<InductionNodeData>, updated: number) => {
+    nodeData.thisNode.parseAll();
+    nodeData.thisNode.checkInternal();
+    if (k === "baseCases" || k === "inductiveCases") nodeData.thisNode.checkEdges();
+    if (k === "motive") ""; // TODO: invalidate edgesValid for nodes connected to outgoing edges
   }, [nodeData]);
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
@@ -26,7 +29,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
     <Button size='xs'
       colorScheme='blackAlpha' 
       onClick={() => { 
-		nodeData.thisNode.checkPrinciple();
+		nodeData.thisNode.checkInternal();
       }}>
       Solve
     </Button>;
@@ -74,7 +77,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 				addAbove={() => {}}
 				addBelow={() => {}}
 				deleteStatement={() => {}}
-				afterEdit={() => afterStatementEdit()}
+				afterEdit={() => afterStatementEdit("motive", 0)}
 				proofNode={false}/>
 			<Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} />
 			{/* END : Motive */}

@@ -22,6 +22,7 @@ export const makeFlowCallbacks = (nodes: StatementNodeType[], inductionNodes: In
       id: `${count}`,
       data: {
         label: `Node ${count}`,
+        edgesStatus: "unchecked",
         givens: first.data.givens,
         proofSteps: [
           ...first.data.proofSteps,
@@ -48,7 +49,7 @@ export const makeFlowCallbacks = (nodes: StatementNodeType[], inductionNodes: In
       if (node.id !== params.target) {
         return node;
       }
-      return {...node, data: {...node.data, givens: [...node.data.givens, ...sourceGoals]}};
+      return {...node, data: {...node.data, edgesStatus: "unchecked", givens: [...node.data.givens, ...sourceGoals]}};
     }));
     setEdges((eds) => addEdge({...params, 
       type:"implication", 

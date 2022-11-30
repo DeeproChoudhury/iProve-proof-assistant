@@ -19,6 +19,7 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
   if (depStatements.some(s => !s.parsed)) {
     setCheckFailed(true);
     updateReasonStatus("invalid");
+    data.thisNode.checkInternal();
     return;
   }
 
@@ -27,7 +28,7 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
   {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
 
   LI.setDeclarations(unwrap_statements(data.declarationsRef.current))
-  if (statement.parsed)
+  if (statement.parsed) {
     LI.entails(unwrap_statements(depStatements), statement.parsed).then(
       verdict => {
         if (verdict.kind == "Valid") {
@@ -39,9 +40,11 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
         }
       }
     );
-
-  setCheckFailed(false);
-  updateReasonStatus("invalid");
+  } else {
+    setCheckFailed(false);
+    updateReasonStatus("invalid");
+  }
+  data.thisNode.checkInternal();
   
   {/* END LOGIC INTERFACE CRITICAL REGION */}
 }

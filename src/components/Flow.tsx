@@ -11,7 +11,7 @@ import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks'
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../logic/Solver';
 import { ErrorLocation } from '../types/ErrorLocation';
-import { InductionNodeType, NodeType, StatementNodeType } from '../types/Node';
+import { InductionNodeType, NodeKind, StatementNodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
@@ -43,6 +43,7 @@ import {
   Td,
   TableContainer,
 } from '@chakra-ui/react'
+import { allParsed, internalsStatus } from '../util/nodes';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -145,7 +146,7 @@ function Flow() {
 
   const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, inductionNodes, nextId, makeThisNode]);
 
-  const addNode = useCallback((nodeType: NodeType) => {
+  const addNode = useCallback((nodeType: NodeKind) => {
     const count = nextId();
     console.log(nodes);
 
@@ -154,6 +155,8 @@ function Flow() {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
+          internalsStatus: "unchecked",
+          edgesStatus: "unchecked",
           types: [{ value: '', wrappers: [] }],
           identifier: [{ value: '', wrappers: [] }],
           inductiveCases: [],
@@ -173,6 +176,7 @@ function Flow() {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
+          edgesStatus: "unchecked",
           givens: nodeType === 'goalNode' ? [blankStatement] : [],
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
@@ -214,7 +218,7 @@ function Flow() {
     });
 
     // Create Induction Nodes from input data
-    const inductionData = json.inductionNodes.map((node : any) => {
+    const inductionData: InductionNodeType[] = json.inductionNodes.map((node : any) => {
       const count = node.id;
       setCount(Math.max(count, count) + 1);
 
@@ -222,6 +226,9 @@ function Flow() {
         id: `${count}`,
         data: {
           label: node.data.label,
+          allParsed: false,
+          internalsValid: false,
+          edgesValid: true,
           // predicate: node.data.predicate,
           declarationsRef,
           // inductiveHypotheses: node.data.inductiveHypotheses,
@@ -248,30 +255,18 @@ function Flow() {
   }, [makeThisNode]);
 
   const verifyProofGlobal = async () => {
-    /* check all nodes have correct syntax */
-    setStopGlobalCheck(undefined);
-    for await (const node of nodes) {
-      // check might not be necessary with the onBlur, but better make sure
-      node.data.thisNode.checkSyntax();
-    }
-    for (const node of nodes) {
-      if (node.data.parsed !== true) {
-        return;
-      }
-    }
-    let correctEdges = true;
-    for await (const node of nodes) {
-      if (node.type !== "givenNode") {
-        const output = await node.data.thisNode.checkEdges();
-        correctEdges = correctEdges && output;
-      }
-    }
-    for await (const node of nodes) {
-      await node.data.thisNode.checkInternalAssertions();
-    }
-    setStopGlobalCheck(stop => {
-      return !(stop === undefined && correctEdges);
-    })
+
+    nodes.forEach(node => {
+      node.data.thisNode.parseAll()
+      node.data.thisNode.checkInternal();
+      node.data.thisNode.checkEdges();
+    });
+    setNodes(nodes => {
+      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && node.data.edgesStatus === "valid");
+      console.log(allValid);
+      return nodes;
+      // TODO: check connections
+    });
   }
 
   return (

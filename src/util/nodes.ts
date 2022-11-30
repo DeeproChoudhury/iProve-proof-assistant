@@ -1,6 +1,7 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { ListField, StatementNodeType, InductionNodeType, StatementNodeData } from "../types/Node";
+import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeType, AnyNodeProps } from "../types/Node";
+import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
 
@@ -126,3 +127,52 @@ export const invalidateReasonForNode = (
     return newNode;
   });
 };
+
+export const getAllStatements = (node: AnyNodeProps): StatementType[] => {
+  switch (node.type) {
+    case "givenNode":
+    case "proofNode":
+    case "goalNode":
+      return [
+        ...node.data.givens,
+        ...node.data.proofSteps,
+        ...node.data.goals
+      ];
+    case "inductionNode":
+      return [
+        ...node.data.types,
+        ...node.data.motive,
+        ...node.data.baseCases,
+        ...node.data.inductiveCases
+      ];
+  }
+}
+
+export const allParsed = (node: AnyNodeProps): boolean => {
+  return getAllStatements(node).every(statement => statement.parsed);
+}
+
+export const internalsStatus = (node: AnyNodeProps): CheckStatus => {
+  switch (node.type) {
+    case "givenNode":
+    case "proofNode":
+      return "valid";
+    case "goalNode":
+      const statements = [...node.data.proofSteps, ...node.data.goals];
+      if (statements.some(statement => statement.reason?.status === "checking")) return "checking";
+      else if (statements.some(statement => statement.reason?.status === "unchecked")) return "unchecked";
+      else if (statements.every(statement => statement.reason?.status === "valid")) return "valid";
+      else return "invalid";
+    case "inductionNode":
+      return node.data.internalsStatus;
+  }
+}
+
+export const edgesStatus = (node: AnyNodeProps): CheckStatus => {
+  switch (node.type) {
+    case "givenNode":
+      return "valid";
+    default:
+      return node.data.edgesStatus;
+  }
+}
