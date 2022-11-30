@@ -12,6 +12,7 @@ import { Setter } from "../util/setters";
 import { updateWithParsed } from "../util/statements";
 import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
+import { IProveError } from "../components/Flow";
 
 
 export const makeInductionNodeCallbacks = (
@@ -20,7 +21,7 @@ export const makeInductionNodeCallbacks = (
   declarationsRef: MutableRefObject<StatementType[]>,
   setInductionNodes: Setter<InductionNodeType[]>,
   setEdges: Setter<Edge[]>,
-  setError: Setter<ErrorLocation | undefined>,
+  setError: Setter<IProveError | undefined>,
   z3: Z3Solver.Z3Prover
 ) => (
   nodeId: string

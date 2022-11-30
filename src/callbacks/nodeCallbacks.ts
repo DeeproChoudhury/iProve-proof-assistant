@@ -5,12 +5,13 @@ import Z3Solver from "../logic/Solver";
 import { ErrorLocation } from "../types/ErrorLocation";
 import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { invalidateReasonForNode, mk_error, parse_z3_error, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
 import { Line, Term } from "../types/AST";
+import { IProveError } from "../components/Flow";
 
 
 
@@ -21,7 +22,7 @@ export const makeNodeCallbacks = (
   declarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<StatementNodeType[]>,
   setEdges: Setter<Edge[]>,
-  setError: Setter<ErrorLocation | undefined>,
+  setError: Setter<IProveError | undefined>,
   setStopGlobalCheck: Setter<boolean | undefined>,
   z3: Z3Solver.Z3Prover
 ) => (
@@ -141,7 +142,11 @@ export const makeNodeCallbacks = (
       for (let G of unwrap_statements(goals)) {
         const verdict: ProofOutcome = await LI.entails(c_givens, G)
         if (verdict.kind == "Valid") c_givens.push(G)
-        else setStopGlobalCheck(true);
+        else if (verdict.kind == "Error") setError(parse_z3_error(verdict.msg))
+        else { setStopGlobalCheck(true); setError(mk_error({
+            kind: "Proof"
+          }))
+        }
       }
 
       {/* END LOGIC INTERFACE CRITICAL REGION */}

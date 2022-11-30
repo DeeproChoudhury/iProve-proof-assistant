@@ -1,5 +1,7 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
+import { alt, apply, buildLexer, expectEOF, expectSingleResult, kmid, kright, Lexer, list_sc, opt, Parser, rep_sc, seq, str, tok, Token } from "typescript-parsec";
+import { IProveError } from "../components/Flow";
 import { ListField, StatementNodeType, InductionNodeType, StatementNodeData } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
@@ -126,3 +128,99 @@ export const invalidateReasonForNode = (
     return newNode;
   });
 };
+
+export function renderError(E: IProveError): string {
+  switch (E.kind) {
+    case "Syntax": {
+      let msg = E.msg ?? "Parsing for the last node failed"
+      return E.pos?.column
+        ? `${msg} - Detected at column ${E.pos.column}, in "${E.pos.statement.value}"`
+        : `${msg} - Check your syntax!`
+    }
+    case "Proof":
+      return E.pos?.statement
+        ? `Validity check failed on statement ${E.pos.statement.value}, check your implications!`
+        : `Validity check failed, check your implications!`
+    case "Semantic":
+      return E.pos?.statement
+        ? `${E.subtype ?? "Error"} in ${E.pos.statement.value}: ${E.msg}`
+        : (E.subtype ? `${E.subtype}: ${E.msg}` : (E.msg ?? ""))
+    default:
+      return E.msg ?? ""
+  }
+}
+
+export function mk_error({
+  kind = undefined,
+  msg = undefined,
+  subtype = undefined,
+  statement = undefined,
+  column = undefined
+}:{
+  kind?: "Syntax" | "Semantic" | "Proof",
+  msg?: string,
+  subtype?: string,
+  statement?: StatementType,
+  column?: number
+}): IProveError {
+  return {
+    kind: kind,
+    msg: msg,
+    subtype: subtype,
+    pos: (statement)
+      ? { statement: statement, column: column}
+      : undefined
+  }
+}
+
+type ErrorToken = "(" | ")" | '"' | "Number" | "Other" | "Space";
+const error_lexer: Lexer<ErrorToken> = buildLexer([
+  [true, /^\)/g, ")"],
+  [true, /^\(/g, "("],
+  [true, /^\"/g, "\""],
+  [true, /^\d+/g, "Number"],
+  [true, /^\S+/g, "Other"],
+
+  [false, /^\s+/g, "Space"]
+]);
+
+const STRING: Parser<ErrorToken, string>
+  = apply(rep_sc(alt(tok("Other"), tok("Number"))),
+    (v: Token<"Other" | "Number">[]): string =>
+    v.map((x) => x.text).join(" "))
+
+const Z3_ERRORS: Parser<ErrorToken, IProveError[]>
+  = rep_sc(apply(
+      kmid(
+        tok("("), 
+        kright(
+          str("error"), 
+          kmid(
+            tok("\""),
+            seq(
+              opt(
+                seq(
+                  kright(str("line"), tok("Number")),
+                  kmid(str("column"), tok("Number"), str(":"))
+                )
+              ),
+              STRING
+            ),
+            tok("\"")
+          )
+        ),
+        tok(")")
+      ),
+      (v: [[Token<"Number">, Token<"Number">] | undefined, string])
+        : IProveError => (mk_error({
+          kind: "Semantic",
+          msg: v[1],
+        }))
+  ))
+
+export function parse_z3_error(e: string): IProveError | undefined {
+  let A = Z3_ERRORS.parse(error_lexer.parse(e));
+  console.log(A)
+  if (!A.successful) return;
+  return expectSingleResult(A)[0];
+}

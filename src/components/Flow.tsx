@@ -43,6 +43,7 @@ import {
   Td,
   TableContainer,
 } from '@chakra-ui/react'
+import { renderError } from '../util/nodes';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -51,6 +52,17 @@ const nodeTypes = {
   inductionNode: InductionNode
 };
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge };
+
+export type IProveError = {
+  kind: "Syntax" | "Semantic" | "Proof" | undefined,
+  msg?: string,
+  subtype?: string,
+  pos?: ErrorLocation
+}
+
+export type IProveSuccess = {
+  msg?: string
+}
 
 function Flow() {
   const [proofValid, setProofValid] = useState(false);
@@ -61,7 +73,8 @@ function Flow() {
 
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
-  const [error, setError] = useState<ErrorLocation | undefined>(undefined);
+  const [error, setError] = useState<IProveError | undefined>(undefined);
+  const [success, setSuccess] = useState<IProveSuccess| undefined>(undefined);
   const [stopGlobalCheck, setStopGlobalCheck] = useState<boolean | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
@@ -322,18 +335,32 @@ function Flow() {
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
           <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
+          <AlertTitle>{error.kind ?? ""} Error!</AlertTitle>
           <AlertDescription>
-            {error.column ?
-              `Parsing for the last node failed. Error begins at column ${error.column}, from "${error.statement.value}"` :
-              "Parsing for the last node failed. Check your syntax!"
-            }
+            { renderError(error) }
           </AlertDescription>
           <IconButton
             variant='outline'
             aria-label='Add given'
             size='xs'
             onClick={() => { setError(undefined) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+
+      <div className="alert-container">
+        {success && <Alert status='success' className="alert">
+          <AlertIcon />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            { success.msg ?? "" }
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setSuccess(undefined) }}
             icon={<CloseIcon />}
           />
         </Alert>}
