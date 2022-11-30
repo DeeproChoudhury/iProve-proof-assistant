@@ -222,14 +222,17 @@ function Flow() {
         id: `${count}`,
         data: {
           label: node.data.label,
+          // predicate: node.data.predicate,
+          declarationsRef,
+          // inductiveHypotheses: node.data.inductiveHypotheses,
+          typeDeclarationsRef,
           types: node.data.types,
-          predicate: node.data.predicate,
+          thisNode: makeThisInductionNode(`${count}`),
+
           inductiveCases: node.data.inductiveCases,
           baseCases: node.data.baseCases,
-          inductiveHypotheses: node.data.inductiveHypotheses,
-          declarationsRef,
-          typeDeclarationsRef,
-          thisNode: makeThisInductionNode(`${count}`)
+          motive: node.data.motive,
+
         },
         position: node.position,
         type: node.type,
