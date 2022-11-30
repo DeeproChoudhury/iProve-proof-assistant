@@ -37,20 +37,22 @@ const ModalImport = (props:
 	const UploadProof = useCallback(() => {
 
 		const parseFile = (e : any) => {
+			console.log(e);
 			const fileReader = new FileReader();
 			fileReader.readAsText(e.target.files[0], "UTF-8");
-			
+			console.log("here");
+			setTextAreaValue(file)
 			fileReader.onload = (e : any) => {
 				setFile(e.target.result);
-				// console.log("e.target.result", file);
+				console.log("e.target.result", file);
 			};
 		};
 		
 		return (
 			<Box>
 				<form id="upload">
-					<Button colorScheme="blackAlpha" onClick={() => {setTextAreaValue(file)}} > Upload </Button>
-					<input type="file" id="file" accept=".json" onChange={parseFile} />
+					<Button style = {{padding:"0"}} colorScheme="blackAlpha"><label style={{width:"85px", padding:"0",margin:"0"}} htmlFor="filebtn">Upload</label></Button>
+					<input type="file" id="filebtn" accept=".json" onChange={(e) => {parseFile(e)}} hidden />
 				</form>		
 			</Box>
 		);
