@@ -43,7 +43,8 @@ export const makeFlowCallbacks = (nodes: StatementNodeType[], inductionNodes: In
   },
   onEdgesChange: (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
   onConnect: (params: Connection) => {
-    const sourceGoals = nodes.find(node => node.id === params.source)?.data.goals || [];
+    // Add JSON.parse(JSON.stringify()) to create deep copy of goals from incoming node 
+    const sourceGoals = JSON.parse(JSON.stringify(nodes.find(node => node.id === params.source)?.data.goals || []));
     setNodes(nds => nds.map((node) => {
       if (node.id !== params.target) {
         return node;
