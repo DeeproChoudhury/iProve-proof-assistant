@@ -1,3 +1,4 @@
+import { defineStyle } from "@chakra-ui/react";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData } from "../types/LogicInterface";
 import { getSelector, isTerm } from "../util/trees";
@@ -179,7 +180,7 @@ export class LogicInterface {
         return true;
     }
 
-    renderFunctionDeclaration(ident: string): string | undefined {
+    renderFunctionDeclaration(ident: string): [string, string | undefined] | undefined {
         let A = this.global_fn_defs.get(ident);
         let defs: AST.FunctionDefinition[] 
             = (A ?? []).concat(this.local_fn_defs.get(ident) ?? []);
@@ -189,7 +190,7 @@ export class LogicInterface {
             this.error(`Function ${ident} must be declared before it is defined`)
             return;
         } 
-        if (!defs.length) return `(declare-fun ${decl.symbol} ${renderNode(decl.type)})`;
+        if (!defs.length) return [`${decl.symbol} ${renderNode(decl.type)}`, undefined];
 
         let params: string[] = []
         let nparams = decl.type.argTypes.length;
@@ -233,7 +234,7 @@ export class LogicInterface {
             rendered_params.push(`(${params[i]} ${renderNode(decl.type.argTypes[0])})`)
         
         let type = `(${rendered_params.join(" ")}) ${renderNode(decl.type.retType)}`
-        return `(define-fun-rec ${ident} ${type} ${defn})`
+        return [`${ident} ${type}`, `${defn}`]
     }
 
     toString(): string {
@@ -248,19 +249,29 @@ export class LogicInterface {
             res += `${v}\n`
 
         // FUNCTIONS
+        let decls = []
+        let defns = []
         for (let [k, _] of this.function_declarations) {
             let rendered = this.renderFunctionDeclaration(k);
-            if (this.error_state) return `ERROR: ${this.error_state}`
-            res += `${rendered}\n`
+            if (this.error_state || !rendered)
+                return `ERROR: ${this.error_state}`
+            if (!rendered[1])
+                res += `(declare-fun ${rendered[0]})\n`
+            else {
+                decls.push(rendered[0]); defns.push(rendered[1]);
+            }
         }
+        res += `(define-funs-rec \n(${decls.map(x => `(${x})`).join(" ")})\n(${defns.join(" ")}))\n`
+
+        console.log(res)
 
         // GLOBALS
         for (let v of this.declarations) {
             switch (v.kind) {
                 case "FunctionDefinition":
+                case "FunctionDeclaration":
                     break;
                 case "VariableDeclaration":
-                case "FunctionDeclaration":
                 case "TypeDef":
                     res += `${renderNode(v)}\n`; break;
 
