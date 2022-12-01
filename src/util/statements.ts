@@ -21,6 +21,14 @@ export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) =>
 
 export const unwrap_statements = (S: StatementType[]): Line[] => {
   let R: Line[] = []
-  for (let s of S) { if (s.parsed) R.push(s.parsed); }
+  for (let s of S) { 
+    if (s.parsed) {
+      if (isTerm(s.parsed)) {
+        R.push(s.wrappers.map(toWrapperFunc).reduceRight((accTerm, wrapperFunc) => wrapperFunc(accTerm), s.parsed));
+      } else {
+        R.push(s.parsed);
+      }
+    } 
+  }
   return R;
 }

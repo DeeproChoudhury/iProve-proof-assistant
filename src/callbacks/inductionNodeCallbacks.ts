@@ -7,11 +7,12 @@ import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/A
 import { ErrorLocation } from "../types/ErrorLocation";
 import { AnyNodeType, InductionNodeData, InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { isInductionNode, setNodeWithId, setStatementsForNode } from "../util/nodes";
+import { getOutputs, isInductionNode, setNodeWithId, setStatementsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
-import { updateWithParsed } from "../util/statements";
+import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
+import { LI } from "../logic/LogicInterface";
 
 export type InductionNodeCallbacks = InductionNodeData["thisNode"];
 
@@ -111,7 +112,56 @@ export const makeInductionNodeCallbacks = (
     console.log("VERDICT", display(verdict.term))
     setNode(node => ({...node, data: {...node.data, internalsValid: "valid"}}));
   };
-  const checkEdges = () => { throw "unimplemented" };
+  const checkEdges = async () => {
+    const currEdges = edgesRef.current;
+    const currNodes = nodesRef.current;
+    const node = currNodes.find((n) => n.id === nodeId);
+    if (!node || !isInductionNode(node)) return true;
+
+    const incomingEdges = currEdges.filter((e) => e.target === nodeId);
+    const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
+    const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
+    const givens = incomingNodes.flatMap(getOutputs);
+    const expImplications = [...node.data.baseCases, ...node.data.inductiveCases];
+    if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
+      return false; // TODO: show error message here
+    }
+    {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+    let success: boolean = false;
+
+    // TODO: WIRE UP TYPES BOX?
+    LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
+
+    let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
+    if (goal) { 
+      const verdict = await LI.entails(unwrap_statements(givens), goal)
+      success = (verdict.kind === "Valid")
+    }
+    console.log('passed this?')
+    
+    {/* END LOGIC INTERFACE CRITICAL REGION */}
+
+    setNode((node) => {
+      //set nodes
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          edgesValid: success ? "valid" : "invalid"
+        }
+      };
+    });
+    setEdges(eds => {
+      //set edges
+      return eds.map((edge) => {
+        if (edge.target === nodeId) {
+          edge.type = success ? "checked" : "invalid";
+        }
+        return edge;
+      });
+    });
+    return success;
+  };
   return {
     delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
     ...statementLists,

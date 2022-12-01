@@ -44,6 +44,7 @@ import {
   TableContainer,
 } from '@chakra-ui/react'
 import { allParsed, internalsStatus } from '../util/nodes';
+import { SymbolButton } from './SymbolButton';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -174,7 +175,7 @@ function Flow() {
         data: {
           label: `Node ${count}`,
           edgesStatus: "unchecked",
-          givens: nodeType === 'goalNode' ? [blankStatement] : [],
+          givens: [],
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
           declarationsRef,
@@ -412,6 +413,9 @@ function Flow() {
           <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
             {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
           </Button>
+
+
+          {/* START: display table mapping symbol to iprove syntax */}
           <Popover>
             <PopoverTrigger>
               <Button>Symbols</Button>
@@ -430,10 +434,14 @@ function Flow() {
                     </Thead>
                     <Tbody>
                       {operatorsToSymbols.map((p, index) =>
-                        <Tr key={index}>
-                          <Td>{p.value}</Td>
-                          <Td>{p.symbol}</Td>
-                        </Tr>
+                        {
+                          return <Tr key={index}>
+                            <Td>{p.value}</Td>
+                            <Td>
+                              <SymbolButton symbol={p.symbol} />
+                            </Td>
+                          </Tr>;
+                        }
                       )}
                     </Tbody>
                   </Table>
@@ -441,6 +449,9 @@ function Flow() {
               </PopoverBody>
             </PopoverContent>
           </Popover>
+          {/* END: display table mapping symbol to iProve syntax */}
+
+          
         </Stack>
       </div>
       {/* END : Header Buttons */}

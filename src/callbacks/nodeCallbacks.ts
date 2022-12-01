@@ -163,7 +163,6 @@ export const makeNodeCallbacks = (
       if (!node || !isStatementNode(node)) return true;
       
       const incomingEdges = currEdges.filter((e) => e.target === nodeId);
-      console.log(incomingEdges)
       // get all nodes that have incoming edge to nodeId
       // should probably use getIncomers from reactflow
       const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));

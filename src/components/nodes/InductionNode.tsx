@@ -3,18 +3,26 @@ import { AddIcon } from '@chakra-ui/icons';
 import {
 	Box, Button, IconButton, Select, Text
 } from '@chakra-ui/react';
-import { ReactElement, ReactNode, useCallback } from "react";
+import { ReactElement, ReactNode, useCallback, useEffect, useState } from "react";
 import "./InductionNode.css"
 import { Handle, NodeProps, Position } from "reactflow";
 import Statement from "../Statement";
 import { StatementType } from "../../types/Statement";
 import { DeleteNodePopover } from "./GeneralNode";
+import Moveable from "react-moveable";
 
-function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : ReactElement {
+function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): ReactElement {
+	const [target, setTarget] = useState<any>();
+	const [frame] = useState<any>({
+		translate: [0, 0],
+	});
+	useEffect(() => {
+		return setTarget(document.querySelector(`#induction-node-${id}`)!);
+	}, [id]);
 	const componentStyle = "induction-node";
-  const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
-    nodeData.thisNode[k].update(updated, evt.target.value);
-  }, [nodeData]);
+	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
+		nodeData.thisNode[k].update(updated, evt.target.value);
+	}, [nodeData]);
 
   const afterStatementEdit = useCallback((k: ListField<InductionNodeData>, updated: number) => {
     nodeData.thisNode.parseAll();
@@ -37,7 +45,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
 	const NodeBottomButtons = () => {
 		return (
 			<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-        <DeleteNodePopover deleteNode={nodeData.thisNode.delete} />
+				<DeleteNodePopover deleteNode={nodeData.thisNode.delete} />
 				{checkSatButton}
 			</div>
 		);
@@ -53,91 +61,133 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>) : R
  * INDUCTION NODE
  */
 	return (
-		<Box className={componentStyle} key={`induction-node-${id}`}>
-      {targetHandle}
-			{/* BEGIN : Type */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-				<Text>Type</Text>
-			</div>
-			<Select placeholder='Select type' size='xs' onChange={(event) => onTypeSelect(parseInt(event.target.value))} defaultValue={nodeData.types[0].value}>
-				{nodeData.typeDeclarationsRef.current.map((type, index) =>
-					<option value={index}>{type.value}</option>
-				)}
-			</Select>
-			{/* END : Type */}
+		<div>
+			<Box className={componentStyle} key={`induction-node-${id}`} id={`induction-node-${id}`}>
+				{targetHandle}
 
-			{/* BEGIN : Motive */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
-				<Text>Induction Goal</Text>
-			</div>
-			<Statement
-				onChange={e => onChange(e, "motive", 0)}
-				statement={nodeData.motive[0]}
-				index={0}
-				addAbove={() => {}}
-				addBelow={() => {}}
-				deleteStatement={() => {}}
-				afterEdit={() => afterStatementEdit("motive", 0)}
-				proofNode={false}/>
-			<Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} />
-			{/* END : Motive */}
+				<div style={{ display: 'flex', justifyContent: 'center' }}>
+					{nodeData.edgesStatus === "unchecked" &&
+						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+							Check incoming implications
+						</Button>}
+					{nodeData.edgesStatus === "valid" &&
+						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+							Check passed. Check again?
+						</Button>}
+					{nodeData.edgesStatus === "invalid" &&
+						<Button colorScheme='red' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+							Check failed. Check again?
+						</Button>}
+				</div>
 
-			{/* BEGIN : Base Case */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
-				<Text>Base Case(s)</Text>
-				<IconButton
-					variant='outline'
-					aria-label='Add Base Case'
-					size='xs'
-					icon={<AddIcon />}
-					onClick={() => { nodeData.thisNode.baseCases.add() }}
-				/>
-			</div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {nodeData.baseCases.map((s: StatementType, index: number) =>
-          <Statement
-            onChange={e => onChange(e, "baseCases", index)}
-            statement={s}
-            index={index}
-            proofNode={true}
-            addAbove={() => { nodeData.thisNode.baseCases.add(index) }}
-            addBelow={() => { nodeData.thisNode.baseCases.add(index + 1) }} 
-            deleteStatement = {() => {nodeData.thisNode.baseCases.remove(index)}}
-						key={index}/>)}
-      </div>
-			{/* END : Base Case */}
+				{/* BEGIN : Type */}
+				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+					<Text>Type</Text>
+				</div>
+				<Select placeholder='Select type' size='xs' onChange={(event) => onTypeSelect(parseInt(event.target.value))} defaultValue={nodeData.types[0].value}>
+					{nodeData.typeDeclarationsRef.current.map((type, index) =>
+						<option value={index}>{type.value}</option>
+					)}
+				</Select>
+				{/* END : Type */}
 
-			{/* BEGIN : Induction Case */}
-			<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px'}}>
-				<Text>Inductive Case(s)</Text>
-				<IconButton
-					variant='outline'
-					aria-label='Add given'
-					size='xs'
-					icon={<AddIcon />}
-					onClick={() => { nodeData.thisNode.inductiveCases.add() }}
-				/>
-			</div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {nodeData.inductiveCases.map((s: StatementType, index: number) =>
-          <Statement
-            onChange={e => onChange(e, "inductiveCases", index)}
-            statement={s}
-            index={index}
-            proofNode={true}
-            addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
-            addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }} 
-            deleteStatement = {() => {nodeData.thisNode.inductiveCases.remove(index)}}
-						key={index}/>)}
-      </div>
-			{/* END : Induction Case */}
+				{/* BEGIN : Motive */}
+				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+					<Text>Induction Goal</Text>
+				</div>
+				<Statement
+					onChange={e => onChange(e, "motive", 0)}
+					statement={nodeData.motive[0]}
+					index={0}
+					addAbove={() => { }}
+					addBelow={() => { }}
+					deleteStatement={() => { }}
+					afterEdit={() => afterStatementEdit("motive", 0)}
+					proofNode={false} />
+				{/* <Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} /> */}
+				{/* END : Motive */}
 
-			{/* START : Node Bottom Buttons */}
-			<NodeBottomButtons />
-			{/* END : Node Bottom Buttons */}
-      {sourceHandle}
-		</Box>
+				{/* BEGIN : Base Case */}
+				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+					<Text>Base Case(s)</Text>
+					<IconButton
+						variant='outline'
+						aria-label='Add Base Case'
+						size='xs'
+						icon={<AddIcon />}
+						onClick={() => { nodeData.thisNode.baseCases.add() }}
+					/>
+				</div>
+				<div style={{ display: 'flex', flexDirection: 'column' }}>
+					{nodeData.baseCases.map((s: StatementType, index: number) =>
+						<Statement
+							onChange={e => onChange(e, "baseCases", index)}
+							statement={s}
+							index={index}
+							proofNode={true}
+							addAbove={() => { nodeData.thisNode.baseCases.add(index) }}
+							addBelow={() => { nodeData.thisNode.baseCases.add(index + 1) }}
+							deleteStatement={() => { nodeData.thisNode.baseCases.remove(index) }}
+							afterEdit={() => afterStatementEdit("baseCases", index)}
+							key={index} />)}
+				</div>
+				{/* END : Base Case */}
 
+				{/* BEGIN : Induction Case */}
+				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+					<Text>Inductive Case(s)</Text>
+					<IconButton
+						variant='outline'
+						aria-label='Add given'
+						size='xs'
+						icon={<AddIcon />}
+						onClick={() => { nodeData.thisNode.inductiveCases.add() }}
+					/>
+				</div>
+				<div style={{ display: 'flex', flexDirection: 'column' }}>
+					{nodeData.inductiveCases.map((s: StatementType, index: number) =>
+						<Statement
+							onChange={e => onChange(e, "inductiveCases", index)}
+							statement={s}
+							index={index}
+							proofNode={true}
+							addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
+							addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }}
+							deleteStatement={() => { nodeData.thisNode.inductiveCases.remove(index) }}
+							afterEdit={() => afterStatementEdit("inductiveCases", index)}
+							key={index} />)}
+				</div>
+				{/* END : Induction Case */}
+
+				{/* START : Node Bottom Buttons */}
+				<NodeBottomButtons />
+				{/* END : Node Bottom Buttons */}
+				{sourceHandle}
+			</Box>
+			{/* BEGIN: Moveable component to allow horizontal resizing */}
+			<Moveable
+				target={target}
+				resizable={true}
+				keepRatio={false}
+				throttleResize={1}
+				renderDirections={["e", "w"]}
+				edge={false}
+				zoom={1}
+				origin={false}
+				padding={{ "left": 0, "top": 0, "right": 0, "bottom": 0 }}
+				onResizeStart={e => {
+					e.setOrigin(["%", "%"]);
+					e.dragStart && e.dragStart.set(frame.translate);
+				}}
+				onResize={e => {
+					const beforeTranslate = e.drag.beforeTranslate;
+					frame.translate = beforeTranslate;
+					e.target.style.width = `${e.width}px`;
+					e.target.style.transform = `translate(${beforeTranslate[0]}px, 0px)`;
+				}}
+			/>
+			{/* END: Moveable component to allow horizontal resizing */}
+		</div>
 	)
 
 }

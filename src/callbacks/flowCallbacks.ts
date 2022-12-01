@@ -51,7 +51,7 @@ export const makeFlowCallbacks = (nodes: AnyNodeType[], setNodes: Setter<AnyNode
         return {...node, data: {...node.data, edgesStatus: "unchecked"}};
       } else {
         const source = nodes.find(node => node.id === params.source);
-        const sourceGoals = source && source.type !== "inductionNode" ? source.data.goals : [];
+        const sourceGoals = source && source.type !== "inductionNode" ? JSON.parse(JSON.stringify(source.data.goals)) : [];
         return {...node, data: {...node.data, edgesStatus: "unchecked", givens: [...node.data.givens, ...sourceGoals]}};
       }
     }));
