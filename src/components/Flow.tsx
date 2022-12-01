@@ -425,10 +425,12 @@ function Flow() {
 
       {/* START : Flow Graph */}
       <div style={{ display: 'flex', flexDirection: 'row', height: "100vh" }}>
-        {/* START : Column for declarations */}
-        <Grid style={{ zIndex: 20 /* zIndex to move column to front*/ }}
-          // templateRows='repeat(3, 1fr)'
+        
+        {/* START : Declarations SideBar */}
+
+        <Grid 
           gap={3}
+          style={{ zIndex: 20 /* zIndex to move column to front*/ }}             
           visibility={declarationSidebarVisible ? "visible" : "hidden"}
         >
 
@@ -437,7 +439,7 @@ function Flow() {
             <Declarations
               statements={declarations}
               {...declarationsCallbacks}
-              visible={true} />
+              />
           </GridItem>
           {/* END : General Declarations */}
 
@@ -446,12 +448,14 @@ function Flow() {
             <TypeDeclarations
               statements={typeDeclarations}
               {...typeDeclarationsCallbacks}
-              visible={true} />
+              />
           </GridItem>
           {/* END : Type Declarations */}
 
         </Grid>
-        {/* END : Column for declarations */}
+            
+        {/* END : Declarations SideBar */}
+
 
 
         <div style={{ height: '85vh', width: '100%' }}>

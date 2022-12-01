@@ -98,11 +98,9 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 					onChange={e => onChange(e, "motive", 0)}
 					statement={nodeData.motive[0]}
 					index={0}
-					addAbove={() => { }}
-					addBelow={() => { }}
-					deleteStatement={() => { }}
+					addable={false}
 					afterEdit={() => afterStatementEdit("motive", 0)}
-					proofNode={false} />
+					/>
 				{/* <Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} /> */}
 				{/* END : Motive */}
 
@@ -123,7 +121,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							onChange={e => onChange(e, "baseCases", index)}
 							statement={s}
 							index={index}
-							proofNode={true}
 							addAbove={() => { nodeData.thisNode.baseCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.baseCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.baseCases.remove(index) }}
@@ -149,7 +146,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							onChange={e => onChange(e, "inductiveCases", index)}
 							statement={s}
 							index={index}
-							proofNode={true}
 							addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.inductiveCases.remove(index) }}

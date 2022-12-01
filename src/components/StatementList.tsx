@@ -41,25 +41,21 @@ export default function StatementList({ title, statements, callbacks, isCollapse
       isCollapsed ?
         <>
           <Statement
-            proofNode={true}
             {...makeStatementProps(0)}
           />
           <Text as='b'>. . .</Text>
           <Statement
-            proofNode={true}
             {...makeStatementProps(statements.length - 1)}
           />
         </> :
         isScrollable ? <Box overflowY="scroll" maxHeight="10em">
          {statements.map((_s: StatementType, index: number) =>
           <Statement
-            proofNode={true}
             {...makeStatementProps(index)}
             key={index}
           />)}
         </Box> : statements.map((_s: StatementType, index: number) =>
           <Statement
-            proofNode={true}
             {...makeStatementProps(index)}
             key={index}
           />)
