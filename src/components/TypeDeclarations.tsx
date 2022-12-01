@@ -3,6 +3,7 @@ import './TypeDeclarations.css';
 import { StatementType } from "../types/Statement";
 import StatementList from "./StatementList";
 import { DeclarationCallbacks } from "../callbacks/declarationsCallbacks";
+import InfoPopover from "./InfoPopover";
 
 export type TypesPropsType = DeclarationCallbacks & {
   statements: StatementType[];
@@ -20,6 +21,9 @@ const TypeDeclarations = (props: TypesPropsType) => {
         isScrollable={true}
         afterStatementEdit={() => checkSyntax()}
       />
+      <InfoPopover title="Types Explanation" info="Please define all custom types
+      using Haskell style type defintions. Custom types can be 
+      used in function declarations above!" />
     </Box>
   )
 }
