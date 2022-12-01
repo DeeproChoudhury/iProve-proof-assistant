@@ -21,6 +21,12 @@
   width: 100%;
 }
 
+/* .sidebar{
+  color: rgba(0, 158, 163, 0.329);
+  display: 'flex';
+  flexDirection: 'row'; height: "100vh";
+} */
+
 /* Scrollbar styles */
 
 ::-webkit-scrollbar {

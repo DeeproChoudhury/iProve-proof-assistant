@@ -6,13 +6,12 @@ import StatementList from "./StatementList";
 
 export type DeclarationsPropsType = DeclarationCallbacks & {
   statements: StatementType[];
-  visible: boolean;
 }
 
 const Declarations = (props: DeclarationsPropsType) => {
-  const { statements, add, update, remove, checkSyntax, visible } = props;
+  const { statements, add, update, remove, checkSyntax } = props;
   return (
-    <Box className={"declarations " + (visible ? 'closed' : 'open')}>
+    <Box className={"declarations"}>
       <StatementList
         title="Declarations"
         statements={statements}
