@@ -210,7 +210,8 @@ function Flow() {
             allParsed: false,
             internalsValid: false,
             edgesValid: true,
-            // predicate: node.data.predicate,
+            internalsStatus: "unchecked",
+            edgesStatus: "unchecked",
             declarationsRef,
             // inductiveHypotheses: node.data.inductiveHypotheses,
             typeDeclarationsRef,
@@ -226,27 +227,25 @@ function Flow() {
           type: node.type,
         }
       } else {
-        return {
-          id: `${id}`,
-          data: {
-            label: node.data.label,
-            givens: node.data.givens,
-            proofSteps: node.data.proofSteps,
-            goals: node.data.goals,
-            declarationsRef,
-            typeDeclarationsRef,
-            thisNode: makeThisNode(`${id}`)
-          },
-          position: node.position,
-          type: node.type,
-        }
+        const n = node;
+        n.data.edgesStatus = "unchecked";
+        n.data.declarationsRef = declarationsRef;
+        n.data.typeDeclarationsRef = typeDeclarationsRef;
+        n.data.thisNode = makeThisNode(`${id}`);
+        return n;
       }
     });
     
+    const edges = json.edges.map((edge: any) => {
+      const e = edge;
+      e.type = "implication";
+      return e;
+    })
+
     setDeclarations(json.declarations);
     setTypeDeclarations(json.types);
     setNodes(nodeData);
-    setEdges(json.edges);
+    setEdges(edges);
 
   }, [makeThisNode]);
 
