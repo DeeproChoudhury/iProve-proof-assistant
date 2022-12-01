@@ -226,20 +226,11 @@ function Flow() {
           type: node.type,
         }
       } else {
-        return {
-          id: `${id}`,
-          data: {
-            label: node.data.label,
-            edgesStatus: "unchecked",
-            givens: node.data.givens,
-            proofSteps: node.data.proofSteps,
-            goals: node.data.goals,
-            declarationsRef,
-            thisNode: makeThisNode(`${id}`)
-          },
-          position: node.position,
-          type: node.type,
-        }
+        const n = node;
+        n.data.edgesStatus = "unchecked";
+        n.data.declarationsRef = declarationsRef;
+        n.data.thisNode = makeThisNode(`${id}`);
+        return n;
       }
     });
     
