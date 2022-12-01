@@ -15,6 +15,12 @@
   border-radius: 5px;
 }
 
+/* Set text colour of button to this */
+.symbol-buttons{
+  color: rgb(0, 157, 163);
+  width: 100%;
+}
+
 /* Scrollbar styles */
 
 ::-webkit-scrollbar {

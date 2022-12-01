@@ -43,6 +43,7 @@ import {
   Td,
   TableContainer,
 } from '@chakra-ui/react'
+import { SymbolButton } from './SymbolButton';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -138,7 +139,7 @@ function Flow() {
   { value: 'negation', symbol: '~'} ]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, inductionNodesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
-  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
+  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
   const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
@@ -173,7 +174,7 @@ function Flow() {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
-          givens: nodeType === 'goalNode' ? [blankStatement] : [],
+          givens: [],
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
           declarationsRef,
@@ -426,6 +427,9 @@ function Flow() {
           <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
             {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
           </Button>
+
+
+          {/* START: display table mapping symbol to iprove syntax */}
           <Popover>
             <PopoverTrigger>
               <Button>Symbols</Button>
@@ -444,10 +448,14 @@ function Flow() {
                     </Thead>
                     <Tbody>
                       {operatorsToSymbols.map((p, index) =>
-                        <Tr key={index}>
-                          <Td>{p.value}</Td>
-                          <Td>{p.symbol}</Td>
-                        </Tr>
+                        {
+                          return <Tr key={index}>
+                            <Td>{p.value}</Td>
+                            <Td>
+                              <SymbolButton symbol={p.symbol} />
+                            </Td>
+                          </Tr>;
+                        }
                       )}
                     </Tbody>
                   </Table>
@@ -455,6 +463,9 @@ function Flow() {
               </PopoverBody>
             </PopoverContent>
           </Popover>
+          {/* END: display table mapping symbol to iProve syntax */}
+
+          
         </Stack>
       </div>
       {/* END : Header Buttons */}
