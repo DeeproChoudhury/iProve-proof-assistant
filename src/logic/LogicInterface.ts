@@ -177,6 +177,7 @@ export class LogicInterface {
         this.rendered_tuples.set(n,
             `(declare-datatypes (${params.join(" ")}) ((${thisID} (mk-tuple ${elems.join(" ")}))))`
         )
+        console.log("RTUP", this.rendered_tuples)
         return true;
     }
 
@@ -290,8 +291,9 @@ export class LogicInterface {
         // GOAL
         res += `(assert (not ${renderNode(this.goal)}))\n`
 
+        //console.log("PRETUPE", res)
         // TUPLES
-        for (let v of this.rendered_tuples)
+        for (let [_,v] of this.rendered_tuples)
             res = `${v}\n` + res
 
         return res;
@@ -336,6 +338,9 @@ function renderNode(a: AST.ASTNode | undefined): string {
                         kind: "ArrayLiteral",
                         elems: a.params
                     })
+                case "Tuple":
+                    LI.createTuple(a.params.length)
+                    return `(mk-tuple ${a.params.map(renderNode).join(" ")})`
                 default:
                     return (a.params.length)
                     ? `(${fnSMT(a.fn)} ${a.params.map(renderNode).join(" ")})`

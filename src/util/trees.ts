@@ -14,7 +14,8 @@ function d(a: AST.ASTNode): string {
         case "FunctionApplication": {
             const fn = fnDisplay(a.fn);
             switch (a.appType) {
-                case "PrefixFunc": return `${fn}(${a.params.map(d).join(", ")})`;
+                case "PrefixFunc": 
+                    return `${fn}${(a.typeParams) ? "<" + a.typeParams.map(d).join(",") + ">" : ""}(${a.params.map(d).join(", ")})`;
                 case "PrefixOp": return `(${fn})(${a.params.map(d).join(", ")})`;
                 case "InfixFunc": return `${d(a.params[0])} \`${fn}\` ${d(a.params[1])}`;
                 case "InfixOp": return `${d(a.params[0])} ${fn} ${d(a.params[1])}`;

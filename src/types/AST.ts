@@ -133,6 +133,7 @@ export type ArrayLiteral = {
 export type PrefixApplication = {
     kind: "FunctionApplication",
     appType: "PrefixFunc" | "PrefixOp",
+    typeParams?: Type[],
     fn: string,
     params: Term[]
 }
