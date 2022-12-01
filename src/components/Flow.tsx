@@ -11,7 +11,7 @@ import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks'
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../logic/Solver';
 import { ErrorLocation, IProveError } from '../types/ErrorLocation';
-import { InductionNodeType, NodeType, StatementNodeType } from '../types/Node';
+import { AnyNodeType, InductionNodeType, NodeKind, StatementNodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
@@ -44,6 +44,8 @@ import {
   TableContainer,
 } from '@chakra-ui/react'
 import { renderError } from '../util/errors';
+import { allParsed, internalsStatus } from '../util/nodes';
+import { SymbolButton } from './SymbolButton';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -56,8 +58,7 @@ const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid:
 function Flow() {
   const [proofValid, setProofValid] = useState(false);
 
-  const [nodes, setNodes] = useState<StatementNodeType[]>([]);
-  const [inductionNodes, setInductionNodes] = useState<InductionNodeType[]>([]);
+  const [nodes, setNodes] = useState<AnyNodeType[]>([]);
 
 
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -79,8 +80,6 @@ function Flow() {
   // update refs everytime this hook runs
   const nodesRef = useRef(nodes);
   nodesRef.current = nodes;
-  const inductionNodesRef = useRef(inductionNodes);
-  inductionNodesRef.current = inductionNodes;
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
   const declarationsRef = useRef(declarations);
@@ -138,22 +137,25 @@ function Flow() {
   { value: 'exists x', symbol: 'E x.' },
   { value: 'negation', symbol: '~'} ]
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, inductionNodesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
-  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
+  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
   const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
 
-  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, inductionNodes, setNodes, setInductionNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, inductionNodes, nextId, makeThisNode]);
+  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, setNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
 
-  const addNode = useCallback((nodeType: NodeType) => {
+  const addNode = useCallback((nodeType: NodeKind) => {
     const count = nextId();
+    console.log(nodes);
 
     if (nodeType === "inductionNode") {
-      setInductionNodes(nds => [...nds, {
+      setNodes(nds => [...nds, {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
+          internalsStatus: "unchecked",
+          edgesStatus: "unchecked",
           types: [{ value: '', wrappers: [] }],
           identifier: [{ value: '', wrappers: [] }],
           inductiveCases: [],
@@ -173,7 +175,8 @@ function Flow() {
         id: `${count}`,
         data: {
           label: `Node ${count}`,
-          givens: nodeType === 'goalNode' ? [blankStatement] : [],
+          edgesStatus: "unchecked",
+          givens: [],
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
           declarationsRef,
@@ -187,39 +190,77 @@ function Flow() {
   }, [nextId, makeThisNode, makeThisInductionNode]);
 
 
-  const addImportedProof = useCallback((jsonNodes: any[], jsonDeclarations: any[], jsonTypes: any[], jsonEdges: any[], jsonInduction: any[]) => {
-    setDeclarations(jsonDeclarations);
-    setTypeDeclarations(jsonTypes);
-    setNodes(jsonNodes);
-    setEdges(jsonEdges);
-    setInductionNodes(jsonInduction);
+  /**
+   * Import Proof given json data. Input list of node data.
+   * 
+   * @remarks does not need callback?
+   */
+  const addImportedProof = useCallback((json: any) => {
+    // Create Given, Proof, Goal Nodes from input data
+    const nodeData = json.nodes.map((node: any) => {
+      const id = node.id;
+      setCount(Math.max(count, id) + 1);
+
+      if (node.type === "inductionNode") {
+        return {
+          id: `${id}`,
+          data: {
+            label: node.data.label,
+            allParsed: false,
+            internalsValid: false,
+            edgesValid: true,
+            // predicate: node.data.predicate,
+            declarationsRef,
+            // inductiveHypotheses: node.data.inductiveHypotheses,
+            typeDeclarationsRef,
+            types: node.data.types,
+            thisNode: makeThisInductionNode(`${id}`),
+
+            inductiveCases: node.data.inductiveCases,
+            baseCases: node.data.baseCases,
+            motive: node.data.motive,
+
+          },
+          position: node.position,
+          type: node.type,
+        }
+      } else {
+        return {
+          id: `${id}`,
+          data: {
+            label: node.data.label,
+            givens: node.data.givens,
+            proofSteps: node.data.proofSteps,
+            goals: node.data.goals,
+            declarationsRef,
+            thisNode: makeThisNode(`${id}`)
+          },
+          position: node.position,
+          type: node.type,
+        }
+      }
+    });
+    
+    setDeclarations(json.declarations);
+    setTypeDeclarations(json.types);
+    setNodes(nodeData);
+    setEdges(json.edges);
+
   }, [makeThisNode]);
 
   const verifyProofGlobal = async () => {
-    /* check all nodes have correct syntax */
-    setStopGlobalCheck(undefined);
-    for await (const node of nodes) {
-      // check might not be necessary with the onBlur, but better make sure
-      node.data.thisNode.checkSyntax();
-    }
-    for (const node of nodes) {
-      if (node.data.parsed !== true) {
-        return;
-      }
-    }
-    let correctEdges = true;
-    for await (const node of nodes) {
-      if (node.type !== "givenNode") {
-        const output = await node.data.thisNode.checkEdges();
-        correctEdges = correctEdges && output;
-      }
-    }
-    for await (const node of nodes) {
-      await node.data.thisNode.checkInternalAssertions();
-    }
-    setStopGlobalCheck(stop => {
-      return !(stop === undefined && correctEdges);
-    })
+
+    nodes.forEach(node => {
+      node.data.thisNode.parseAll()
+      node.data.thisNode.checkInternal();
+      node.data.thisNode.checkEdges();
+    });
+    setNodes(nodes => {
+      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && node.data.edgesStatus === "valid");
+      console.log(allValid);
+      return nodes;
+      // TODO: check connections
+    });
   }
 
   return (
@@ -230,7 +271,6 @@ function Flow() {
       <Modal isOpen={importModalShow}
         onClose={() => { setImportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalImport />
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
           <ModalHeader>Import Proof</ModalHeader>
           <ModalCloseButton />
@@ -245,7 +285,6 @@ function Flow() {
       <Modal isOpen={exportModalShow && proofValid}
         onClose={() => { setExportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalImport />
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
           <ModalHeader>Export Proof</ModalHeader>
           <ModalCloseButton />
@@ -256,7 +295,6 @@ function Flow() {
                 declarations: declarations,
                 types: typeDeclarations,
                 edges: edges,
-                inductionNodes: inductionNodes,
               })
             } />
           </ModalBody>
@@ -341,6 +379,9 @@ function Flow() {
           <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
             {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
           </Button>
+
+
+          {/* START: display table mapping symbol to iprove syntax */}
           <Popover>
             <PopoverTrigger>
               <Button>Symbols</Button>
@@ -359,10 +400,14 @@ function Flow() {
                     </Thead>
                     <Tbody>
                       {operatorsToSymbols.map((p, index) =>
-                        <Tr key={index}>
-                          <Td>{p.value}</Td>
-                          <Td>{p.symbol}</Td>
-                        </Tr>
+                        {
+                          return <Tr key={index}>
+                            <Td>{p.value}</Td>
+                            <Td>
+                              <SymbolButton symbol={p.symbol} />
+                            </Td>
+                          </Tr>;
+                        }
                       )}
                     </Tbody>
                   </Table>
@@ -370,6 +415,9 @@ function Flow() {
               </PopoverBody>
             </PopoverContent>
           </Popover>
+          {/* END: display table mapping symbol to iProve syntax */}
+
+          
         </Stack>
       </div>
       {/* END : Header Buttons */}
@@ -408,7 +456,7 @@ function Flow() {
 
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
-            nodes={(nodes as Node[]).concat(inductionNodes as Node[])}
+            nodes={(nodes)}
             nodeTypes={nodeTypes}
             edges={edges}
             edgeTypes={edgeTypes}

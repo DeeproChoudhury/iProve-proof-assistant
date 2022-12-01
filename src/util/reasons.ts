@@ -22,6 +22,7 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
       msg: "Some givens have not been parsed! Exit the modal and try again"
     });
     updateReasonStatus("invalid");
+    data.thisNode.checkInternal();
     return;
   }
 
@@ -61,6 +62,7 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
     });
     updateReasonStatus("invalid");
   }
+  data.thisNode.checkInternal();
   
   {/* END LOGIC INTERFACE CRITICAL REGION */}
 }

@@ -1,9 +1,12 @@
+import { ErrorLocation } from "../types/ErrorLocation";
 import { CheckStatus, Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { Setter } from "../util/setters";
+import { updateWithParsed } from "../util/statements";
 
 export const makeStatementListCallbacks = (
-  setStatements: Setter<StatementType[]>
+  setStatements: Setter<StatementType[]>,
+  setError: Setter<ErrorLocation | undefined>,
 ) => {
   return {
     add: (index?: number) => {
@@ -28,6 +31,16 @@ export const makeStatementListCallbacks = (
         result.splice(index, 1);
         return result;
       });
+    },
+    parse: (index: number) => {
+      setStatements(statements => {
+        const result = [...statements];
+        result[index] = updateWithParsed(setError)(result[index]);
+        return result;
+      })
+    },
+    parseAll: () => {
+      setStatements(statements => statements.map(updateWithParsed(setError)));
     },
     addReason: (index: number, reason: Reason) => {
       setStatements(statements => {
@@ -61,7 +74,7 @@ export const makeStatementListCallbacks = (
         const result = [...statements];
         result[index] = statement;
         return result;
-      })
+      });
     }
   }
 };

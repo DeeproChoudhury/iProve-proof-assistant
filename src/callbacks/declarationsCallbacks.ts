@@ -5,7 +5,7 @@ import { updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 
   export const makeDeclarationCallbacks = (setDeclarations: Setter<StatementType[]>, setError: Setter<IProveError | undefined>) => ({
-    ...makeStatementListCallbacks(setDeclarations),
+    ...makeStatementListCallbacks(setDeclarations, setError),
     checkSyntax: () => {
       setError(undefined)
       setDeclarations(decls => decls.map(updateWithParsed(setError)))
