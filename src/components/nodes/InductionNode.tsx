@@ -28,7 +28,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
     nodeData.thisNode.parseAll();
     nodeData.thisNode.checkInternal();
     if (k === "baseCases" || k === "inductiveCases") nodeData.thisNode.checkEdges();
-    if (k === "motive") ""; // TODO: invalidate edgesValid for nodes connected to outgoing edges
+    if (k === "motive") {}; // TODO: invalidate edgesValid for nodes connected to outgoing edges
   }, [nodeData]);
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
