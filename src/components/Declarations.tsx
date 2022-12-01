@@ -3,6 +3,8 @@ import './Declarations.css';
 import { StatementType } from "../types/Statement";
 import { DeclarationCallbacks } from "../callbacks/declarationsCallbacks";
 import StatementList from "./StatementList";
+import InfoPopover from "./InfoPopover"
+
 
 export type DeclarationsPropsType = DeclarationCallbacks & {
   statements: StatementType[];
@@ -20,6 +22,8 @@ const Declarations = (props: DeclarationsPropsType) => {
         isScrollable={true}
         afterStatementEdit={() => checkSyntax()}
       />
+      <InfoPopover title="Declarations Explanation" info="Please provide Haskell style 
+      function types for all predicates used in the proof." />
     </Box>
   )
 }
