@@ -44,7 +44,7 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
     </Popover>
 
   return (
-    <Box className="proof-node">
+    <Box resize='both' overflow='auto' className="proof-node">
       {/* BEGIN : Top Handle */}
       <NodeHandle type='target'/>
       {/* END : Top Handle */}
@@ -110,6 +110,8 @@ function ProofNode({ data }: NodeProps<StatementNodeData>) {
       {/* END: Node End Buttons */}
       
       <NodeHandle type='source'/>
+
+      {/* <ResizeHandle /> */}
     </Box>
   );
 }
