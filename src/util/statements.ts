@@ -16,7 +16,7 @@ export const updateWithParsed = (setError: Setter<IProveError | undefined>) => (
         .replace("token: <END-OF-FILE>", "entire input")
     }));
   } else {
-    console.log(parsedOrError);
+    // console.log(parsedOrError);
     statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
     statement.syntaxCorrect = true;
   }

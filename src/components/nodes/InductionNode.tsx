@@ -18,7 +18,8 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	useEffect(() => {
 		return setTarget(document.querySelector(`#induction-node-${id}`)!);
 	}, [id]);
-	const componentStyle = "induction-node";
+	const statusStyle = nodeData.internalsStatus !== 'unchecked' ? nodeData.internalsStatus + "-induction" : '';
+	const componentStyle = "induction-node " + statusStyle;
 	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
 		nodeData.thisNode[k].update(updated, evt.target.value);
 	}, [nodeData]);
@@ -38,7 +39,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
       onClick={() => { 
 		nodeData.thisNode.checkInternal();
       }}>
-      Solve
+      Check induction principle
     </Button>;
 	
 	const NodeBottomButtons = () => {
@@ -63,7 +64,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 		<div>
 			<Box className={componentStyle} key={`induction-node-${id}`} id={`induction-node-${id}`}>
 				{targetHandle}
-
 				<div style={{ display: 'flex', justifyContent: 'center' }}>
 					{nodeData.edgesStatus === "unchecked" &&
 						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
