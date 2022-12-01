@@ -10,6 +10,7 @@ type SharedNodeData = {
   label: string;
   edgesStatus: CheckStatus;
   declarationsRef: MutableRefObject<StatementType[]>;
+  typeDeclarationsRef: MutableRefObject<StatementType[]>;
 }
 
 type SharedNodeCallbacks = {
@@ -34,7 +35,6 @@ export type StatementNodeData = SharedNodeData & {
 
 export type InductionNodeData = SharedNodeData & {
   internalsStatus: CheckStatus;
-  typeDeclarationsRef: MutableRefObject<StatementType[]>;
   types: StatementType[];
   motive: StatementType[];
   inductiveCases: StatementType[];
