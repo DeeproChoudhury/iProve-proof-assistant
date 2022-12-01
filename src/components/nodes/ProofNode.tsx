@@ -4,8 +4,8 @@ import {
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { NodeProps } from 'reactflow';
-import { StatementNodeData } from '../../types/Node';
-import { allParsed, localIndexToAbsolute } from '../../util/nodes';
+import { ListField, StatementNodeData } from '../../types/Node';
+import { allParsed, localIndexToAbsolute, makeRecheckCallback } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
 import { DeleteNodePopover } from './GeneralNode';
@@ -13,10 +13,7 @@ import { MoveableHandles } from './MoveableHandle';
 import { NodeHandle } from './NodeHandle';
 
 function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
-  const afterStatementEdit = useCallback(() => {
-    data.thisNode.parseAll();
-    data.thisNode.setWrappers();
-  }, [data]);
+  const afterStatementEdit = useCallback(makeRecheckCallback({ type: "proofNode", data }), [data]);
   const [target, setTarget] = useState<any>();
   
   useEffect(() => {
@@ -81,7 +78,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           statements={data.givens}
           callbacks={data.thisNode.givens}
           indexToDisplayedIndex={index => localIndexToAbsolute(data, "givens", index)}
-          afterStatementEdit={afterStatementEdit}
+          afterStatementEdit={(index) => afterStatementEdit("givens", index)}
         />
         {/* END: Givens */}
 
@@ -93,7 +90,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           callbacks={data.thisNode.proofSteps}
           isCollapsed={isCollapsed}
           indexToDisplayedIndex={index => localIndexToAbsolute(data, "proofSteps", index)}
-          afterStatementEdit={afterStatementEdit}
+          afterStatementEdit={(index) => afterStatementEdit("proofSteps", index)}
         />
         {/* END: Proof */}
 
@@ -103,7 +100,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           statements={data.goals}
           callbacks={data.thisNode.goals}
           indexToDisplayedIndex={index => localIndexToAbsolute(data, "goals", index)}
-          afterStatementEdit={afterStatementEdit}
+          afterStatementEdit={(index) => afterStatementEdit("goals", index)}
         />
         {/* END: Goals */}
 
