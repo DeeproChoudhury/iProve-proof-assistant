@@ -12,6 +12,7 @@ import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { IProveError } from "../types/ErrorLocation";
+import { LI } from "../logic/LogicInterface";
 
 export type InductionNodeCallbacks = InductionNodeData["thisNode"];
 

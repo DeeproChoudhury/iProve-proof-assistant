@@ -263,7 +263,7 @@ export const makeNodeCallbacks = (
   };
 };
 
-export type NodeCallbacks = ReturnType<ReturnType<typeof makeNodeCallbacks>>;
+
 function setCheckFailed(arg0: boolean) {
   throw new Error("Function not implemented.");
 }

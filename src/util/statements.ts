@@ -4,6 +4,7 @@ import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";
 import { IProveError } from "../types/ErrorLocation";
 import { mk_error } from "./errors";
+import { isTerm, toWrapperFunc } from "./trees";
 
 export const updateWithParsed = (setError: Setter<IProveError | undefined>) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);

@@ -6,7 +6,13 @@ import { collided } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { NodeCallbacks } from "./nodeCallbacks";
 
-export const makeFlowCallbacks = (nodes: AnyNodeType[], setNodes: Setter<AnyNodeType[]>, setEdges: Setter<Edge[]>, declarationsRef: MutableRefObject<StatementType[]>, nextId: () => number, makeThisNode: (id: string) => NodeCallbacks) => ({
+export const makeFlowCallbacks = (
+  nodes: AnyNodeType[],
+  setNodes: Setter<AnyNodeType[]>,
+  setEdges: Setter<Edge[]>, 
+  declarationsRef: MutableRefObject<StatementType[]>,
+  nextId: () => number,
+  makeThisNode: (id: string) => NodeCallbacks) => ({
   // onNodeDragStop: (event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
   //   if (node.data.type !== 'statement') return;
   //
