@@ -13,6 +13,7 @@ import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { IProveError } from "../types/ErrorLocation";
 import { LI } from "../logic/LogicInterface";
+import { makeSharedNodeCallbacks } from "./sharedNodeCallbacks";
 
 export type InductionNodeCallbacks = InductionNodeData["thisNode"];
 
@@ -163,10 +164,11 @@ export const makeInductionNodeCallbacks = (
     return success;
   };
   return {
-    delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
+    ...makeSharedNodeCallbacks(setNodes, isInductionNode, nodeId),
     ...statementLists,
     parseAll,
     checkInternal,
-    checkEdges
+    checkEdges,
+    invalidateInternals: () => setNode(node => ({...node, data: {...node.data, internalsStatus: "unchecked"}}))
   };
 };

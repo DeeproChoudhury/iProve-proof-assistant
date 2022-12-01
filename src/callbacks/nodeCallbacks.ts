@@ -13,6 +13,7 @@ import { Line, Term } from "../types/AST";
 import { IProveError } from "../types/ErrorLocation";
 import { parse_error } from "../util/errors";
 import { z3Reason } from "../util/reasons";
+import { makeSharedNodeCallbacks } from "./sharedNodeCallbacks";
 
 export type NodeCallbacks = StatementNodeData["thisNode"];
 
@@ -95,7 +96,7 @@ export const makeNodeCallbacks = (
       }
     };
   return {
-    delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
+    ...makeSharedNodeCallbacks(setNodes, isStatementNode, nodeId),
     ...statementLists,
     parseAll: () => {
       setError(undefined);

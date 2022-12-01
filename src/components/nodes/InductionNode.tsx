@@ -11,6 +11,7 @@ import { StatementType } from "../../types/Statement";
 import { DeleteNodePopover } from "./GeneralNode";
 import Moveable from "react-moveable";
 import { MoveableHandles } from "./MoveableHandle";
+import { makeRecheckCallback } from "../../util/nodes";
 
 function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): ReactElement {
 	const [target, setTarget] = useState<any>();
@@ -24,12 +25,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 		nodeData.thisNode[k].update(updated, evt.target.value);
 	}, [nodeData]);
 
-  const afterStatementEdit = useCallback((k: ListField<InductionNodeData>, updated: number) => {
-    nodeData.thisNode.parseAll();
-    nodeData.thisNode.checkInternal();
-    if (k === "baseCases" || k === "inductiveCases") nodeData.thisNode.checkEdges();
-    if (k === "motive") {}; // TODO: invalidate edgesValid for nodes connected to outgoing edges
-  }, [nodeData]);
+  const afterStatementEdit = useCallback(makeRecheckCallback({ type: "inductionNode", data: nodeData }), [nodeData]);
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;

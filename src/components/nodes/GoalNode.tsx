@@ -1,14 +1,17 @@
 import { Box, Button } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Moveable from "react-moveable";
 import { NodeProps } from "reactflow";
 import { StatementNodeData } from "../../types/Node";
+import { makeRecheckCallback } from "../../util/nodes";
 import StatementList from "../StatementList";
 import { DeleteNodePopover } from "./GeneralNode";
 import { MoveableHandles } from "./MoveableHandle";
 import { NodeHandle } from "./NodeHandle";
 
 export default function GoalNode({ id, data }: NodeProps<StatementNodeData>) {
+  const afterStatementEdit = useCallback(makeRecheckCallback({ type: "goalNode", data }), [data]);
+
   const [target, setTarget] = useState<any>();
 
   useEffect(() => {
@@ -41,7 +44,7 @@ export default function GoalNode({ id, data }: NodeProps<StatementNodeData>) {
           title="Goals"
           statements={data.givens}
           callbacks={data.thisNode.givens}
-          afterStatementEdit={data.thisNode.parseAll}
+          afterStatementEdit={(index) => afterStatementEdit("givens", index)}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           <DeleteNodePopover deleteNode={data.thisNode.delete} />

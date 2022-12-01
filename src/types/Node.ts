@@ -17,6 +17,8 @@ type SharedNodeCallbacks = {
   parseAll: () => void;
   checkInternal: () => void;
   checkEdges: () => void;
+  invalidateEdges: () => void;
+  invalidateOutgoingEdges: () => void;
 }
 
 export type StatementNodeData = SharedNodeData & {
@@ -44,6 +46,7 @@ export type InductionNodeData = SharedNodeData & {
     motive: StatementListCallbacks;
     baseCases: StatementListCallbacks;
     inductiveCases: StatementListCallbacks;
+    invalidateInternals: () => void;
   }
 }; 
 

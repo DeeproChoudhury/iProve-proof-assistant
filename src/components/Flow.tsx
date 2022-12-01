@@ -44,7 +44,7 @@ import {
   TableContainer,
 } from '@chakra-ui/react'
 import { renderError } from '../util/errors';
-import { allParsed, internalsStatus } from '../util/nodes';
+import { allParsed, edgesStatus, internalsStatus } from '../util/nodes';
 import { SymbolButton } from './SymbolButton';
 
 const nodeTypes = {
@@ -256,7 +256,7 @@ function Flow() {
       node.data.thisNode.checkEdges();
     });
     setNodes(nodes => {
-      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && node.data.edgesStatus === "valid");
+      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && edgesStatus(node) === "valid");
       console.log(allValid);
       return nodes;
       // TODO: check connections

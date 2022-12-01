@@ -1,6 +1,6 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeProps, AnyNodeType } from "../types/Node";
+import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeProps, AnyNodeType, InductionNodeData } from "../types/Node";
 import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
@@ -207,5 +207,32 @@ export const getOutputs = (node: AnyNodeProps): StatementType[] => {
       return [];
     case "inductionNode":
       return node.data.motive;
+  }
+}
+
+export const makeRecheckCallback = ({ type, data }: AnyNodeProps) => (k: ListField<AnyNodeProps["data"]>, updated: number): void => {
+  data.thisNode.parseAll();
+  switch (type) {
+    case "givenNode":
+      data.thisNode.invalidateOutgoingEdges();
+      break;
+    case "proofNode":
+      if (k === "givens") data.thisNode.invalidateEdges();
+      if (k === "proofSteps") data.thisNode.setWrappers();
+      if (k === "goals") data.thisNode.invalidateOutgoingEdges();
+      break;
+    case "goalNode":
+      data.thisNode.invalidateEdges();
+      break;
+    case "inductionNode":
+      data.thisNode.invalidateInternals();
+      switch (k as ListField<InductionNodeData>) {
+        case "baseCases":
+        case "inductiveCases":
+          data.thisNode.invalidateEdges();
+          break;
+        case "motive":
+          data.thisNode.invalidateOutgoingEdges();
+      }
   }
 }
