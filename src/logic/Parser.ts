@@ -1,4 +1,4 @@
-import { Parser, ParserOutput, Token, ParseError } from 'typescript-parsec';
+import { Parser, ParserOutput, Token, ParseError, err } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb, lrec_sc } from 'typescript-parsec';
 import * as AST from "../types/AST"
@@ -22,6 +22,7 @@ function handle<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResul
             try {
                 return P.parse(token)
             } catch (E) {
+                console.log((E as Error).message)
                 return {
                     successful: false,
                     error: {
@@ -331,7 +332,7 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
     "<->": [4, true, true],
 }
 
-TERM.setPattern(handle(
+TERM.setPattern(
     apply(
         seq(
             rep_sc(OPERATOR),
@@ -413,7 +414,7 @@ TERM.setPattern(handle(
                 throw new Error("Malformed Term")
 
             return out_stack[0];
-        }))
+        })
 );
 
 OPERATOR.setPattern(alt(
@@ -632,11 +633,11 @@ CORE.setPattern(alt(
 ));
 
 
-PROOF_LINE.setPattern(alt(
+PROOF_LINE.setPattern(handle(alt(
     CORE,
     LANG,
     TACTIC
-));
+)));
 
 
 /**
@@ -650,7 +651,7 @@ PROOF_LINE.setPattern(alt(
  */
 export function evaluate(line: string): AST.ASTNode | ParseError {
     let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
-    console.log(A)
+    console.log("FINAL", A)
     if (!A.successful) return A.error;
     return expectSingleResult(A);
 }
