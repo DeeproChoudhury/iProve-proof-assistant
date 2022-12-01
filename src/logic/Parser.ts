@@ -120,6 +120,7 @@ const lexer = buildLexer([
     [true, /^(::)/g, TokenKind.DoubleColon],
     [true, /^(:=)/g, TokenKind.FunDefToken],
     [true, /^(:)/g, TokenKind.Colon],
+    [true, /^\|/g, TokenKind.Guard],
     [true, /^(×)/g, TokenKind.Times],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(\[\])/g, TokenKind.EmptyArray],
@@ -587,7 +588,7 @@ TUPLE_PATTERN.setPattern(apply(
 ));
 
 const GUARD_TERM = rule<TokenKind, AST.Guard | AST.Term>();
-GUARD_TERM.setPattern(alt(
+GUARD_TERM.setPattern(if_else(
     GUARD,
     TERM
 ))
@@ -681,3 +682,12 @@ export function evaluate(line: string): AST.ASTNode | ParseError {
 }
 
 export default evaluate;
+
+/*
+const util = require("util")
+const D = (x: Object) => {
+  console.log(util.inspect(x, false, null, true))
+}
+
+D(evaluate("f x ::= | x := 2 | y := 4"))
+*/

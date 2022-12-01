@@ -181,6 +181,18 @@ export class LogicInterface {
         return true;
     }
 
+    renderTermOrGuard(G: AST.Guard | AST.Term, alt: string): string {
+        if (!(G.kind == "Guard")) return renderNode(G)
+        return this.renderGuard(G, alt)
+    }
+
+    renderGuard(G: AST.Guard, alt: string): string {
+        let t_alt: string = alt;
+        if (G.next)
+            t_alt = this.renderGuard(G.next, alt)
+        return `(if ${renderNode(G.cond)} ${renderNode(G.res)} ${t_alt})`;
+    }
+
     renderFunctionDeclaration(ident: string, consts: string[]): [string, string | undefined][] | undefined {
         SID.n = 0
         let A = this.global_fn_defs.get(ident);
@@ -199,7 +211,7 @@ export class LogicInterface {
 
         for (let i = 0; i < nparams; i++) params.push(`IProveParameter${i}`)
 
-        let pdatas: [PatternData, AST.Term][] = [];
+        let pdatas: [PatternData, AST.Term | AST.Guard][] = [];
         for (let a of defs) {
             if (a.params.length != nparams) {
                 this.error(`Function definition for ${a.ident} has an incorrect number of parameters. Expecting ${nparams}, found ${a.params.length}`)
@@ -216,9 +228,10 @@ export class LogicInterface {
 
         let sections: string[] = [];
         console.log("PDATAS", pdatas)
+        const overall_alt = `IProveConstant${consts.length}`
         for (let [i, [p, d]] of pdatas.entries()) {
-            let sec: string = renderNode(d);
-            const alt: string = `(${ident}__${i + 1} ${params.join(" ")})`
+            const alt: string = `(${ident}__${i + 1} ${params.join(" ")})`;
+            let sec: string = this.renderTermOrGuard(d, alt);
             for (let D of p.reverse()) {
                 console.log("HERE D", D)
                 if (D.kind == "Condition")
@@ -230,8 +243,8 @@ export class LogicInterface {
             sections.push(sec)
         }
 
-        consts.push(`IProveConstant${consts.length} ${renderNode(decl.type.retType)}`)
-        sections.push(`IProveConstant${consts.length - 1}`);
+        consts.push(`${overall_alt} ${renderNode(decl.type.retType)}`)
+        sections.push(overall_alt);
 
         let rendered_params: string[] = [];
         for (let i = 0; i < nparams; i++)
@@ -276,12 +289,9 @@ export class LogicInterface {
             }
         }
 
-        res += consts.map(x => `(declare-const ${x})`)
+        res += consts.map(x => `(declare-const ${x})\n`)
         let tDecl = decls.map(x => `(${x})`).join(" ")
         let tDefn = defns.map(x => `${x}`).join(" ")
-        console.log("BIG WAN")
-        console.log(tDecl)
-        console.log(tDefn)
         res += `\n\n(define-funs-rec\n    (${tDecl}) \n    (${tDefn})\n)\n\n`
 
         console.log(res)

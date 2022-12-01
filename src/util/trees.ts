@@ -1,7 +1,6 @@
 import { stateless_map_terms } from "../logic/combinator";
 import { fnDisplay } from "../logic/util";
 import * as AST from "../types/AST"
-import { StatementType } from "../types/Statement";
 
 function d(a: AST.ASTNode): string {
     switch (a.kind) {
@@ -40,7 +39,7 @@ function d(a: AST.ASTNode): string {
 
         case "FunctionDefinition":
             return `${a.ident} ${a.params.map(d).join(" ")} ::= ${d(a.def)}` 
-        case "Guard": return `\n  | ${a.cond} := ${a.res}`
+        case "Guard": return `\n  | ${d(a.cond)} := ${d(a.res)}`
         case "SimpleParam": return `${a.ident}`
         case "ConsParam": return `(${d(a.A)}::${d(a.B)})`
         case "EmptyList": return "[]"

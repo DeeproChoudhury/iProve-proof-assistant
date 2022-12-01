@@ -11,7 +11,7 @@ export function fnDisplay(fn: string): string {
     switch (fn) {
         case "~": return "¬"; 
         case "&": return "∧";
-        case "|": return "∨";
+        case "||": return "∨";
         case "^": return "⊕";
         case "->": return "→";
         case "<->": return "↔";
@@ -23,7 +23,7 @@ export function fnSMT(fn: string): string {
     switch (fn) {
         case "~": return "not";
         case "&": return "and";
-        case "|": return "or";
+        case "||": return "or";
         case "^": return "xor";
         case "->": return "implies";
         case "<->": return "=";
