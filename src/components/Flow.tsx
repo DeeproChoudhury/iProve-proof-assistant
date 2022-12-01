@@ -209,7 +209,8 @@ function Flow() {
             allParsed: false,
             internalsValid: false,
             edgesValid: true,
-            // predicate: node.data.predicate,
+            internalsStatus: "unchecked",
+            edgesStatus: "unchecked",
             declarationsRef,
             // inductiveHypotheses: node.data.inductiveHypotheses,
             typeDeclarationsRef,
@@ -229,6 +230,7 @@ function Flow() {
           id: `${id}`,
           data: {
             label: node.data.label,
+            edgesStatus: "unchecked",
             givens: node.data.givens,
             proofSteps: node.data.proofSteps,
             goals: node.data.goals,
