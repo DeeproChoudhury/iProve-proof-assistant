@@ -51,8 +51,8 @@ export type SimpleParam = {
 }
 export type ConsParam = {
     kind: "ConsParam",
-    A: string,
-    B: string
+    A: Pattern,
+    B: Pattern
 }
 export type EmptyList = {
     kind: "EmptyList"

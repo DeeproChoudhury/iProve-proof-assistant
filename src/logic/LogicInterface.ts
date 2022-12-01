@@ -332,14 +332,21 @@ function renderPattern(a: AST.Pattern, name: string): PatternData {
     switch(a.kind) {
         case "SimpleParam":
             return [mk_bind(`(${a.ident} ${name})`)]
-        case "ConsParam":
-            return [
-                mk_cond(`(not (is-nil ${name}))`),
-                mk_bind(`(${a.A} (head ${name}))`),
-                mk_bind(`(${a.B} (tail ${name}))`)
-            ]
         case "EmptyList":
             return [mk_cond(`(is-nil ${name})`)] 
+        case "ConsParam": {
+            let aID = `IProveParameter${SID.n++}`
+            let bID = `IProveParameter${SID.n++}`
+            let R = [
+                mk_cond(`(not (is-nil ${name}))`),
+                mk_bind(`(${aID} (head ${name}))`),
+                mk_bind(`(${bID} (tail ${name}))`)
+            ]
+            R = R.concat(renderPattern(a.A, aID))
+                 .concat(renderPattern(a.B, bID))
+
+            return R
+        }
         case "ConstructedType": {
             let R: PatternData = []
             R.push(mk_cond(`(is-${a.c} ${name})`))

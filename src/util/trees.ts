@@ -42,7 +42,7 @@ function d(a: AST.ASTNode): string {
             return `${a.ident} ${a.params.map(d).join(" ")} ::= ${d(a.def)}` 
         case "Guard": return `\n  | ${a.cond} := ${a.res}`
         case "SimpleParam": return `${a.ident}`
-        case "ConsParam": return `(${a.A}::${a.B})`
+        case "ConsParam": return `(${d(a.A)}::${d(a.B)})`
         case "EmptyList": return "[]"
         case "ConstructedType": 
             return `(${a.c} ${a.params.map(d).join(" ")})` 

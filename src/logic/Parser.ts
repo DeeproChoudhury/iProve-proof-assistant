@@ -534,14 +534,15 @@ END_SCOPE.setPattern(apply(
     (_): AST.EndScope => ({ kind: "EndScope" })
 ))
 
+const PATTERN = rule<TokenKind, AST.Pattern>();
 const CONS_PARAM = rule<TokenKind, AST.ConsParam>();
 CONS_PARAM.setPattern(apply(
     seq(
-        VARIABLE,
-        kright(tok(TokenKind.DoubleColon), VARIABLE)
+        PATTERN,
+        kright(tok(TokenKind.DoubleColon), PATTERN)
     ),
     (value): AST.ConsParam => 
-        ({ kind: "ConsParam", A: value[0].ident, B: value[1].ident })
+        ({ kind: "ConsParam", A: value[0], B: value[1] })
 ));
 const CONSTRUCTED_TYPE = rule<TokenKind, AST.ConstructedType>();
 // below
@@ -562,7 +563,6 @@ SIMPLE_PARAM.setPattern(apply(
 
 const GUARD = rule<TokenKind, AST.Guard>();
 
-const PATTERN = rule<TokenKind, AST.Pattern>();
 PATTERN.setPattern(alt(
     kmid(str("("), CONS_PARAM, str(")")),
     kmid(str("("), CONSTRUCTED_TYPE, str(")")),
