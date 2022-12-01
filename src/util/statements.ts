@@ -1,16 +1,20 @@
 import { Line, Term } from "../types/AST";
 import evaluate from "../logic/Parser";
-import { ErrorLocation } from "../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";
+import { IProveError } from "../types/ErrorLocation";
+import { mk_error } from "./errors";
 import { isTerm, toWrapperFunc } from "./trees";
-import { LogicInterface } from "../logic/LogicInterface";
 
-export const updateWithParsed = (setError: Setter<ErrorLocation | undefined>) => (statement: StatementType) => {
+export const updateWithParsed = (setError: Setter<IProveError | undefined>) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);
   if(parsedOrError.kind === "Error") {
     statement.syntaxCorrect = false;
-    setError({statement, column: parsedOrError.pos?.columnBegin});
+    setError(mk_error({
+      kind: "Syntax", statement: statement, column: parsedOrError.pos?.columnBegin,
+      msg: parsedOrError.message
+        .replace("token: <END-OF-FILE>", "entire input")
+    }));
   } else {
     console.log(parsedOrError);
     statement.parsed = parsedOrError as Line; // TODO: avoid cast here?

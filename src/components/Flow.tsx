@@ -10,7 +10,7 @@ import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../logic/Solver';
-import { ErrorLocation } from '../types/ErrorLocation';
+import { ErrorLocation, IProveError } from '../types/ErrorLocation';
 import { AnyNodeType, InductionNodeType, NodeKind, StatementNodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
@@ -43,6 +43,7 @@ import {
   Td,
   TableContainer,
 } from '@chakra-ui/react'
+import { renderError } from '../util/errors';
 import { allParsed, internalsStatus } from '../util/nodes';
 import { SymbolButton } from './SymbolButton';
 
@@ -62,7 +63,7 @@ function Flow() {
 
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
-  const [error, setError] = useState<ErrorLocation | undefined>(undefined);
+  const [error, setError] = useState<IProveError | undefined>(undefined);
   const [stopGlobalCheck, setStopGlobalCheck] = useState<boolean | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
@@ -320,25 +321,10 @@ function Flow() {
           />
         </Alert>}
       </div>
+      {/* END : Export alert */}
 
 
-      {/* START : Incorrect proof alert */}
-      <div className="alert-container">
-        {stopGlobalCheck === true && <Alert status='error' className="alert">
-          <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
-          <AlertDescription>
-            Proof is not valid.
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setStopGlobalCheck(undefined) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
+      {/* START : Proof valid alert */} 
       <div className="alert-container">
         {stopGlobalCheck === false && <Alert status='success' className="alert">
           <AlertIcon />
@@ -355,17 +341,15 @@ function Flow() {
           />
         </Alert>}
       </div>
-      {/* END : Incorrect Proof */}
+      {/* END : Proof valid alert */} 
 
+      {/* START : Error alert */} 
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
           <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
+          <AlertTitle>{error.kind ?? ""} Error!</AlertTitle>
           <AlertDescription>
-            {error.column ?
-              `Parsing for the last node failed. Error begins at column ${error.column}, from "${error.statement.value}"` :
-              "Parsing for the last node failed. Check your syntax!"
-            }
+            { renderError(error) }
           </AlertDescription>
           <IconButton
             variant='outline'
@@ -376,25 +360,7 @@ function Flow() {
           />
         </Alert>}
       </div>
-
-      <div className="alert-container">
-        {error === null &&
-          <Alert status='success' className="alert">
-            <AlertIcon />
-            <AlertTitle>Success!</AlertTitle>
-            <AlertDescription>
-              Parsing for current node was successful!
-            </AlertDescription>
-            <IconButton
-              variant='outline'
-              aria-label='Add given'
-              size='xs'
-              onClick={() => { setError(undefined) }}
-              icon={<CloseIcon />}
-            />
-          </Alert>}
-      </div>
-      {/* END : Export alert */}
+      {/* END : Error alert */}
 
       {/* START : Header Buttons */}
       <div>

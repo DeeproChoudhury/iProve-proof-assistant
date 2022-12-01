@@ -4,7 +4,6 @@ import { rec_on } from "../logic/induction";
 import { unifies } from "../logic/unifier";
 import Z3Solver from "../logic/Solver";
 import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
-import { ErrorLocation } from "../types/ErrorLocation";
 import { AnyNodeType, InductionNodeData, InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { getOutputs, isInductionNode, setNodeWithId, setStatementsForNode } from "../util/nodes";
@@ -12,6 +11,7 @@ import { Setter } from "../util/setters";
 import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
+import { IProveError } from "../types/ErrorLocation";
 import { LI } from "../logic/LogicInterface";
 
 export type InductionNodeCallbacks = InductionNodeData["thisNode"];
@@ -22,7 +22,7 @@ export const makeInductionNodeCallbacks = (
   declarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>,
-  setError: Setter<ErrorLocation | undefined>,
+  setError: Setter<IProveError | undefined>,
   z3: Z3Solver.Z3Prover
 ) => (
   nodeId: string

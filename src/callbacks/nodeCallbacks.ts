@@ -11,6 +11,8 @@ import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
 import { Line, Term } from "../types/AST";
+import { IProveError } from "../types/ErrorLocation";
+import { parse_error } from "../util/errors";
 import { z3Reason } from "../util/reasons";
 
 export type NodeCallbacks = StatementNodeData["thisNode"];
@@ -21,7 +23,7 @@ export const makeNodeCallbacks = (
   declarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>,
-  setError: Setter<ErrorLocation | undefined>,
+  setError: Setter<IProveError | undefined>,
   setStopGlobalCheck: Setter<boolean | undefined>,
   z3: Z3Solver.Z3Prover
 ) => (
@@ -175,8 +177,6 @@ export const makeNodeCallbacks = (
       }
       
       // check that exp_implications follows from givens with z3
-      console.log(declarationsRef.current);
-
       {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
       let success: boolean = false;
 
@@ -187,6 +187,15 @@ export const makeNodeCallbacks = (
       if (goal) { 
         const verdict = await LI.entails(unwrap_statements(givens), goal)
         success = (verdict.kind == "Valid")
+        
+        if (verdict.kind == "Error") {
+          setError(parse_error(verdict))
+        }
+        else if (verdict.kind != "Valid") {
+          setError({ kind: "Proof" })
+        }
+      } else {
+        setError({ kind: "Semantic", msg: "Malformed givens (they may not be declarations or definitions!)" })
       }
       
       {/* END LOGIC INTERFACE CRITICAL REGION */}
@@ -253,4 +262,9 @@ export const makeNodeCallbacks = (
     }
   };
 };
+
+
+function setCheckFailed(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
 

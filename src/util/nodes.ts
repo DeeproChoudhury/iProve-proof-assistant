@@ -1,6 +1,6 @@
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
-import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeType, AnyNodeProps } from "../types/Node";
+import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeProps, AnyNodeType } from "../types/Node";
 import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";

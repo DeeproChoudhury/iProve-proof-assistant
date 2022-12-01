@@ -1,4 +1,4 @@
-import { ErrorLocation } from "../types/ErrorLocation";
+import { ErrorLocation, IProveError } from "../types/ErrorLocation";
 import { CheckStatus, Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { Setter } from "../util/setters";
@@ -6,7 +6,7 @@ import { updateWithParsed } from "../util/statements";
 
 export const makeStatementListCallbacks = (
   setStatements: Setter<StatementType[]>,
-  setError: Setter<ErrorLocation | undefined>,
+  setError: Setter<IProveError | undefined>,
 ) => {
   return {
     add: (index?: number) => {

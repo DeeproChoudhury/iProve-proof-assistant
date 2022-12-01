@@ -5,8 +5,10 @@ import {
 import { useState } from 'react';
 import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
+import { renderError } from '../util/errors';
 import { absoluteIndexToLocal } from '../util/nodes';
 import { checkReason, z3Reason } from '../util/reasons';
+import { IProveError } from "../types/ErrorLocation";
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
 
@@ -22,7 +24,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const { isOpen, onClose, node } = props;
   const [tags, setTags] = useState<Tag[]>(Array(node.givens.length + node.proofSteps.length + node.goals.length).fill('0'));
   const relevantTags = tags.slice(0, node.givens.length + node.proofSteps.length + node.goals.length);
-  const [checkFailed, setCheckFailed] = useState(false);
+  const [checkError, setCheckFailed] = useState<IProveError | undefined>(undefined);
 
   const onChange = (v: string, index: number) => {
     setTags(tags => tags.map((t, i) => {
@@ -97,17 +99,22 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
                 key={index}/>
             )}
           </div>
+          
         </ModalBody>
-
-        <ModalFooter>
+        <ModalFooter style={{flexWrap: "wrap"}}>
+          <div style={{flexBasis: "100%", textAlign: "right"}}>
           <Button colorScheme='blackAlpha' mr={3} onClick={() => { setTags(new Array(100).fill('0')); onClose(); }}>
             Close
           </Button>
-          {checkFailed ?
-              <Tooltip label='Invalid proof! Please try again.' fontSize='xs'>
-                <Button colorScheme='red' onClick={solveZ3}>CheckAgain</Button>
-              </Tooltip> :
-              <Button colorScheme='whatsapp' onClick={solveZ3}>Check</Button>}
+          {checkError ?
+              <Tooltip label={renderError(checkError)} fontSize='xs'>
+                <Button colorScheme='red' onClick={solveZ3}>Check Again</Button>
+              </Tooltip>
+              : <Button colorScheme='whatsapp' onClick={solveZ3}>Check</Button>}
+          </div>
+          <div style={{flexBasis: "100%", textAlign: "right"}}>
+            <Text className="errorMessage">{checkError ? renderError(checkError) : ""} </Text>
+          </div>
         </ModalFooter>
       </ModalContent>
     </Modal>
