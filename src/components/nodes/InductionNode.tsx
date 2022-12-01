@@ -10,12 +10,11 @@ import Statement from "../Statement";
 import { StatementType } from "../../types/Statement";
 import { DeleteNodePopover } from "./GeneralNode";
 import Moveable from "react-moveable";
+import { MoveableHandles } from "./MoveableHandle";
 
 function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): ReactElement {
 	const [target, setTarget] = useState<any>();
-	const [frame] = useState<any>({
-		translate: [0, 0],
-	});
+	
 	useEffect(() => {
 		return setTarget(document.querySelector(`#induction-node-${id}`)!);
 	}, [id]);
@@ -58,8 +57,8 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	}
 
 	/**
- * INDUCTION NODE
- */
+	 * INDUCTION NODE
+	 */
 	return (
 		<div>
 			<Box className={componentStyle} key={`induction-node-${id}`} id={`induction-node-${id}`}>
@@ -162,31 +161,14 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 				{/* START : Node Bottom Buttons */}
 				<NodeBottomButtons />
 				{/* END : Node Bottom Buttons */}
+
 				{sourceHandle}
 			</Box>
+
 			{/* BEGIN: Moveable component to allow horizontal resizing */}
-			<Moveable
-				target={target}
-				resizable={true}
-				keepRatio={false}
-				throttleResize={1}
-				renderDirections={["e", "w"]}
-				edge={false}
-				zoom={1}
-				origin={false}
-				padding={{ "left": 0, "top": 0, "right": 0, "bottom": 0 }}
-				onResizeStart={e => {
-					e.setOrigin(["%", "%"]);
-					e.dragStart && e.dragStart.set(frame.translate);
-				}}
-				onResize={e => {
-					const beforeTranslate = e.drag.beforeTranslate;
-					frame.translate = beforeTranslate;
-					e.target.style.width = `${e.width}px`;
-					e.target.style.transform = `translate(${beforeTranslate[0]}px, 0px)`;
-				}}
-			/>
+			<MoveableHandles target={target}/>
 			{/* END: Moveable component to allow horizontal resizing */}
+		
 		</div>
 	)
 

@@ -3,13 +3,13 @@ import {
   PopoverHeader, PopoverTrigger, useDisclosure
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
-import Moveable from 'react-moveable';
 import { NodeProps } from 'reactflow';
 import { StatementNodeData } from '../../types/Node';
 import { allParsed, localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
 import { DeleteNodePopover } from './GeneralNode';
+import { MoveableHandles } from './MoveableHandle';
 import { NodeHandle } from './NodeHandle';
 
 function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
@@ -18,9 +18,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
     data.thisNode.setWrappers();
   }, [data]);
   const [target, setTarget] = useState<any>();
-  const [frame] = useState<any>({
-    translate: [0, 0],
-  });
+  
   useEffect(() => {
     return setTarget(document.querySelector(`#proof-node-${id}`)!);
   }, [id]);
@@ -121,28 +119,9 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
 
         <NodeHandle type='source' />
       </Box>
+
       {/* BEGIN: Moveable component to allow horizontal resizing */}
-      <Moveable
-        target={target}
-        resizable={true}
-        keepRatio={false}
-        throttleResize={1}
-        renderDirections={["e", "w"]}
-        edge={false}
-        zoom={1}
-        origin={false}
-        padding={{ "left": 0, "top": 0, "right": 0, "bottom": 0 }}
-        onResizeStart={e => {
-          e.setOrigin(["%", "%"]);
-          e.dragStart && e.dragStart.set(frame.translate);
-        }}
-        onResize={e => {
-          const beforeTranslate = e.drag.beforeTranslate;
-          frame.translate = beforeTranslate;
-          e.target.style.width = `${e.width}px`;
-          e.target.style.transform = `translate(${beforeTranslate[0]}px, 0px)`;
-        }}
-      />
+      <MoveableHandles target={target} />
       {/* END: Moveable component to allow horizontal resizing */}
     </div>
   );
