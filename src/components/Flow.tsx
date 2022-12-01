@@ -139,7 +139,7 @@ function Flow() {
   { value: 'negation', symbol: '~'} ]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, inductionNodesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
-  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
+  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
   const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);

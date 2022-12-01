@@ -5,16 +5,18 @@ import { unifies } from "../logic/unifier";
 import Z3Solver from "../logic/Solver";
 import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
 import { ErrorLocation } from "../types/ErrorLocation";
-import { InductionNodeType } from "../types/Node";
+import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { setNodeWithId, setStatementsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
-import { updateWithParsed } from "../util/statements";
+import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
+import { LI } from "../logic/LogicInterface";
 
 
 export const makeInductionNodeCallbacks = (
+  nodesRef: MutableRefObject<StatementNodeType[]>,
   inductionNodesRef: MutableRefObject<InductionNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
   declarationsRef: MutableRefObject<StatementType[]>,
@@ -46,6 +48,58 @@ export const makeInductionNodeCallbacks = (
         }
       };
     }),
+    checkEdges: async () => {
+      const currEdges = edgesRef.current;
+      const currNodes = nodesRef.current;
+      const currInductionNodes = inductionNodesRef.current;
+      const node = currInductionNodes.find((n) => n.id === nodeId);
+      if (!node) return true;
+      const incomingEdges = currEdges.filter((e) => e.target === nodeId);
+      const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
+      const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
+      const incomingInductionNodes = currInductionNodes.filter(node => incomingNodesIds.has(node.id));
+      const inductionGivens = incomingInductionNodes.map(node => node.data.motive[0]);
+      const givens = [...incomingNodes.flatMap(node => node.data.goals), ...inductionGivens];
+      const expImplications = [...node.data.baseCases, ...node.data.inductiveCases];
+      if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
+        return false; // TODO: show error message here
+      }
+      {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
+      let success: boolean = false;
+
+      // TODO: WIRE UP TYPES BOX?
+      LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
+
+      let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
+      if (goal) { 
+        const verdict = await LI.entails(unwrap_statements(givens), goal)
+        success = (verdict.kind === "Valid")
+      }
+      console.log('passed this?')
+      
+      {/* END LOGIC INTERFACE CRITICAL REGION */}
+
+      setNode((node) => {
+        //set nodes
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            correctImplication: success ? "valid" : "invalid"
+          }
+        };
+      });
+      setEdges(eds => {
+        //set edges
+        return eds.map((edge) => {
+          if (edge.target === nodeId) {
+            edge.type = success ? "checked" : "invalid";
+          }
+          return edge;
+        });
+      });
+      return success;
+    },
     checkPrinciple: async () => {
       const node = inductionNodesRef.current.find((n) => n.id === nodeId);
       if (!node) return;
