@@ -243,10 +243,16 @@ function Flow() {
       }
     });
     
+    const edges = json.edges.map((edge: any) => {
+      const e = edge;
+      e.type = "implication";
+      return e;
+    })
+
     setDeclarations(json.declarations);
     setTypeDeclarations(json.types);
     setNodes(nodeData);
-    setEdges(json.edges);
+    setEdges(edges);
 
   }, [makeThisNode]);
 
