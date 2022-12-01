@@ -109,6 +109,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							addAbove={() => { nodeData.thisNode.baseCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.baseCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.baseCases.remove(index) }}
+							afterEdit={() => afterStatementEdit()}
 							key={index} />)}
 				</div>
 				{/* END : Base Case */}
@@ -134,6 +135,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.inductiveCases.remove(index) }}
+							afterEdit={() => afterStatementEdit()}
 							key={index} />)}
 				</div>
 				{/* END : Induction Case */}
