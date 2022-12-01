@@ -11,7 +11,7 @@ export type TypesPropsType = DeclarationCallbacks & {
 const TypeDeclarations = (props: TypesPropsType) => {
   const { statements, update, add, remove, checkSyntax } = props;
   return (
-    <Box className={"types"}>
+    <Box className={"types"} style={{ resize: "horizontal", overflow: "auto", minWidth: "300px"}}>
       <StatementList
         title="Types"
         statements={statements}
