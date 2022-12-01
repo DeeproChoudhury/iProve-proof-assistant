@@ -10,8 +10,8 @@ import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../logic/Solver';
-import { ErrorLocation, IProveError } from '../types/ErrorLocation';
-import { AnyNodeType, InductionNodeType, NodeKind, StatementNodeType } from '../types/Node';
+import { IProveError } from '../types/ErrorLocation';
+import { AnyNodeType, NodeKind } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
@@ -137,7 +137,7 @@ function Flow() {
   { value: 'exists x', symbol: 'E x.' },
   { value: 'negation', symbol: '~'} ]
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, typeDeclarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
@@ -180,6 +180,7 @@ function Flow() {
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
           declarationsRef,
+          typeDeclarationsRef,
           thisNode: makeThisNode(`${count}`)
         },
         position: { x: 300, y: 0 },
@@ -229,6 +230,7 @@ function Flow() {
         const n = node;
         n.data.edgesStatus = "unchecked";
         n.data.declarationsRef = declarationsRef;
+        n.data.typeDeclarationsRef = typeDeclarationsRef;
         n.data.thisNode = makeThisNode(`${id}`);
         return n;
       }
