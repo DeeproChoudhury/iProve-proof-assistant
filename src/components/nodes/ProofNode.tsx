@@ -6,7 +6,7 @@ import { ReactNode, useCallback, useEffect, useState } from 'react';
 import Moveable from 'react-moveable';
 import { NodeProps } from 'reactflow';
 import { StatementNodeData } from '../../types/Node';
-import { localIndexToAbsolute } from '../../util/nodes';
+import { allParsed, localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
 import { DeleteNodePopover } from './GeneralNode';
@@ -14,7 +14,7 @@ import { NodeHandle } from './NodeHandle';
 
 function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
   const afterStatementEdit = useCallback(() => {
-    data.thisNode.checkSyntax();
+    data.thisNode.parseAll();
     data.thisNode.setWrappers();
   }, [data]);
   const [target, setTarget] = useState<any>();
@@ -29,17 +29,17 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
   const { isOpen: isSolveNotReadyOpen, onOpen: onSolveNotReadyOpen, onClose: onSolveNotReadyClose } = useDisclosure();
   const { isOpen: isSolveModalOpen, onOpen: onSolveModalOpen, onClose: onSolveModalClose } = useDisclosure();
 
-  const checkSatButton: ReactNode =
-    <Button size='xs'
-      colorScheme='blackAlpha'
-      onClick={() => {
-        data.thisNode.checkSyntax();
+  const checkSatButton: ReactNode = 
+    <Button size='xs' 
+      colorScheme='blackAlpha' 
+      onClick={() => { 
+        data.thisNode.parseAll();
         onSolveModalOpen();
       }}>
       Solve
     </Button>;
-
-  const checkSolveReady = data.parsed === true;
+  
+  const checkSolveReady = allParsed({type: "proofNode", data});
   const solveNotReadyPopover =
     <Popover isOpen={isSolveNotReadyOpen} onClose={onSolveNotReadyClose}>
       <PopoverTrigger>
@@ -64,15 +64,15 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           onClose={onSolveModalClose}
           node={data} />}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {data.correctImplication === undefined &&
+          {data.edgesStatus === "unchecked" &&
             <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check incoming implications
             </Button>}
-          {data.correctImplication === "valid" &&
+          {data.edgesStatus === "valid" &&
             <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check passed. Check again?
             </Button>}
-          {data.correctImplication === "invalid" &&
+          {data.edgesStatus === "invalid" &&
             <Button colorScheme='red' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check failed. Check again?
             </Button>}

@@ -12,14 +12,6 @@ import { DeleteNodePopover } from "./GeneralNode";
 import Moveable from "react-moveable";
 
 function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): ReactElement {
-	const componentStyle = "induction-node";
-	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
-		nodeData.thisNode[k].update(updated, evt.target.value);
-	}, [nodeData]);
-
-	const afterStatementEdit = useCallback(() => {
-		nodeData.thisNode.checkSyntax();
-	}, [nodeData]);
 	const [target, setTarget] = useState<any>();
 	const [frame] = useState<any>({
 		translate: [0, 0],
@@ -27,18 +19,29 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	useEffect(() => {
 		return setTarget(document.querySelector(`#induction-node-${id}`)!);
 	}, [id]);
+	const componentStyle = "induction-node";
+	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
+		nodeData.thisNode[k].update(updated, evt.target.value);
+	}, [nodeData]);
 
-	const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
-	const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
-	const checkSatButton: ReactNode =
-		<Button size='xs'
-			colorScheme='blackAlpha'
-			onClick={() => {
-				nodeData.thisNode.checkPrinciple();
-			}}>
-			Solve
-		</Button>;
+  const afterStatementEdit = useCallback((k: ListField<InductionNodeData>, updated: number) => {
+    nodeData.thisNode.parseAll();
+    nodeData.thisNode.checkInternal();
+    if (k === "baseCases" || k === "inductiveCases") nodeData.thisNode.checkEdges();
+    if (k === "motive") ""; // TODO: invalidate edgesValid for nodes connected to outgoing edges
+  }, [nodeData]);
 
+  const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
+  const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
+  const checkSatButton: ReactNode = 
+    <Button size='xs'
+      colorScheme='blackAlpha' 
+      onClick={() => { 
+		nodeData.thisNode.checkInternal();
+      }}>
+      Solve
+    </Button>;
+	
 	const NodeBottomButtons = () => {
 		return (
 			<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -63,15 +66,15 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 				{targetHandle}
 
 				<div style={{ display: 'flex', justifyContent: 'center' }}>
-					{nodeData.correctImplication === undefined &&
+					{nodeData.edgesStatus === "unchecked" &&
 						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
 							Check incoming implications
 						</Button>}
-					{nodeData.correctImplication === "valid" &&
+					{nodeData.edgesStatus === "valid" &&
 						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
 							Check passed. Check again?
 						</Button>}
-					{nodeData.correctImplication === "invalid" &&
+					{nodeData.edgesStatus === "invalid" &&
 						<Button colorScheme='red' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
 							Check failed. Check again?
 						</Button>}
@@ -99,7 +102,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 					addAbove={() => { }}
 					addBelow={() => { }}
 					deleteStatement={() => { }}
-					afterEdit={() => afterStatementEdit()}
+					afterEdit={() => afterStatementEdit("motive", 0)}
 					proofNode={false} />
 				{/* <Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} /> */}
 				{/* END : Motive */}
@@ -125,7 +128,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							addAbove={() => { nodeData.thisNode.baseCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.baseCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.baseCases.remove(index) }}
-							afterEdit={() => afterStatementEdit()}
+							afterEdit={() => afterStatementEdit("baseCases", index)}
 							key={index} />)}
 				</div>
 				{/* END : Base Case */}
@@ -151,7 +154,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.inductiveCases.remove(index) }}
-							afterEdit={() => afterStatementEdit()}
+							afterEdit={() => afterStatementEdit("inductiveCases", index)}
 							key={index} />)}
 				</div>
 				{/* END : Induction Case */}

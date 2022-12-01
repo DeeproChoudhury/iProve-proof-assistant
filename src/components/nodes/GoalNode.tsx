@@ -25,15 +25,15 @@ export default function GoalNode({ id, data }: NodeProps<StatementNodeData>) {
         {/* END : Top Handle */}
 
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          {data.correctImplication === undefined &&
+          {data.edgesStatus === "unchecked" &&
             <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check incoming implications
             </Button>}
-          {data.correctImplication === "valid" &&
+          {data.edgesStatus === "valid" &&
             <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check passed. Check again?
             </Button>}
-          {data.correctImplication === "invalid" &&
+          {data.edgesStatus === "invalid" &&
             <Button colorScheme='red' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check failed. Check again?
             </Button>}
@@ -42,7 +42,7 @@ export default function GoalNode({ id, data }: NodeProps<StatementNodeData>) {
           title="Goals"
           statements={data.givens}
           callbacks={data.thisNode.givens}
-          afterStatementEdit={data.thisNode.checkSyntax}
+          afterStatementEdit={data.thisNode.parseAll}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           <DeleteNodePopover deleteNode={data.thisNode.delete} />

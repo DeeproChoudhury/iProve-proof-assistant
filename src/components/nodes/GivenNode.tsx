@@ -23,7 +23,7 @@ export default function GivenNode({ id, data }: NodeProps<StatementNodeData>) {
           title="Givens"
           statements={data.goals}
           callbacks={data.thisNode.goals}
-          afterStatementEdit={data.thisNode.checkSyntax}
+          afterStatementEdit={data.thisNode.parseAll}
         />
 
         {/* BEGIN : Delete Node Popover */}

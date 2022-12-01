@@ -1,35 +1,50 @@
 import { MutableRefObject } from "react";
 import { Node } from "reactflow";
-import { InductionNodeCallbacks } from "../callbacks/inductionNodeCallbacks";
-import { NodeCallbacks } from "../callbacks/nodeCallbacks";
-import { Variable } from "./AST";
+import { StatementListCallbacks } from "../callbacks/statementListCallbacks";
 import { CheckStatus } from "./Reason";
 import { StatementType } from "./Statement";
 
-export type NodeType = "proofNode" | "givenNode" | "goalNode" | "inductionNode";
+export type NodeKind = "proofNode" | "givenNode" | "goalNode" | "inductionNode";
 
-export type StatementNodeData = {
+type SharedNodeData = {
   label: string;
+  edgesStatus: CheckStatus;
   declarationsRef: MutableRefObject<StatementType[]>;
-  correctImplication?: CheckStatus;
+}
+
+type SharedNodeCallbacks = {
+  delete: () => void;
+  parseAll: () => void;
+  checkInternal: () => void;
+  checkEdges: () => void;
+}
+
+export type StatementNodeData = SharedNodeData & {
   givens: StatementType[];
   proofSteps: StatementType[];
   goals: StatementType[];
-  parsed?: boolean;
-  thisNode: NodeCallbacks;
+  thisNode: SharedNodeCallbacks & {
+    givens: StatementListCallbacks;
+    proofSteps: StatementListCallbacks;
+    goals: StatementListCallbacks;
+    setWrappers: () => void;
+    autoAddReasons: () => void;
+  };
 };
 
-export type InductionNodeData = {
-  label: string;
-  declarationsRef: MutableRefObject<StatementType[]>;
-  correctImplication?: CheckStatus;
+export type InductionNodeData = SharedNodeData & {
+  internalsStatus: CheckStatus;
   typeDeclarationsRef: MutableRefObject<StatementType[]>;
   types: StatementType[];
-  thisNode: InductionNodeCallbacks;
-
+  motive: StatementType[];
   inductiveCases: StatementType[];
   baseCases: StatementType[];
-  motive: StatementType[];
+  thisNode: SharedNodeCallbacks & {
+    types: StatementListCallbacks;
+    motive: StatementListCallbacks;
+    baseCases: StatementListCallbacks;
+    inductiveCases: StatementListCallbacks;
+  }
 }; 
 
 export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "inductiveCases" | "baseCases" | "motive") : never
@@ -41,3 +56,10 @@ export type GivenNodeType = Node<StatementNodeData> & { type: "givenNode" };
 export type GoalNodeType = Node<StatementNodeData> & { type: "goalNode" };
 export type StatementNodeType = ProofNodeType | GivenNodeType | GoalNodeType;
 export type InductionNodeType = Node<InductionNodeData> & { type: "inductionNode" };
+export type AnyNodeType = StatementNodeType | InductionNodeType;
+
+export type ProofNodeProps = { type: "proofNode", data: StatementNodeData };
+export type GivenNodeProps = { type: "givenNode", data: StatementNodeData };
+export type GoalNodeProps = { type: "goalNode", data: StatementNodeData };
+export type InductionNodeProps = { type: "inductionNode", data: InductionNodeData };
+export type AnyNodeProps = ProofNodeProps | GivenNodeProps | GoalNodeProps | InductionNodeProps;
