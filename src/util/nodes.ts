@@ -2,6 +2,7 @@ import { SetStateAction } from "react";
 import { Node } from "reactflow";
 import { alt, apply, buildLexer, expectEOF, expectSingleResult, kmid, kright, Lexer, list_sc, nil, opt, Parser, rep_sc, rule, seq, str, tok, Token } from "typescript-parsec";
 import { IProveError } from "../components/Flow";
+import { ProofOutcome } from "../logic/LogicInterface";
 import { ListField, StatementNodeType, InductionNodeType, StatementNodeData } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
@@ -225,4 +226,13 @@ export function parse_z3_error(e: string): IProveError | undefined {
   let A = Z3_ERRORS.parse(error_lexer.parse(e));
   if (!A.successful) return;
   return expectSingleResult(A)[0];
+}
+
+export function parse_error(O: ProofOutcome): IProveError | undefined {
+  if (O.kind != "Error") return;
+  if (O.emitter == "IProve") return mk_error({
+    kind: "Semantic",
+    msg: O.msg
+  })
+  return parse_z3_error(O.msg)
 }

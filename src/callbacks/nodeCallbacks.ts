@@ -4,7 +4,7 @@ import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
 import Z3Solver from "../logic/Solver";
 import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { invalidateReasonForNode, mk_error, parse_z3_error, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { invalidateReasonForNode, mk_error, parse_error, parse_z3_error, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
@@ -141,7 +141,7 @@ export const makeNodeCallbacks = (
       for (let G of unwrap_statements(goals)) {
         const verdict: ProofOutcome = await LI.entails(c_givens, G)
         if (verdict.kind == "Valid") { c_givens.push(G); continue; }
-        else if (verdict.kind == "Error") setError(parse_z3_error(verdict.msg))
+        else if (verdict.kind == "Error") setError(parse_error(verdict))
         else { setStopGlobalCheck(true); setError(mk_error({
             kind: "Proof"
           }))
@@ -178,8 +178,6 @@ export const makeNodeCallbacks = (
       }
       
       // check that exp_implications follows from givens with z3
-      console.log(declarationsRef.current);
-
       {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
       let success: boolean = false;
 
@@ -192,11 +190,13 @@ export const makeNodeCallbacks = (
         success = (verdict.kind == "Valid")
         
         if (verdict.kind == "Error") {
-          console.log("WAAAAAH", verdict.msg, parse_z3_error(verdict.msg))
-          setError(parse_z3_error(verdict.msg))
+          setError(parse_error(verdict))
         }
-        else if (verdict.kind != "Valid")
-          setError(mk_error({ kind: "Proof" }))
+        else if (verdict.kind != "Valid") {
+          setError({ kind: "Proof" })
+        }
+      } else {
+        setError({ kind: "Semantic", msg: "Malformed givens (they may not be declarations or definitions!)" })
       }
       
       {/* END LOGIC INTERFACE CRITICAL REGION */}

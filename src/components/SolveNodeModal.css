@@ -2,3 +2,9 @@
   background-color: rgb(56, 119, 156);
   color: white;
 }
+.errorMessage {
+  color: rgb(254, 83, 61);
+  font-family: monospace;
+  font-size: 1.3em;
+  padding-top: 10px;
+}
