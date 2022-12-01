@@ -61,6 +61,22 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 		<div>
 			<Box className={componentStyle} key={`induction-node-${id}`} id={`induction-node-${id}`}>
 				{targetHandle}
+
+				<div style={{ display: 'flex', justifyContent: 'center' }}>
+					{nodeData.correctImplication === undefined &&
+						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+							Check incoming implications
+						</Button>}
+					{nodeData.correctImplication === "valid" &&
+						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+							Check passed. Check again?
+						</Button>}
+					{nodeData.correctImplication === "invalid" &&
+						<Button colorScheme='red' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+							Check failed. Check again?
+						</Button>}
+				</div>
+
 				{/* BEGIN : Type */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
 					<Text>Type</Text>
