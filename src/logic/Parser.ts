@@ -628,9 +628,9 @@ TYPE_CONSTRUCTOR.setPattern(apply(
         rep_sc(TYPE)
     ),
     (value: [AST.Variable, AST.Type[]]): AST.TypeConstructor =>
-        // TODO: SELECTORS
-        ({ kind: "TypeConstructor", ident: value[0].ident, params: value[1],
-            selectors: Array(value[1].length).map(getSelector) })
+        { let sels = []; for (let i = 0; i < value[1].length; i++) { sels.push(getSelector(i)); }
+        return { kind: "TypeConstructor", ident: value[0].ident, params: value[1],
+            selectors: sels }}
 ))
 
 const TYPE_DEF = rule<TokenKind, AST.TypeDef>();

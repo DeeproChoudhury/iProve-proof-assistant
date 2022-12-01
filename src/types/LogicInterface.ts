@@ -1,9 +1,11 @@
 import * as AST from "./AST"
 
-export type PatternData = {
-    conditions: string[],
-    bindings: string[]
+
+export type PatternElem = {
+    kind: "Condition" | "Binding",
+    value: string
 }
+export type PatternData = PatternElem[]
 
 export type FunctionData = {
     decl: AST.FunctionDeclaration | undefined,

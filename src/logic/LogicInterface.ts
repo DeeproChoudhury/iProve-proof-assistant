@@ -1,7 +1,7 @@
 import { defineStyle } from "@chakra-ui/react";
 import * as AST from "../types/AST";
-import { FunctionData, PatternData } from "../types/LogicInterface";
-import { getSelector, isTerm } from "../util/trees";
+import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
+import { conjunct, getSelector, isTerm } from "../util/trees";
 import Z3Solver from "./Solver";
 import { fnSMT } from "./util";
 
@@ -171,7 +171,7 @@ export class LogicInterface {
         let params: string[] = [];
         for (let i = 1; i <= n; i++) {
             params.push(`PT${i}`)
-            elems.push(`(${getSelector(i)} PT${i})`)
+            elems.push(`(${getSelector(i - 1)} PT${i})`)
         }
 
         this.rendered_tuples.set(n,
@@ -181,7 +181,8 @@ export class LogicInterface {
         return true;
     }
 
-    renderFunctionDeclaration(ident: string): [string, string | undefined] | undefined {
+    renderFunctionDeclaration(ident: string, consts: string[]): [string, string | undefined][] | undefined {
+        SID.n = 0
         let A = this.global_fn_defs.get(ident);
         let defs: AST.FunctionDefinition[] 
             = (A ?? []).concat(this.local_fn_defs.get(ident) ?? []);
@@ -191,7 +192,7 @@ export class LogicInterface {
             this.error(`Function ${ident} must be declared before it is defined`)
             return;
         } 
-        if (!defs.length) return [`${decl.symbol} ${renderNode(decl.type)}`, undefined];
+        if (!defs.length) return [[`${decl.symbol} ${renderNode(decl.type)}`, undefined]];
 
         let params: string[] = []
         let nparams = decl.type.argTypes.length;
@@ -206,59 +207,82 @@ export class LogicInterface {
             }
 
             let idx: number = 0;
-            for (let p of a.params) {
-                pdatas.push([
-                    renderPattern(p, `IProveParameter${idx}`),
-                    (a.def as AST.Term)
-                ]);
-                idx++;
+            let concu: PatternData = [];
+            for (let [i,p] of a.params.entries()) {
+                concu = concu.concat(renderPattern(p, `IProveParameter${SID.n++}`))
+                pdatas.push([concu, (a.def as AST.Term)]);
             }
         }
 
         let sections: string[] = [];
-        for (let [p, d] of pdatas) {
-            let cond = (p.conditions.length)
-                ? p.conditions[0]
-                : "true";
-            let bindings: string = (p.bindings.length)
-                ? `(let (${p.bindings.join(" ")}) ${renderNode(d)})`
-                : renderNode(d);
-            sections.push(`(if ${cond} ${bindings}`)
+        console.log("PDATAS", pdatas)
+        for (let [i, [p, d]] of pdatas.entries()) {
+            let sec: string = renderNode(d);
+            const alt: string = `(${ident}__${i + 1} ${params.join(" ")})`
+            for (let D of p.reverse()) {
+                console.log("HERE D", D)
+                if (D.kind == "Condition")
+                    sec = `(if ${D.value} ${sec} ${alt})`
+                else
+                    sec = `(let (${D.value}) ${sec})`
+            }
+
+            sections.push(sec)
         }
-        sections.push("0");
-        let defn: string = sections.join(" ");
-        for (let i = 0; i < sections.length - 1; i++)
-            defn += ")";
+
+        consts.push(`IProveConstant${consts.length} ${renderNode(decl.type.retType)}`)
+        sections.push(`IProveConstant${consts.length - 1}`);
 
         let rendered_params: string[] = [];
         for (let i = 0; i < nparams; i++)
             rendered_params.push(`(${params[i]} ${renderNode(decl.type.argTypes[0])})`)
         
         let type = `(${rendered_params.join(" ")}) ${renderNode(decl.type.retType)}`
-        return [`${ident} ${type}`, `${defn}`]
+
+
+        let R: [string, string][] = []
+        for (let [i, s] of sections.entries()) {
+            console.log("A SECTION", i, s)
+            R.push([
+                `${ident}${(i > 0) ? `__${i}` : ""} ${type}`,
+                s
+            ])
+        }
+        return R
     }
 
     toString(): string {
         let res = "";
+        let types = "";
 
         // TYPES
         for (let v of this.rendered_types)
-            res += `${v}\n`
+            types += `${v}\n`
 
         // FUNCTIONS
-        let decls = []
-        let defns = []
+        let decls: string[] = []
+        let defns: string[] = []
+        let consts: string[] = []
         for (let [k, _] of this.function_declarations) {
-            let rendered = this.renderFunctionDeclaration(k);
+            let rendered = this.renderFunctionDeclaration(k, consts);
             if (this.error_state || !rendered)
                 return `ERROR: ${this.error_state}`
-            if (!rendered[1])
-                res += `(declare-fun ${rendered[0]})\n`
-            else {
-                decls.push(rendered[0]); defns.push(rendered[1]);
+            for (let rr of rendered) {
+                if (!rr[1])
+                    res += `(declare-fun ${rr[0]})\n`
+                else {
+                    decls.push(rr[0]); defns.push(rr[1]);
+                }
             }
         }
-        res += `(define-funs-rec \n(${decls.map(x => `(${x})`).join(" ")})\n(${defns.join(" ")}))\n`
+
+        res += consts.map(x => `(declare-const ${x})`)
+        let tDecl = decls.map(x => `(${x})`).join(" ")
+        let tDefn = defns.map(x => `${x}`).join(" ")
+        console.log("BIG WAN")
+        console.log(tDecl)
+        console.log(tDefn)
+        res += `\n\n(define-funs-rec\n    (${tDecl}) \n    (${tDefn})\n)\n\n`
 
         console.log(res)
 
@@ -269,8 +293,9 @@ export class LogicInterface {
                 case "FunctionDeclaration":
                     break;
                 case "VariableDeclaration":
-                case "TypeDef":
                     res += `${renderNode(v)}\n`; break;
+                case "TypeDef":
+                    types += `${renderNode(v)}\n`; break;
 
                 default:
                     res += `(assert ${renderNode(v)})`
@@ -296,27 +321,49 @@ export class LogicInterface {
         for (let [_,v] of this.rendered_tuples)
             res = `${v}\n` + res
 
-        return res;
+        return types + res;
     }
 }
 
+let SID: {n : number} = { n : 0 }
+const mk_bind = (s: string): PatternElem => ({ kind: "Binding", value: s })
+const mk_cond = (s: string): PatternElem => ({ kind: "Condition", value: s })
 function renderPattern(a: AST.Pattern, name: string): PatternData {
     switch(a.kind) {
         case "SimpleParam":
-            return { conditions: [], bindings: [`(${a.ident} ${name})`] }
+            return [mk_bind(`(${a.ident} ${name})`)]
         case "ConsParam":
-            return {
-                conditions: [`(not ((_ is nil) ${name}))`],
-                bindings: [
-                    `(${a.A} (head ${name}))`,
-                    `(${a.B} (tail ${name}))`]
-            }
+            return [
+                mk_cond(`(not (is-nil ${name}))`),
+                mk_bind(`(${a.A} (head ${name}))`),
+                mk_bind(`(${a.B} (tail ${name}))`)
+            ]
         case "EmptyList":
-            return { conditions: [`((_ is nil) ${name})`], bindings: [] }
-        case "ConstructedType":
-            return { conditions: [], bindings: [] }
-        case "TuplePattern":
-            return { conditions: [], bindings: [] }
+            return [mk_cond(`(is-nil ${name})`)] 
+        case "ConstructedType": {
+            let R: PatternData = []
+            R.push(mk_cond(`(is-${a.c} ${name})`))
+
+            for (let [i,v] of a.params.entries()) {
+                let npid = `IProveParameter${SID.n++}`;
+                let NPD = renderPattern(v, npid)
+                R.push(mk_bind(`(${npid} (${getSelector(i)} ${name}))`))
+                R = R.concat(NPD)
+            }
+            return R
+        }
+        case "TuplePattern": {
+            let R: PatternData = []
+            R.push(mk_cond(`(is-mk-tuple ${name})`))
+
+            for (let [i,v] of a.params.entries()) {
+                let npid = `IProveParameter${SID.n++}`;
+                let NPD = renderPattern(v, npid)
+                R.push(mk_bind(`(${npid} (${getSelector(i)} ${name}))`))
+                R = R.concat(NPD)
+            }
+            return R
+        }
     }
 }
 

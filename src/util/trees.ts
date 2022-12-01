@@ -186,8 +186,8 @@ export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
  
  export function getSelector(n: number): string {
     switch (n) {
-        case 1: return "fst";
-        case 2: return "snd";
+        case 0: return "fst";
+        case 1: return "snd";
         default: return `elem${n}`;
     }
 }

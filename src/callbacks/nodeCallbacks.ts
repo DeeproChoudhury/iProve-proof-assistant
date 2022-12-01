@@ -181,7 +181,7 @@ export const makeNodeCallbacks = (
 
       // TODO: WIRE UP TYPES BOX?
       LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
-
+      console.log("EXPIMPLS", expImplications)
       let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
       if (goal) { 
         const verdict = await LI.entails(unwrap_statements(givens), goal)
