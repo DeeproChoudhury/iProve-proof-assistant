@@ -2,10 +2,9 @@ import { useState } from "react";
 import Moveable from "react-moveable";
 
 /**
- * Handles for resizing nodes
+ * Component for resizing Nodes in the horizontal direction
  * 
- * @param target the target node
- * @param frame 
+ * @param target the target node to be resized
  *  */
 export function MoveableHandles(props : {target: any}) {
     
