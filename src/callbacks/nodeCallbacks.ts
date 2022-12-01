@@ -4,13 +4,14 @@ import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
 import Z3Solver from "../logic/Solver";
 import { InductionNodeType, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
-import { invalidateReasonForNode, mk_error, parse_error, parse_z3_error, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
+import { invalidateReasonForNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
 import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
 import { Line, Term } from "../types/AST";
-import { IProveError } from "../components/Flow";
+import { IProveError } from "../types/ErrorLocation";
+import { parse_error } from "../util/errors";
 
 
 
@@ -142,9 +143,9 @@ export const makeNodeCallbacks = (
         const verdict: ProofOutcome = await LI.entails(c_givens, G)
         if (verdict.kind == "Valid") { c_givens.push(G); continue; }
         else if (verdict.kind == "Error") setError(parse_error(verdict))
-        else { setStopGlobalCheck(true); setError(mk_error({
+        else { setStopGlobalCheck(true); setError({
             kind: "Proof"
-          }))
+          })
         }
       }
 

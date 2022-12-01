@@ -4,7 +4,6 @@ import { rec_on } from "../logic/induction";
 import { unifies } from "../logic/unifier";
 import Z3Solver from "../logic/Solver";
 import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
-import { ErrorLocation } from "../types/ErrorLocation";
 import { InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { setNodeWithId, setStatementsForNode } from "../util/nodes";
@@ -12,7 +11,7 @@ import { Setter } from "../util/setters";
 import { updateWithParsed } from "../util/statements";
 import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
-import { IProveError } from "../components/Flow";
+import { IProveError } from "../types/ErrorLocation";
 
 
 export const makeInductionNodeCallbacks = (

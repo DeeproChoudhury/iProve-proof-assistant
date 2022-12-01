@@ -2,8 +2,8 @@ import { Line, Term } from "../types/AST";
 import evaluate from "../logic/Parser";
 import { StatementType } from "../types/Statement";
 import { Setter } from "./setters";
-import { IProveError } from "../components/Flow";
-import { mk_error } from "./nodes";
+import { IProveError } from "../types/ErrorLocation";
+import { mk_error } from "./errors";
 
 export const updateWithParsed = (setError: Setter<IProveError | undefined>) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);

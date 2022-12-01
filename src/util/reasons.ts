@@ -1,13 +1,12 @@
-import Z3Solver from "../logic/Solver";
 import { StatementNodeData } from "../types/Node";
 import { CheckStatus, Z3Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
-import { absoluteIndexToLocal, mk_error, parse_error, parse_z3_error } from "./nodes";
+import { absoluteIndexToLocal } from "./nodes";
 import { Setter } from "./setters";
 import { unwrap_statements } from "./statements";
 import { LI, LogicInterface } from "../logic/LogicInterface";
-import { Line, Term } from "../types/AST";
-import { IProveError } from "../components/Flow";
+import { IProveError } from  "../types/ErrorLocation";
+import { mk_error, parse_error } from "./errors";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
@@ -18,10 +17,10 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
     return data[listField][relIndex];
   });
   if (depStatements.some(s => !s.parsed)) {
-    setCheckFailed(mk_error({
+    setCheckFailed({
       kind: "Semantic",
       msg: "Some givens have not been parsed! Exit the modal and try again"
-    }));
+    });
     updateReasonStatus("invalid");
     return;
   }
@@ -50,16 +49,16 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
             updateReasonStatus("invalid");
             break;
           case "False":
-            setCheckFailed(mk_error({ kind: "Proof" }));
+            setCheckFailed({ kind: "Proof" });
             updateReasonStatus("invalid");
         }
       }
     );
   } else {
-    setCheckFailed(mk_error({
+    setCheckFailed({
       kind: "Semantic",
       msg: "Your objective has not been parsed! Exit the modal and try again"
-    }));
+    });
     updateReasonStatus("invalid");
   }
   

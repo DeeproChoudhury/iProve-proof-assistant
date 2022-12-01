@@ -5,9 +5,10 @@ import {
 import { useState } from 'react';
 import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
-import { absoluteIndexToLocal, mk_error, renderError } from '../util/nodes';
+import { renderError } from '../util/errors';
+import { absoluteIndexToLocal } from '../util/nodes';
 import { checkReason, z3Reason } from '../util/reasons';
-import { IProveError } from './Flow';
+import { IProveError } from "../types/ErrorLocation";
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
 
@@ -23,7 +24,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   const { isOpen, onClose, node } = props;
   const [tags, setTags] = useState<Tag[]>(Array(node.givens.length + node.proofSteps.length + node.goals.length).fill('0'));
   const relevantTags = tags.slice(0, node.givens.length + node.proofSteps.length + node.goals.length);
-  const [checkError, setCheckFailed] = useState<IProveError | undefined>(mk_error({}));
+  const [checkError, setCheckFailed] = useState<IProveError | undefined>(undefined);
 
   const onChange = (v: string, index: number) => {
     setTags(tags => tags.map((t, i) => {

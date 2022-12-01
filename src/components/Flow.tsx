@@ -10,7 +10,7 @@ import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../logic/Solver';
-import { ErrorLocation } from '../types/ErrorLocation';
+import { ErrorLocation, IProveError } from '../types/ErrorLocation';
 import { InductionNodeType, NodeType, StatementNodeType } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
@@ -43,7 +43,7 @@ import {
   Td,
   TableContainer,
 } from '@chakra-ui/react'
-import { renderError } from '../util/nodes';
+import { renderError } from '../util/errors';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -52,17 +52,6 @@ const nodeTypes = {
   inductionNode: InductionNode
 };
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge };
-
-export type IProveError = {
-  kind: "Syntax" | "Semantic" | "Proof" | undefined,
-  msg?: string,
-  subtype?: string,
-  pos?: ErrorLocation
-}
-
-export type IProveSuccess = {
-  msg?: string
-}
 
 function Flow() {
   const [proofValid, setProofValid] = useState(false);
@@ -74,7 +63,6 @@ function Flow() {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
   const [error, setError] = useState<IProveError | undefined>(undefined);
-  const [success, setSuccess] = useState<IProveSuccess| undefined>(undefined);
   const [stopGlobalCheck, setStopGlobalCheck] = useState<boolean | undefined>(undefined);
   const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
@@ -295,25 +283,10 @@ function Flow() {
           />
         </Alert>}
       </div>
+      {/* END : Export alert */}
 
 
-      {/* START : Incorrect proof alert */}
-      <div className="alert-container">
-        {stopGlobalCheck === true && <Alert status='error' className="alert">
-          <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
-          <AlertDescription>
-            Proof is not valid.
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setStopGlobalCheck(undefined) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
+      {/* START : Proof valid alert */} 
       <div className="alert-container">
         {stopGlobalCheck === false && <Alert status='success' className="alert">
           <AlertIcon />
@@ -330,8 +303,9 @@ function Flow() {
           />
         </Alert>}
       </div>
-      {/* END : Incorrect Proof */}
+      {/* END : Proof valid alert */} 
 
+      {/* START : Error alert */} 
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
           <AlertIcon />
@@ -348,42 +322,7 @@ function Flow() {
           />
         </Alert>}
       </div>
-
-      <div className="alert-container">
-        {success && <Alert status='success' className="alert">
-          <AlertIcon />
-          <AlertTitle>Success!</AlertTitle>
-          <AlertDescription>
-            { success.msg ?? "" }
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setSuccess(undefined) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-
-      <div className="alert-container">
-        {error === null &&
-          <Alert status='success' className="alert">
-            <AlertIcon />
-            <AlertTitle>Success!</AlertTitle>
-            <AlertDescription>
-              Parsing for current node was successful!
-            </AlertDescription>
-            <IconButton
-              variant='outline'
-              aria-label='Add given'
-              size='xs'
-              onClick={() => { setError(undefined) }}
-              icon={<CloseIcon />}
-            />
-          </Alert>}
-      </div>
-      {/* END : Export alert */}
+      {/* END : Error alert */}
 
       {/* START : Header Buttons */}
       <div>

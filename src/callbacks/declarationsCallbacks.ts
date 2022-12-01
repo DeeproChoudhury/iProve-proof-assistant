@@ -1,5 +1,4 @@
-import { IProveError } from "../components/Flow";
-import { ErrorLocation } from "../types/ErrorLocation";
+import { IProveError } from"../types/ErrorLocation";
 import { StatementType } from "../types/Statement";
 import { Setter } from "../util/setters";
 import { updateWithParsed } from "../util/statements";
