@@ -240,10 +240,6 @@ export class LogicInterface {
     toString(): string {
         let res = "";
 
-        // TUPLES
-        for (let v of this.rendered_tuples)
-            res += `${v}\n`
-
         // TYPES
         for (let v of this.rendered_types)
             res += `${v}\n`
@@ -294,6 +290,10 @@ export class LogicInterface {
         // GOAL
         res += `(assert (not ${renderNode(this.goal)}))\n`
 
+        // TUPLES
+        for (let v of this.rendered_tuples)
+            res = `${v}\n` + res
+
         return res;
     }
 }
@@ -304,13 +304,13 @@ function renderPattern(a: AST.Pattern, name: string): PatternData {
             return { conditions: [], bindings: [`(${a.ident} ${name})`] }
         case "ConsParam":
             return {
-                conditions: [`(> (seq.len ${name}) 0)`],
+                conditions: [`(not ((_ is nil) ${name}))`],
                 bindings: [
-                    `(${a.A} (seq.nth ${name} 0))`,
-                    `(${a.B} (seq.extract ${name} 1 (- (seq.len ${name}) 1)))`]
+                    `(${a.A} (head ${name}))`,
+                    `(${a.B} (tail ${name}))`]
             }
         case "EmptyList":
-            return { conditions: [`(= (seq.len ${name}) 0)`], bindings: [] }
+            return { conditions: [`((_ is nil) ${name})`], bindings: [] }
         case "ConstructedType":
             return { conditions: [], bindings: [] }
         case "TuplePattern":
@@ -328,10 +328,20 @@ function renderNode(a: AST.ASTNode | undefined): string {
         case "FunctionDeclaration": return "";
         case "VariableDeclaration": return `(declare-const ${renderNode(a.symbol)} ${a.type ? `${renderNode(a.type)}` : "Int"})`;
         case "Variable": return a.ident;
-        case "FunctionApplication":
-            return (a.params.length)
-                ? `(${fnSMT(a.fn)} ${a.params.map(renderNode).join(" ")})`
-                : fnSMT(a.fn)
+        case "FunctionApplication": {
+            switch (a.fn) {
+                case "List":
+                case "Array":
+                    return renderNode({
+                        kind: "ArrayLiteral",
+                        elems: a.params
+                    })
+                default:
+                    return (a.params.length)
+                    ? `(${fnSMT(a.fn)} ${a.params.map(renderNode).join(" ")})`
+                    : fnSMT(a.fn)
+            }
+        }
         case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(renderNode).join(" ")}) ${renderNode(a.term)})`;
         case "EquationTerm": return `${renderNode(a.lhs)} ::= ${renderNode(a.rhs)}`;
         case "ParenTerm": return renderNode(a.term);
@@ -352,7 +362,7 @@ function renderNode(a: AST.ASTNode | undefined): string {
         case "ParamType":
             return `(${a.ident} ${a.params.map(renderNode).join(" ")})`
         case "ListType":
-            return `(Seq ${renderNode(a.param)})`
+            return `(List ${renderNode(a.param)})`
         case "TupleType": {
             let N = a.params.length;
             LI.createTuple(N);
@@ -360,9 +370,10 @@ function renderNode(a: AST.ASTNode | undefined): string {
         }
         
         case "ArrayLiteral": {
-            let units = a.elems.map((e) => 
-                (`(seq.unit ${renderNode(e)})`));
-            return `(seq.++ ${units.join(" ")})`
+            let R = "nil";
+            for (let e of a.elems)
+                R = `(insert ${renderNode(e)} ${R})`
+            return R
         }
 
         case "BeginScope":
