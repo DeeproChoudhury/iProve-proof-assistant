@@ -47,58 +47,42 @@ return {
 }
 }
 
-type ErrorToken = "(" | ")" | '"' | "Number" | "Word" | "Other" | "Space";
+type ErrorToken = ":" | '"' | "Word" | "Other" | "Space";
 const error_lexer: Lexer<ErrorToken> = buildLexer([
-[true, /^\)/g, ")"],
-[true, /^\(/g, "("],
+[true, /^\:/g, ":"],
 [true, /^\"/g, "\""],
-[true, /^\d+/g, "Number"],
-[true, /^\w+/g, "Word"],
+[true, /^[^\"\s\:]+/g, "Word"],
 [true, /^\S/g, "Other"],
 
 [false, /^(\s|\n)+/g, "Space"]
 ]);
 
 const STRING = rule<ErrorToken, string>()
-const Z3_ERRORS = rule<ErrorToken, (undefined | IProveError)[]>()
-STRING.setPattern(apply(rep_sc(alt(tok("Word"), tok("Number"))),
-    (v: Token<"Word" | "Number">[]): string =>
-    v.map((x) => x.text).join(" ")))
+const Z3_ERRORS = rule<ErrorToken, IProveError>()
+STRING.setPattern(apply(rep_sc(tok("Word")),
+    (v: Token<"Word">[]): string =>
+    { return v.map((x) => x.text).join(" "); }
+    ))
 
-Z3_ERRORS.setPattern(rep_sc(
+Z3_ERRORS.setPattern(
 apply(
     kmid(
-    tok("("), 
-    kright(
-        str("error"), 
-        kmid(
-        tok("\""),
-        seq(
-            opt(
-            seq(
-                kright(str("line"), tok("Number")),
-                kmid(str("column"), tok("Number"), str(":"))
-            )
-            ),
-            STRING
-        ),
-        tok("\"")
-        )
+        tok("Word"),
+        kmid(tok("\""), kright(opt(seq(STRING, tok(":"))), STRING), tok("\"")),
+        str(")")
     ),
-    tok(")")
-    ),
-    (v: [[Token<"Number">, Token<"Number">] | undefined, string])
+    (v: string)
     : IProveError => (mk_error({
         kind: "Semantic",
-        msg: v[1],
+        msg: v,
     }))
 )
-))
+)
 
 export function parse_z3_error(e: string): IProveError | undefined {
-let A = Z3_ERRORS.parse(error_lexer.parse(e));
-if (!A.successful) return;
-return expectSingleResult(A)[0];
+    let A = Z3_ERRORS.parse(error_lexer.parse(e));
+    if (!A.successful) return;
+    return expectSingleResult(A);
 }
 
 export function parse_error(O: ProofOutcome): IProveError | undefined {

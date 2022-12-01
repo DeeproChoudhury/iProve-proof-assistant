@@ -2,7 +2,6 @@ import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
 import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
 import Z3Solver from "../logic/Solver";
-import { ErrorLocation } from "../types/ErrorLocation";
 import { AnyNodeType, InductionNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { getInputs, getOutputs, invalidateReasonForNode, isStatementNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
