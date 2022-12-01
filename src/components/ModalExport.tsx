@@ -45,7 +45,7 @@ const ModalExport = (props: { data : string}) => {
         {/* END : Copy to Clipboard Button */}
 
 		{/* START : Download Proof Button */}
-		<Button colorScheme="blackAlpha" onClick={() => {DownloadProof()}} style={{margin: '5px 0'}}>
+		<Button colorScheme="blackAlpha" onClick={() => {DownloadProof()}} style={{marginLeft: '10px'}}>
 			Download Proof
 		</Button>
 		{/* END : Download Proof Button */}		
