@@ -140,7 +140,11 @@ export const makeNodeCallbacks = (
     },
     autoAddReasons: () => {
       const autoAddReason = (statement: StatementType, index: number): StatementType => {
-        if (statement.parsed && !isTerm(statement.parsed)) return statement;
+        if (
+            (statement.parsed && !isTerm(statement.parsed))
+            || statement.reason?.status === "valid"
+            || statement.reason?.status === "checking"
+          ) return statement;
         return { ...statement, reason: z3Reason([...new Array(index).keys()]) }
       };
       setNode(node => {

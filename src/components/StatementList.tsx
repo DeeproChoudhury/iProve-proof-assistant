@@ -7,7 +7,12 @@ import Statement from "./Statement";
 export type StatementListPropsType = {
   title: string;
   statements: StatementType[];
-  callbacks: Pick<StatementListCallbacks, "add" | "update" | "remove">;
+  callbacks: {
+    add: StatementListCallbacks["add"];
+    update: StatementListCallbacks["update"];
+    remove: StatementListCallbacks["remove"];
+    removeReason?: StatementListCallbacks["removeReason"];
+  };
   isCollapsed?: boolean;
   isScrollable?: boolean
   indexToDisplayedIndex?: (index: number) => number;
@@ -22,6 +27,7 @@ export default function StatementList({ title, statements, callbacks, isCollapse
     onChange: (e: any) => callbacks.update(index, e.target.value),
     addAbove: () => callbacks.add(index),
     addBelow: () => callbacks.add(index + 1),
+    removeReason: () => callbacks.removeReason?.(index),
     deleteStatement: () => callbacks.remove(index),
     afterEdit: () => afterStatementEdit(index),
   });
