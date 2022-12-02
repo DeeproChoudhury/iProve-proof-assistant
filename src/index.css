@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;500&family=Long+Cang&family=Montserrat:wght@300;400;500&family=Taviraj:wght@200;300&display=swap');
+@font-face {
+    font-family: "Redaction";
+    src: url("./fonts/Redaction_20-Regular.woff2") format("woff2");
+    font-weight: normal;
+    font-style: normal;
+}
+  
+@font-face {
+    font-family: "Redaction";
+    src: url("./fonts/Redaction_20-Bold.woff2") format("woff2");
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: "Redaction";
+    src: url("./fonts/Redaction_20-Italic.woff2") format("woff2");
+    font-weight: normal;
+    font-style: italic;
+}
+
+body {
+    margin: 0;
+    overflow-x: hidden;
+    font-family: "Taviraj";
+    font-weight: 300;
+    color: #333
+}

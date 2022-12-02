@@ -1,9 +1,11 @@
 .proof-node {
-  border: 2px solid black;
+  background-color: white;
+  padding: 10px 15px 10px 15px;
+  border: 1px solid rgba(0,0,0,0.3);
   border-radius: 5px;
-  background: rgb(91, 188, 245);
-  padding: 5px;
   min-width: 350px;
+  -webkit-box-shadow: 1px 1px 3px 0px rgba(0,0,0,0.71); 
+  box-shadow: 1px 1px 3px 0px rgba(0,0,0,0.71);
 }
 
 .given-node {

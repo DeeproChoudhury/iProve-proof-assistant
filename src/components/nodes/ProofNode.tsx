@@ -1,5 +1,5 @@
 import {
-  Box, Button, Popover, PopoverArrow, PopoverCloseButton, PopoverContent,
+  Box, Button, Divider, Popover, PopoverArrow, PopoverCloseButton, PopoverContent,
   PopoverHeader, PopoverTrigger, useDisclosure
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
@@ -60,15 +60,15 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           node={data} />}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           {data.edgesStatus === "unchecked" &&
-            <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button colorScheme='whatsapp' variant="outline" size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check incoming implications
             </Button>}
           {data.edgesStatus === "valid" &&
-            <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button colorScheme='whatsapp' variant="outline" size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check passed. Check again?
             </Button>}
           {data.edgesStatus === "invalid" &&
-            <Button colorScheme='red' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button colorScheme='red' variant="outline" size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check failed. Check again?
             </Button>}
         </div>
@@ -81,6 +81,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           afterStatementEdit={(index) => afterStatementEdit("givens", index)}
         />
         {/* END: Givens */}
+        <Divider style={{padding: "7px 0 7px 0"}}/>
 
 
         {/* BEGIN: Proof */}
@@ -93,6 +94,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           afterStatementEdit={(index) => afterStatementEdit("proofSteps", index)}
         />
         {/* END: Proof */}
+        <Divider style={{padding: "7px 0 7px 0"}}/>
 
         {/* BEGIN: Goals */}
         <StatementList
@@ -107,8 +109,8 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
         {/* BEGIN: Node End Buttons */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
           <DeleteNodePopover deleteNode={data.thisNode.delete} />
-          {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
-          {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
+          {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='gray' onClick={() => setCollapsed(true)}>Hide</Button>}
+          {isCollapsed && <Button size='xs' colorScheme='gray' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {/* {checkSyntaxButton} */}
           {checkSolveReady ? checkSatButton : solveNotReadyPopover}
         </div>
