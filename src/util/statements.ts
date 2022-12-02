@@ -23,16 +23,13 @@ export const updateWithParsed = (setError: Setter<IProveError | undefined>) => (
   return statement;
 }
 
-export const unwrap_statements = (S: StatementType[]): Line[] => {
-  let R: Line[] = []
-  for (let s of S) { 
-    if (s.parsed) {
-      if (isTerm(s.parsed)) {
-        R.push(s.wrappers.map(toWrapperFunc).reduceRight((accTerm, wrapperFunc) => wrapperFunc(accTerm), s.parsed));
-      } else {
-        R.push(s.parsed);
-      }
-    } 
-  }
-  return R;
+export const statementToLine = (statement: StatementType): Line | undefined => {
+  if (!statement.parsed) return undefined;
+  else if (isTerm(statement.parsed)) 
+    return statement.wrappers.map(toWrapperFunc).reduceRight((accTerm, wrapperFunc) => wrapperFunc(accTerm), statement.parsed);
+  else return statement.parsed;
+}
+
+export const unwrap_statements = (statements: StatementType[]): Line[] => {
+  return statements.map(statementToLine).filter((line): line is Line => !!line);
 }
