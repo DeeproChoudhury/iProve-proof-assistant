@@ -2,7 +2,7 @@ import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
 import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
 import Z3Solver from "../logic/Solver";
-import { AnyNodeType, InductionNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
+import { AnyNodeType, InductionNodeType, ProofNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { getInputs, getOutputs, invalidateReasonForNode, isStatementNode, setNodeWithId, setStatementsForNode, shiftReasonsForNode } from "../util/nodes";
 import { Setter } from "../util/setters";
@@ -12,7 +12,7 @@ import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
 import { Line, Term, TypeDef } from "../types/AST";
 import { IProveError } from "../types/ErrorLocation";
 import { parse_error } from "../util/errors";
-import { z3Reason } from "../util/reasons";
+import { checkReason, z3Reason } from "../util/reasons";
 import { makeSharedNodeCallbacks } from "./sharedNodeCallbacks";
 
 export type NodeCallbacks = StatementNodeData["thisNode"];
@@ -118,41 +118,30 @@ export const makeNodeCallbacks = (
         }    
       });
     },
-    checkInternal: () => {}, // This doesn't need to do anything because internalsStatus can be easily recomputed when needed
+    checkInternal: async () => {
+        const node = nodesRef.current.find(n => n.id === nodeId);
+        if (!node || node.type !== "proofNode") return;
+        for (const listField of ["proofSteps", "goals"] as const) {
+          for (let i = 0; i < node.data[listField].length; i++) {
+            await checkReason(node.data, node.data[listField][i], status => node.data.thisNode[listField].updateReasonStatus(i, status), (_result) => {});
+          }
+        }
+    },
     autoAddReasons: async () => {
-      //TODO: implement this
-
-      // const autoAddReason = (statement: StatementType, index: number) => {
-      //   const newStatement = z3Reason([...new Array()]) 
-      // };
-      // setNode(node => {
-      //   return {
-      //     ...node,
-      //     givens: 
-      //   }    
-      // });
-      // const localZ3Solver = new Z3Solver.Z3Prover("");
-      // const node = nodesRef.current.find((n) => n.id === nodeId);
-      // if (!node || node.type !== "proofNode") { 
-      //   /* only need to check internal assertions for proof nodes */
-      //   return;
-      // }
-      // let reasons = node.data.givens;
-      // let goals = node.data.proofSteps.concat(node.data.goals);
-      //
-      // {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-      //
-      // // TODO: WIRE UP TYPES BOX?
-      // LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
-      //
-      // let c_givens: Line[] = unwrap_statements(reasons);
-      // for (let G of unwrap_statements(goals)) {
-      //   const verdict: ProofOutcome = await LI.entails(c_givens, G)
-      //   if (verdict.kind == "Valid") c_givens.push(G)
-      //   else setStopGlobalCheck(true);
-      // }
-      //
-      // {/* END LOGIC INTERFACE CRITICAL REGION */}
+      const autoAddReason = (statement: StatementType, index: number): StatementType => {
+        return { ...statement, reason: z3Reason([...new Array(index).keys()]) }
+      };
+      setNode(node => {
+        if (node.type !== "proofNode") return node;
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            proofSteps: node.data.proofSteps.map((s, i) => autoAddReason(s, i + node.data.givens.length)),
+            goals: node.data.goals.map((s, i) => autoAddReason(s, i + node.data.givens.length + node.data.proofSteps.length))
+          }
+        }    
+      });
     },
     checkEdges: async () => {
       // here we should get all incoming edges & nodes to nodeID
@@ -163,7 +152,7 @@ export const makeNodeCallbacks = (
       const currEdges = edgesRef.current;
       const currNodes = nodesRef.current;
       const node = currNodes.find((n) => n.id === nodeId);
-      if (!node || !isStatementNode(node)) return true;
+      if (!node || !isStatementNode(node)) return;
       
       const incomingEdges = currEdges.filter((e) => e.target === nodeId);
       // get all nodes that have incoming edge to nodeId
@@ -174,7 +163,7 @@ export const makeNodeCallbacks = (
       const expImplications = getInputs(node);
       
       if (declarationsRef.current.some(s => !s.parsed) || typeDeclarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
-        return false; // TODO: show error message here
+        return; // TODO: show error message here
       }
       
       // check that exp_implications follows from givens with z3
@@ -221,7 +210,6 @@ export const makeNodeCallbacks = (
           return edge;
         });
       });
-      return success;
     },
     setWrappers: () => {
       // sets the indentation level for each statement inside a node
@@ -264,9 +252,3 @@ export const makeNodeCallbacks = (
     }
   };
 };
-
-
-function setCheckFailed(arg0: boolean) {
-  throw new Error("Function not implemented.");
-}
-

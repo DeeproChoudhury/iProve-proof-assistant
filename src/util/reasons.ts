@@ -11,7 +11,7 @@ import { TypeDef } from "../types/AST";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
-export const checkReason = (data: StatementNodeData, statement: StatementType, updateReasonStatus: (status: CheckStatus) => void, setCheckFailed: Setter<IProveError | undefined>) => {
+export const checkReason = async (data: StatementNodeData, statement: StatementType, updateReasonStatus: (status: CheckStatus) => void, setCheckFailed: Setter<IProveError | undefined>) => {
   if (!statement.reason) return;
   const depStatements = statement.reason.dependencies.map(absIndex => {
     const [listField, relIndex] = absoluteIndexToLocal(data, absIndex);
@@ -63,7 +63,6 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
     });
     updateReasonStatus("invalid");
   }
-  data.thisNode.checkInternal();
   
   {/* END LOGIC INTERFACE CRITICAL REGION */}
 }

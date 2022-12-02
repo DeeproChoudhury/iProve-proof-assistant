@@ -16,8 +16,8 @@ type SharedNodeData = {
 type SharedNodeCallbacks = {
   delete: () => void;
   parseAll: () => void;
-  checkInternal: () => void;
-  checkEdges: () => void;
+  checkInternal: () => Promise<void>;
+  checkEdges: () => Promise<void>;
   invalidateEdges: () => void;
   invalidateOutgoingEdges: () => void;
 }

@@ -92,10 +92,11 @@ function Flow() {
     return count;
   }, [count]);
 
-  const checkProofValid = (ns: Node[], es: Edge[]): void => {
+  const checkProofValid = (ns: Node[], es: Edge[]): boolean => {
     const givens = ns.filter(node => node.type === "givenNode");
     const goals = ns.filter(node => node.type === "goalNode");
-    setProofValid(checkValid(ns, goals, givens, es, []));
+    const valid = checkValid(ns, goals, givens, es, []);
+    return valid;
   }
 
   const checkValid = (ns: Node[], currs: Node[], givens: Node[], es: Edge[], visited: Node[]): boolean => {
@@ -251,16 +252,20 @@ function Flow() {
 
   const verifyProofGlobal = async () => {
 
-    nodes.forEach(node => {
+    for (const node of nodes) {
       node.data.thisNode.parseAll()
-      node.data.thisNode.checkInternal();
-      node.data.thisNode.checkEdges();
-    });
+      if (node.type !== "inductionNode") node.data.thisNode.autoAddReasons();
+      await node.data.thisNode.checkInternal();
+      await node.data.thisNode.checkEdges();
+    }
     setNodes(nodes => {
       const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && edgesStatus(node) === "valid");
-      console.log(allValid);
+      setEdges(edges => {
+        const connectionsValid = checkProofValid(nodes, edges);
+        console.log(allValid, connectionsValid);
+        return edges;
+      });
       return nodes;
-      // TODO: check connections
     });
   }
 
