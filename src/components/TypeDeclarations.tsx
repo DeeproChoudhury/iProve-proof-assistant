@@ -21,7 +21,7 @@ const TypeDeclarations = (props: TypesPropsType) => {
         isScrollable={true}
         afterStatementEdit={() => checkSyntax()}
       />
-      <InfoPopover title="Types Explanation" info="Please define all custom types
+      <InfoPopover ml="0px" title="Types Explanation" info="Please define all custom types
       using Haskell style type defintions. Custom types can be 
       used in function declarations above! E.g: Nat ::= Z | S Nat" />
     </Box>

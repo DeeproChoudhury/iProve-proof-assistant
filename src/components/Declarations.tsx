@@ -22,7 +22,7 @@ const Declarations = (props: DeclarationsPropsType) => {
         isScrollable={true}
         afterStatementEdit={() => checkSyntax()}
       />
-      <InfoPopover title="Declarations Explanation" info="Please provide Haskell style 
+      <InfoPopover ml = "0px" title="Declarations Explanation" info="Please provide Haskell style 
       function types for all predicates used in the proof." />
     </Box>
   )
