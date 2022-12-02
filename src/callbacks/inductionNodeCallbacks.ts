@@ -141,7 +141,7 @@ export const makeInductionNodeCallbacks = (
     const currEdges = edgesRef.current;
     const currNodes = nodesRef.current;
     const node = currNodes.find((n) => n.id === nodeId);
-    if (!node || !isInductionNode(node)) return true;
+    if (!node || !isInductionNode(node)) return;
 
     const incomingEdges = currEdges.filter((e) => e.target === nodeId);
     const incomingNodesIds = new Set(incomingEdges.map((e) => e.source));
@@ -149,7 +149,7 @@ export const makeInductionNodeCallbacks = (
     const givens = incomingNodes.flatMap(getOutputs);
     const expImplications = [...node.data.baseCases, ...node.data.inductiveCases];
     if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
-      return false; // TODO: show error message here
+      return; // TODO: show error message here
     }
     {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
     let success: boolean = false;
@@ -185,7 +185,7 @@ export const makeInductionNodeCallbacks = (
         return edge;
       });
     });
-    return success;
+    return;
   };
   return {
     ...makeSharedNodeCallbacks(setNodes, isInductionNode, nodeId),
