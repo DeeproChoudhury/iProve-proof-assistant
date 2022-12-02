@@ -122,8 +122,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							addBelow={() => {nodeData.thisNode.motive.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.motive.remove(index) }}
 							afterEdit={() => afterStatementEdit("motive", index)}
-							key={index}
-							proofNode={true} />)}
+							key={index} />)}
 				</div>
 				{/* END : Motive */}
 
