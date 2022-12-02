@@ -457,12 +457,16 @@ function Flow() {
 
         <Grid 
           gap={3}
-          style={{ zIndex: 20 /* zIndex to move column to front*/ }}             
+          style={{ 
+            zIndex: 20 /* zIndex to move column to front*/,
+            resize: "horizontal",
+            overflow: "scroll",
+            minWidth: "300px", }}             
           visibility={declarationSidebarVisible ? "visible" : "hidden"}
         >
 
           {/* START : General Declarations */}
-          <GridItem >
+          <GridItem style={{width: "inherit"}}>
             <Declarations
               statements={declarations}
               {...declarationsCallbacks}
@@ -471,7 +475,7 @@ function Flow() {
           {/* END : General Declarations */}
 
           {/* START : Type Declarations */}
-          <GridItem>
+          <GridItem style={{width: "inherit"}}>
             <TypeDeclarations
               statements={typeDeclarations}
               {...typeDeclarationsCallbacks}
