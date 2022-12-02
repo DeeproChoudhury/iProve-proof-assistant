@@ -134,7 +134,8 @@ export function seek_parens(A: AST.Term): AST.Term {
 
 // utility rec function which takes in an array of terms and returns their
     // (left-associative) dis(/con)junction. See above comment to motivate existence.
-export function combineTerms(ts: AST.Line[], conjunct: string = "||"): AST.Term | undefined {
+export function combineTerms(ts_: AST.Line[], conjunct: string = "||"): AST.Term | undefined {
+    let ts = [...ts_];
     let A = ts.shift();
     if (!A) return undefined;
     let tail = combineTerms(ts, conjunct);
