@@ -13,6 +13,7 @@ import { conjunct, display, imply, isTerm, range_over } from "../util/trees";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { IProveError } from "../types/ErrorLocation";
 import { LI } from "../logic/LogicInterface";
+import { makeSharedNodeCallbacks } from "./sharedNodeCallbacks";
 
 export type InductionNodeCallbacks = InductionNodeData["thisNode"];
 
@@ -129,12 +130,12 @@ export const makeInductionNodeCallbacks = (
     let verdict = unifies(IP, gt_IP)
     if (!verdict) {
       setError(undefined)
-      setNode(node => ({...node, data: {...node.data, internalsValid: "invalid"}}));
+      setNode(node => ({...node, data: {...node.data, internalsStatus: "invalid"}}));
       return;
     }
 
     console.log("VERDICT", display(verdict.term))
-    setNode(node => ({...node, data: {...node.data, internalsValid: "valid"}}));
+    setNode(node => ({...node, data: {...node.data, internalsStatus: "valid"}}));
   };
   const checkEdges = async () => {
     const currEdges = edgesRef.current;
@@ -187,10 +188,11 @@ export const makeInductionNodeCallbacks = (
     return success;
   };
   return {
-    delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
+    ...makeSharedNodeCallbacks(setNodes, isInductionNode, nodeId),
     ...statementLists,
     parseAll,
     checkInternal,
-    checkEdges
+    checkEdges,
+    invalidateInternals: () => setNode(node => ({...node, data: {...node.data, internalsStatus: "unchecked"}}))
   };
 };

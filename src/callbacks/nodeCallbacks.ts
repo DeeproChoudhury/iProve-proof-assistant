@@ -9,10 +9,11 @@ import { Setter } from "../util/setters";
 import { unwrap_statements, updateWithParsed } from "../util/statements";
 import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { LI, LogicInterface, ProofOutcome } from "../logic/LogicInterface";
-import { Line, Term } from "../types/AST";
+import { Line, Term, TypeDef } from "../types/AST";
 import { IProveError } from "../types/ErrorLocation";
 import { parse_error } from "../util/errors";
 import { z3Reason } from "../util/reasons";
+import { makeSharedNodeCallbacks } from "./sharedNodeCallbacks";
 
 export type NodeCallbacks = StatementNodeData["thisNode"];
 
@@ -20,6 +21,7 @@ export const makeNodeCallbacks = (
   nodesRef: MutableRefObject<AnyNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
   declarationsRef: MutableRefObject<StatementType[]>,
+  typeDeclarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<IProveError | undefined>,
@@ -95,7 +97,7 @@ export const makeNodeCallbacks = (
       }
     };
   return {
-    delete: (): void => setNodes(nds => nds.filter(nd => nd.id !== nodeId)),
+    ...makeSharedNodeCallbacks(setNodes, isStatementNode, nodeId),
     ...statementLists,
     parseAll: () => {
       setError(undefined);
@@ -171,7 +173,7 @@ export const makeNodeCallbacks = (
       const givens = incomingNodes.flatMap(getOutputs);
       const expImplications = getInputs(node);
       
-      if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
+      if (declarationsRef.current.some(s => !s.parsed) || typeDeclarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
         return false; // TODO: show error message here
       }
       
@@ -181,7 +183,8 @@ export const makeNodeCallbacks = (
 
       // TODO: WIRE UP TYPES BOX?
       LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
-      console.log("EXPIMPLS", expImplications)
+      LI.setTypes((node.data.typeDeclarationsRef.current.map(s => s.parsed) as unknown) as TypeDef[])
+
       let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
       if (goal) { 
         const verdict = await LI.entails(unwrap_statements(givens), goal)

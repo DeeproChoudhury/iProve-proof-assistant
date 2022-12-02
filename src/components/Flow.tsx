@@ -10,8 +10,8 @@ import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
 import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
 import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
 import Z3Solver from '../logic/Solver';
-import { ErrorLocation, IProveError } from '../types/ErrorLocation';
-import { AnyNodeType, InductionNodeType, NodeKind, StatementNodeType } from '../types/Node';
+import { IProveError } from '../types/ErrorLocation';
+import { AnyNodeType, NodeKind } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
@@ -44,7 +44,7 @@ import {
   TableContainer,
 } from '@chakra-ui/react'
 import { renderError } from '../util/errors';
-import { allParsed, internalsStatus } from '../util/nodes';
+import { allParsed, edgesStatus, internalsStatus } from '../util/nodes';
 import { SymbolButton } from './SymbolButton';
 
 const nodeTypes = {
@@ -137,7 +137,7 @@ function Flow() {
   { value: 'exists x', symbol: 'E x.' },
   { value: 'negation', symbol: '~'} ]
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, typeDeclarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
   const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
@@ -180,6 +180,7 @@ function Flow() {
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
           declarationsRef,
+          typeDeclarationsRef,
           thisNode: makeThisNode(`${count}`)
         },
         position: { x: 300, y: 0 },
@@ -209,7 +210,8 @@ function Flow() {
             allParsed: false,
             internalsValid: false,
             edgesValid: true,
-            // predicate: node.data.predicate,
+            internalsStatus: "unchecked",
+            edgesStatus: "unchecked",
             declarationsRef,
             // inductiveHypotheses: node.data.inductiveHypotheses,
             typeDeclarationsRef,
@@ -225,26 +227,25 @@ function Flow() {
           type: node.type,
         }
       } else {
-        return {
-          id: `${id}`,
-          data: {
-            label: node.data.label,
-            givens: node.data.givens,
-            proofSteps: node.data.proofSteps,
-            goals: node.data.goals,
-            declarationsRef,
-            thisNode: makeThisNode(`${id}`)
-          },
-          position: node.position,
-          type: node.type,
-        }
+        const n = node;
+        n.data.edgesStatus = "unchecked";
+        n.data.declarationsRef = declarationsRef;
+        n.data.typeDeclarationsRef = typeDeclarationsRef;
+        n.data.thisNode = makeThisNode(`${id}`);
+        return n;
       }
     });
     
+    const edges = json.edges.map((edge: any) => {
+      const e = edge;
+      e.type = "implication";
+      return e;
+    })
+
     setDeclarations(json.declarations);
     setTypeDeclarations(json.types);
     setNodes(nodeData);
-    setEdges(json.edges);
+    setEdges(edges);
 
   }, [makeThisNode]);
 
@@ -256,7 +257,7 @@ function Flow() {
       node.data.thisNode.checkEdges();
     });
     setNodes(nodes => {
-      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && node.data.edgesStatus === "valid");
+      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && edgesStatus(node) === "valid");
       console.log(allValid);
       return nodes;
       // TODO: check connections
@@ -425,10 +426,12 @@ function Flow() {
 
       {/* START : Flow Graph */}
       <div style={{ display: 'flex', flexDirection: 'row', height: "100vh" }}>
-        {/* START : Column for declarations */}
-        <Grid style={{ zIndex: 20 /* zIndex to move column to front*/ }}
-          // templateRows='repeat(3, 1fr)'
+        
+        {/* START : Declarations SideBar */}
+
+        <Grid 
           gap={3}
+          style={{ zIndex: 20 /* zIndex to move column to front*/ }}             
           visibility={declarationSidebarVisible ? "visible" : "hidden"}
         >
 
@@ -437,7 +440,7 @@ function Flow() {
             <Declarations
               statements={declarations}
               {...declarationsCallbacks}
-              visible={true} />
+              />
           </GridItem>
           {/* END : General Declarations */}
 
@@ -446,12 +449,14 @@ function Flow() {
             <TypeDeclarations
               statements={typeDeclarations}
               {...typeDeclarationsCallbacks}
-              visible={true} />
+              />
           </GridItem>
           {/* END : Type Declarations */}
 
         </Grid>
-        {/* END : Column for declarations */}
+            
+        {/* END : Declarations SideBar */}
+
 
 
         <div style={{ height: '85vh', width: '100%' }}>

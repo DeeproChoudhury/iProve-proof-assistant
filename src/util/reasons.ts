@@ -7,6 +7,7 @@ import { unwrap_statements } from "./statements";
 import { LI, LogicInterface } from "../logic/LogicInterface";
 import { IProveError } from  "../types/ErrorLocation";
 import { mk_error, parse_error } from "./errors";
+import { TypeDef } from "../types/AST";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
@@ -29,8 +30,8 @@ export const checkReason = (data: StatementNodeData, statement: StatementType, u
   updateReasonStatus("checking");
 
   {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-
   LI.setDeclarations(unwrap_statements(data.declarationsRef.current))
+  LI.setTypes((data.typeDeclarationsRef.current.map(s => s.parsed) as unknown) as TypeDef[])
   if (statement.parsed) {
     LI.entails(unwrap_statements(depStatements), statement.parsed).then(
       verdict => {

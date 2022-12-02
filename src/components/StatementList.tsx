@@ -11,7 +11,7 @@ export type StatementListPropsType = {
   isCollapsed?: boolean;
   isScrollable?: boolean
   indexToDisplayedIndex?: (index: number) => number;
-  afterStatementEdit?: () => void;
+  afterStatementEdit?: (index: number) => void;
 }
 
 export default function StatementList({ title, statements, callbacks, isCollapsed = false, isScrollable = false, indexToDisplayedIndex = x => x, afterStatementEdit = () => {} }: StatementListPropsType) {
@@ -23,7 +23,7 @@ export default function StatementList({ title, statements, callbacks, isCollapse
     addAbove: () => callbacks.add(index),
     addBelow: () => callbacks.add(index + 1),
     deleteStatement: () => callbacks.remove(index),
-    afterEdit: () => afterStatementEdit(),
+    afterEdit: () => afterStatementEdit(index),
   });
 
   return <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -41,25 +41,21 @@ export default function StatementList({ title, statements, callbacks, isCollapse
       isCollapsed ?
         <>
           <Statement
-            proofNode={true}
             {...makeStatementProps(0)}
           />
           <Text as='b'>. . .</Text>
           <Statement
-            proofNode={true}
             {...makeStatementProps(statements.length - 1)}
           />
         </> :
         isScrollable ? <Box overflowY="scroll" maxHeight="10em">
          {statements.map((_s: StatementType, index: number) =>
           <Statement
-            proofNode={true}
             {...makeStatementProps(index)}
             key={index}
           />)}
         </Box> : statements.map((_s: StatementType, index: number) =>
           <Statement
-            proofNode={true}
             {...makeStatementProps(index)}
             key={index}
           />)

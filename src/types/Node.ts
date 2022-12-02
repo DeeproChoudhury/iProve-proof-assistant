@@ -10,6 +10,7 @@ type SharedNodeData = {
   label: string;
   edgesStatus: CheckStatus;
   declarationsRef: MutableRefObject<StatementType[]>;
+  typeDeclarationsRef: MutableRefObject<StatementType[]>;
 }
 
 type SharedNodeCallbacks = {
@@ -17,6 +18,8 @@ type SharedNodeCallbacks = {
   parseAll: () => void;
   checkInternal: () => void;
   checkEdges: () => void;
+  invalidateEdges: () => void;
+  invalidateOutgoingEdges: () => void;
 }
 
 export type StatementNodeData = SharedNodeData & {
@@ -34,7 +37,6 @@ export type StatementNodeData = SharedNodeData & {
 
 export type InductionNodeData = SharedNodeData & {
   internalsStatus: CheckStatus;
-  typeDeclarationsRef: MutableRefObject<StatementType[]>;
   types: StatementType[];
   motive: StatementType[];
   inductiveCases: StatementType[];
@@ -44,6 +46,7 @@ export type InductionNodeData = SharedNodeData & {
     motive: StatementListCallbacks;
     baseCases: StatementListCallbacks;
     inductiveCases: StatementListCallbacks;
+    invalidateInternals: () => void;
   }
 }; 
 

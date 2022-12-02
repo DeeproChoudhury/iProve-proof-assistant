@@ -11,6 +11,7 @@ import { StatementType } from "../../types/Statement";
 import { DeleteNodePopover } from "./GeneralNode";
 import Moveable from "react-moveable";
 import { MoveableHandles } from "./MoveableHandle";
+import { makeRecheckCallback } from "../../util/nodes";
 
 function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): ReactElement {
 	const [target, setTarget] = useState<any>();
@@ -18,17 +19,13 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	useEffect(() => {
 		return setTarget(document.querySelector(`#induction-node-${id}`)!);
 	}, [id]);
-	const componentStyle = "induction-node";
+	const statusStyle = nodeData.internalsStatus !== 'unchecked' ? nodeData.internalsStatus + "-induction" : '';
+	const componentStyle = "induction-node " + statusStyle;
 	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
 		nodeData.thisNode[k].update(updated, evt.target.value);
 	}, [nodeData]);
 
-  const afterStatementEdit = useCallback((k: ListField<InductionNodeData>, updated: number) => {
-    nodeData.thisNode.parseAll();
-    nodeData.thisNode.checkInternal();
-    if (k === "baseCases" || k === "inductiveCases") nodeData.thisNode.checkEdges();
-    if (k === "motive") {}; // TODO: invalidate edgesValid for nodes connected to outgoing edges
-  }, [nodeData]);
+  const afterStatementEdit = useCallback(makeRecheckCallback({ type: "inductionNode", data: nodeData }), [nodeData]);
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
@@ -38,7 +35,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
       onClick={() => { 
 		nodeData.thisNode.checkInternal();
       }}>
-      Solve
+      Check induction principle
     </Button>;
 	
 	const NodeBottomButtons = () => {
@@ -63,7 +60,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 		<div>
 			<Box className={componentStyle} key={`induction-node-${id}`} id={`induction-node-${id}`}>
 				{targetHandle}
-
 				<div style={{ display: 'flex', justifyContent: 'center' }}>
 					{nodeData.edgesStatus === "unchecked" &&
 						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
@@ -148,7 +144,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							onChange={e => onChange(e, "baseCases", index)}
 							statement={s}
 							index={index}
-							proofNode={true}
 							addAbove={() => { nodeData.thisNode.baseCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.baseCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.baseCases.remove(index) }}
@@ -174,7 +169,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							onChange={e => onChange(e, "inductiveCases", index)}
 							statement={s}
 							index={index}
-							proofNode={true}
 							addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
 							addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }}
 							deleteStatement={() => { nodeData.thisNode.inductiveCases.remove(index) }}

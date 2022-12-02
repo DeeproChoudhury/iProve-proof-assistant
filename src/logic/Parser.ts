@@ -676,7 +676,7 @@ PROOF_LINE.setPattern(handle(alt(
  */
 export function evaluate(line: string): AST.ASTNode | ParseError {
     let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
-    console.log("FINAL", A)
+    // console.log("FINAL", A)
     if (!A.successful) return A.error;
     return expectSingleResult(A);
 }
