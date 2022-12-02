@@ -57,8 +57,9 @@ export const makeFlowCallbacks = (
         return {...node, data: {...node.data, edgesStatus: "unchecked"}};
       } else {
         const source = nodes.find(node => node.id === params.source);
-        const sourceGoals = source && source.type !== "inductionNode" ? JSON.parse(JSON.stringify(source.data.goals.filter(s => !node.data.givens.map(g => g.value).includes(s.value)))) : [];
-        return {...node, data: {...node.data, edgesStatus: "unchecked", givens: [...node.data.givens, ...sourceGoals]}};
+        const sourceGoals = source && source.type !== "inductionNode" ? 
+          JSON.parse(JSON.stringify(source.data.goals.filter(s => !node.data.givens.map(g => g.value).includes(s.value)).map(s => {return {...s, reason: undefined}}))) : [];
+        return {...node, data: {...node.data, edgesStatus: "unchecked", givens: [...sourceGoals, ...node.data.givens]}};
       }
     }));
     setEdges((eds) => addEdge({...params, 

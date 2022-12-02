@@ -56,7 +56,7 @@ const nodeTypes = {
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge };
 
 function Flow() {
-  const [proofValid, setProofValid] = useState(false);
+  const [proofValid, setProofValid] = useState(true);
 
   const [nodes, setNodes] = useState<AnyNodeType[]>([]);
 
@@ -92,10 +92,11 @@ function Flow() {
     return count;
   }, [count]);
 
-  const checkProofValid = (ns: Node[], es: Edge[]): void => {
+  const checkProofValid = (ns: Node[], es: Edge[]): boolean => {
     const givens = ns.filter(node => node.type === "givenNode");
     const goals = ns.filter(node => node.type === "goalNode");
-    setProofValid(checkValid(ns, goals, givens, es, []));
+    const valid = checkValid(ns, goals, givens, es, []);
+    return valid;
   }
 
   const checkValid = (ns: Node[], currs: Node[], givens: Node[], es: Edge[], visited: Node[]): boolean => {
@@ -251,16 +252,22 @@ function Flow() {
 
   const verifyProofGlobal = async () => {
 
-    nodes.forEach(node => {
+    for await (const node of nodes) {
       node.data.thisNode.parseAll()
-      node.data.thisNode.checkInternal();
-      node.data.thisNode.checkEdges();
-    });
+      await node.data.thisNode.checkInternal();
+      await node.data.thisNode.checkEdges();
+    }
     setNodes(nodes => {
-      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && edgesStatus(node) === "valid");
-      console.log(allValid);
+      const internalsValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid");
+      const edgesValid = nodes.every(node => allParsed(node) && edgesStatus(node) === "valid");
+      // if problem is with edges don't show anything as there are other errors being displayed
+      if (edgesValid && internalsValid) {
+        setStopGlobalCheck(false);
+      }
+      if (edgesValid && !internalsValid) {
+        setStopGlobalCheck(true);
+      }
       return nodes;
-      // TODO: check connections
     });
   }
 
@@ -284,7 +291,7 @@ function Flow() {
       {/* END : Import Modal */}
 
       {/* START : Export Modal */}
-      <Modal isOpen={exportModalShow && proofValid}
+      <Modal isOpen={exportModalShow}
         onClose={() => { setExportModalShow(false) }}        // onAfterOpen={() => {}}
       >
         <ModalOverlay />
@@ -414,6 +421,25 @@ function Flow() {
       </div>
       {/* END : Proof valid alert */} 
 
+      {/* START : Proof invalid alert */} 
+      <div className="alert-container">
+        {stopGlobalCheck === true && <Alert status='error' className="alert">
+          <AlertIcon />
+          <AlertTitle>Error!</AlertTitle>
+          <AlertDescription>
+            Proof is invalid.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setStopGlobalCheck(undefined) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      {/* END : Proof invalid alert */} 
+
       {/* START : Error alert */} 
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
@@ -432,7 +458,6 @@ function Flow() {
         </Alert>}
       </div>
       {/* END : Error alert */}
-
 
       {/* START : Flow Graph */}
       <div className="flowContainer">

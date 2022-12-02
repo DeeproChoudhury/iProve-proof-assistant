@@ -4,6 +4,7 @@ import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, Any
 import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { applyAction, Setter } from "./setters";
+import { isTerm } from "./trees";
 
 export function localIndexToAbsolute(data: StatementNodeData, k: ListField<StatementNodeData>, index: number): number {
   switch (k) {
@@ -156,10 +157,10 @@ export const allParsed = (node: AnyNodeProps): boolean => {
 export const internalsStatus = (node: AnyNodeProps): CheckStatus => {
   switch (node.type) {
     case "givenNode":
-    case "proofNode":
-      return "valid";
     case "goalNode":
-      const statements = [...node.data.proofSteps, ...node.data.goals];
+      return "valid";
+    case "proofNode":
+      const statements = [...node.data.proofSteps, ...node.data.goals].filter(s => s.parsed && isTerm(s.parsed));
       if (statements.some(statement => statement.reason?.status === "checking")) return "checking";
       else if (statements.some(statement => statement.reason?.status === "unchecked")) return "unchecked";
       else if (statements.every(statement => statement.reason?.status === "valid")) return "valid";
