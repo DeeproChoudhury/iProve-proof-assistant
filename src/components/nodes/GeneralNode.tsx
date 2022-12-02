@@ -7,7 +7,7 @@ export function DeleteNodePopover({ deleteNode }: { deleteNode: () => void }) {
 		<PopoverTrigger>
 			<Button size='xs' colorScheme='blackAlpha' onClick={onOpen}>Delete</Button>
 		</PopoverTrigger>
-		<PopoverContent>
+		<PopoverContent style={{zIndex:"5"}}>
 			<PopoverArrow />
 			<PopoverCloseButton />
 			<PopoverHeader>Are you sure you want to delete?</PopoverHeader>

@@ -14,17 +14,18 @@ import {
   export type InfoPopoverPropsType = {
     info: string;
     title: string;
+    ml : string;
   }
 
   const InfoPopover = (props: InfoPopoverPropsType) => {
-    const {info,title} = props;
+    const {info,title,ml} = props;
     return(
-    <Popover placement='bottom-start' trigger="hover">
+    <Popover  placement='bottom-start' trigger="hover">
         <PopoverTrigger>
-            <InfoOutlineIcon />
+            <InfoOutlineIcon style={{marginLeft:ml}}/>
         </PopoverTrigger>
-        <PopoverContent>
-            <PopoverHeader fontWeight='semibold'>{title}</PopoverHeader>
+        <PopoverContent >
+            {title !== "" &&<PopoverHeader fontWeight='semibold'>{title}</PopoverHeader>}
             <PopoverArrow />
             <PopoverCloseButton />
             <PopoverBody>
