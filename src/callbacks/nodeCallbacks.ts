@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
-import { conjunct, isBlockEnd, isBlockStart } from "../util/trees";
+import { conjunct, isBlockEnd, isBlockStart, isTerm } from "../util/trees";
 import Z3Solver from "../logic/Solver";
 import { AnyNodeType, InductionNodeType, ProofNodeType, StatementNodeData, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
@@ -140,6 +140,11 @@ export const makeNodeCallbacks = (
     },
     autoAddReasons: () => {
       const autoAddReason = (statement: StatementType, index: number): StatementType => {
+        if (
+            (statement.parsed && !isTerm(statement.parsed))
+            || statement.reason?.status === "valid"
+            || statement.reason?.status === "checking"
+          ) return statement;
         return { ...statement, reason: z3Reason([...new Array(index).keys()]) }
       };
       setNode(node => {
