@@ -30,8 +30,6 @@ export const checkReason = async (data: StatementNodeData, statement: StatementT
   updateReasonStatus("checking");
 
   {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-  LI.setDeclarations(unwrap_statements(data.declarationsRef.current))
-  LI.setTypes((data.typeDeclarationsRef.current.map(s => s.parsed) as unknown) as TypeDef[])
   if (statement.parsed) {
     const verdict = await LI.entails(unwrap_statements(depStatements), statement.parsed)
     switch (verdict.kind) {
