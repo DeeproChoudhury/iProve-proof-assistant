@@ -56,7 +56,7 @@ const nodeTypes = {
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge };
 
 function Flow() {
-  const [proofValid, setProofValid] = useState(false);
+  const [proofValid, setProofValid] = useState(true);
 
   const [nodes, setNodes] = useState<AnyNodeType[]>([]);
 
@@ -290,7 +290,7 @@ function Flow() {
       {/* END : Import Modal */}
 
       {/* START : Export Modal */}
-      <Modal isOpen={exportModalShow && proofValid}
+      <Modal isOpen={exportModalShow}
         onClose={() => { setExportModalShow(false) }}        // onAfterOpen={() => {}}
       >
         <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
@@ -397,7 +397,7 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>Add Proof Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>Add Induction Node</Button>
           <Button colorScheme='purple' size='md' onClick={() => { setImportModalShow(true) }}>Import Proofs</Button>
-          <Button onClick={() => { checkProofValid(nodes, edges); setExportModalShow(true) }}>
+          <Button onClick={() => { setExportModalShow(true) }}>
             Export proof
           </Button>
           <Button onClick={() => { verifyProofGlobal() }}>

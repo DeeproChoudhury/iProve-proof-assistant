@@ -27,6 +27,15 @@ export const checkReason = async (data: StatementNodeData, statement: StatementT
     return;
   }
 
+  if (statement.parsed?.kind === "BeginScope" || 
+    statement.parsed?.kind === "EndScope" || 
+    statement.parsed?.kind === "VariableDeclaration" || 
+    statement.parsed?.kind === "Assumption" 
+  ) {
+    updateReasonStatus("valid");
+    return;
+  }
+
   updateReasonStatus("checking");
 
   {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
