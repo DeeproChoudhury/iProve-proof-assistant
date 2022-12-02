@@ -33,6 +33,8 @@ import {
   PopoverBody,
   PopoverArrow,
   PopoverCloseButton,
+  useDisclosure,
+  PopoverHeader
 } from '@chakra-ui/react'
 import {
   Table,
@@ -43,6 +45,8 @@ import {
   Td,
   TableContainer,
 } from '@chakra-ui/react'
+import { InfoOutlineIcon } from '@chakra-ui/icons'
+import InfoPopover  from './InfoPopover'
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -135,7 +139,9 @@ function Flow() {
   { value: 'implies', symbol: '->' },
   { value: 'for all x', symbol: 'FA x.' },
   { value: 'exists x', symbol: 'E x.' },
-  { value: 'negation', symbol: '~'} ]
+  { value: 'negation', symbol: '~'},
+  { value: 'integer type', symbol: 'Int'},
+  { value: 'boolean type', symbol: 'Bool'} ]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, inductionNodesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
@@ -412,10 +418,32 @@ function Flow() {
       {/* START : Header Buttons */}
       <div>
         <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('givenNode')}>Add Given</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('goalNode')}>Add Goal</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>Add Proof Node</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>Add Induction Node</Button>
+          {/* START : Add Node Buttons */}
+          <div>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('givenNode')}>
+            Add Given
+          </Button>
+          <InfoPopover title = "" info="Are taken as givens by the proof solver" />
+          </div>
+          <div>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('goalNode')}>
+            Add Goal
+          </Button>
+          <InfoPopover title="" info="These are the goals you should work towards" />
+          </div>
+          <div>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>
+            Add Proof Node
+          </Button>
+          <InfoPopover title="" info="Write your logical reasoning here" />
+          </div>
+          <div>
+          <Button colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>
+            Add Induction Node
+          </Button>
+          <InfoPopover title = "" info="Checks inductive principles" />
+          </div>
+           {/* END : Add Node Buttons */}
           <Button colorScheme='purple' size='md' onClick={() => { setImportModalShow(true) }}>Import Proofs</Button>
           <Button onClick={() => { checkProofValid(nodes, edges); setExportModalShow(true) }}>
             Export proof
@@ -461,9 +489,9 @@ function Flow() {
 
 
       {/* START : Flow Graph */}
-      <div style={{ display: 'flex', flexDirection: 'row', height: "100vh" }}>
+      <div style={{ display: 'flex', flexDirection: 'row', height: "85vh", marginTop: "5vh"}}>
         {/* START : Column for declarations */}
-        <Grid style={{ zIndex: 20 /* zIndex to move column to front*/ }}
+        <Grid style={{ zIndex: 5 /* zIndex to move column to front*/ }}
           // templateRows='repeat(3, 1fr)'
           gap={3}
           visibility={declarationSidebarVisible ? "visible" : "hidden"}
