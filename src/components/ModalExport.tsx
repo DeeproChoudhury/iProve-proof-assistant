@@ -1,4 +1,4 @@
-import { Box, Button, Textarea } from '@chakra-ui/react';
+import { Box, Button, Textarea, useToast } from '@chakra-ui/react';
 
 /**
  * Modal contents for Exporting proofs in JSON format
@@ -23,6 +23,7 @@ const ModalExport = (props: { data : string}) => {
 	/**
      * Box for exporting
      */
+   const toast = useToast()
     return (
       <Box borderRadius='md' my='1'>
         <div style={{display: 'flex'}}>
@@ -39,13 +40,23 @@ const ModalExport = (props: { data : string}) => {
         </div>
 
         {/* START : Copy to Clipboard Button */}
-        <Button colorScheme="blackAlpha" onClick={() => {navigator.clipboard.writeText(props.data)}} style={{margin: '5px 0'}}>
+        <Button variant="outline" colorScheme="blackAlpha" onClick={() => {
+          
+            navigator.clipboard.writeText(props.data);
+            toast({
+              title: 'Copied!',
+              description: "Proof has been copied to clipboard",
+              status: 'success',
+              duration: 5000,
+              isClosable: true,
+            })
+          }} style={{margin: '5px 0'}}>
             Copy to Clipboard
         </Button>
         {/* END : Copy to Clipboard Button */}
 
 		{/* START : Download Proof Button */}
-		<Button colorScheme="blackAlpha" onClick={() => {DownloadProof()}} style={{margin: '5px 0'}}>
+		<Button variant="outline" colorScheme="blackAlpha" onClick={() => {DownloadProof()}} style={{margin: '5px 5px'}}>
 			Download Proof
 		</Button>
 		{/* END : Download Proof Button */}		
