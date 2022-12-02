@@ -540,7 +540,7 @@ const CONS_PARAM = rule<TokenKind, AST.ConsParam>();
 CONS_PARAM.setPattern(apply(
     seq(
         PATTERN,
-        kright(tok(TokenKind.DoubleColon), PATTERN)
+        kright(tok(TokenKind.Colon), PATTERN)
     ),
     (value): AST.ConsParam => 
         ({ kind: "ConsParam", A: value[0], B: value[1] })

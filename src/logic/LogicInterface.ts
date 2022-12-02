@@ -194,7 +194,6 @@ export class LogicInterface {
     }
 
     renderFunctionDeclaration(ident: string, consts: string[]): [string, string | undefined][] | undefined {
-        SID.n = 0
         let A = this.global_fn_defs.get(ident);
         let defs: AST.FunctionDefinition[] 
             = (A ?? []).concat(this.local_fn_defs.get(ident) ?? []);
@@ -208,8 +207,9 @@ export class LogicInterface {
 
         let params: string[] = []
         let nparams = decl.type.argTypes.length;
-
-        for (let i = 0; i < nparams; i++) params.push(`IProveParameter${i}`)
+        
+        SID.n = 0
+        for (let i = 0; i < nparams; i++) params.push(`IProveParameter${SID.n++}`)
 
         let pdatas: [PatternData, AST.Term | AST.Guard][] = [];
         for (let a of defs) {
@@ -221,7 +221,7 @@ export class LogicInterface {
             let idx: number = 0;
             let concu: PatternData = [];
             for (let [i,p] of a.params.entries()) {
-                concu = concu.concat(renderPattern(p, `IProveParameter${SID.n++}`))
+                concu = concu.concat(renderPattern(p, `IProveParameter${i}`))
                 pdatas.push([concu, (a.def as AST.Term)]);
             }
         }
@@ -440,7 +440,7 @@ function renderNode(a: AST.ASTNode | undefined): string {
         
         case "ArrayLiteral": {
             let R = "nil";
-            for (let e of a.elems)
+            for (let e of a.elems.reverse())
                 R = `(insert ${renderNode(e)} ${R})`
             return R
         }
