@@ -27,10 +27,7 @@ const App = () => {
               />
             </div>)
           : (
-            <div style={{ backgroundColor: '#B8CEFF' }}>
-              <div className='header'>
-                iProve
-              </div>
+            <div className="mainContainer">
               <div className='graph'>
                 <Flow />
               </div>

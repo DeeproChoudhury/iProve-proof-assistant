@@ -17,21 +17,21 @@ const ModalStatement = (props: ModalStatementPropsType) => {
     return <></>;
   }
   return (
-    <Box borderRadius='md' bg='whiteAlpha.300' color='white' my='1'>
+    <Box borderRadius='md' bg='blackAlpha.100' color='black' my='1'>
       <div style={{display: 'flex'}}>
         <div style={{margin: 'auto 5px'}}>({index + 1})</div>
         <div style={{flex: '1', margin: 'auto 0px'}}>{display(statement.parsed)}</div>
-        <RadioGroup size='sm' onChange={setTag} value={tag}>
+        <RadioGroup colorScheme="purple" size='sm' onChange={setTag} value={tag}>
           <div style={{display: 'flex', flexDirection: 'column', marginRight: '10px'}}>
-            <Radio value='0'>Not Selected</Radio>
-            <Radio value='1' isDisabled={
+            <Radio borderColor="gray" value='0'>Not Selected</Radio>
+            <Radio borderColor="gray" value='1' isDisabled={
               isReasonDisabled || 
               statement.parsed.kind === "EndScope" || 
               statement.parsed.kind === "BeginScope" || 
               statement.parsed.kind === "Assumption" ||
               statement.parsed.kind === "VariableDeclaration"
               }>Reason</Radio>
-            <Radio value='2' isDisabled={
+            <Radio borderColor="gray" value='2' isDisabled={
               isConclusionDisabled || 
               statement.parsed.kind === "EndScope"  || 
               statement.parsed.kind === "BeginScope" ||             

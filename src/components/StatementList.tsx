@@ -33,7 +33,7 @@ export default function StatementList({ title, statements, callbacks, isCollapse
   });
 
   return <div style={{ display: 'flex', flexDirection: 'column' }}>
-    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+    <div style={{ fontFamily: "Montserrat", fontWeight: "400", display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
       <Text>{title}</Text>
       <IconButton
         variant='outline'

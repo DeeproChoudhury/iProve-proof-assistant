@@ -1,7 +1,7 @@
 import { InductionNodeData, ListField } from "../../types/Node";
 import { AddIcon } from '@chakra-ui/icons';
 import {
-	Box, Button, IconButton, Select, Text
+	Box, Button, Divider, IconButton, Select, Text
 } from '@chakra-ui/react';
 import { ReactElement, ReactNode, useCallback, useEffect, useState } from "react";
 import "./InductionNode.css"
@@ -62,15 +62,15 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 				{targetHandle}
 				<div style={{ display: 'flex', justifyContent: 'center' }}>
 					{nodeData.edgesStatus === "unchecked" &&
-						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+						<Button variant="outline" colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
 							Check incoming implications
 						</Button>}
 					{nodeData.edgesStatus === "valid" &&
-						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+						<Button variant="outline" colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
 							Check passed. Check again?
 						</Button>}
 					{nodeData.edgesStatus === "invalid" &&
-						<Button colorScheme='red' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+						<Button variant="outline" colorScheme='red' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
 							Check failed. Check again?
 						</Button>}
 				</div>
@@ -86,11 +86,12 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 						onClick={() => { nodeData.thisNode.types.add() }}
 					/>
 				</div>
-				<div style={{ display: 'flex', flexDirection: 'column' }}>
+				<div style={{ display: 'flex', flexDirection: 'column', marginTop: "10px" }}>
 					{nodeData.types.map((s: StatementType, index: number) =>
 						<Select
 							placeholder='Select type'
 							size='sm'
+							style={{backgroundColor: "rgb(252, 248, 242)", borderRadius: "3px"}}
 							onChange={e => onTypeSelect(parseInt(e.target.value), index)}
 							key={index}>
 								{nodeData.typeDeclarationsRef.current.map((type, idx_) =>
@@ -100,6 +101,8 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							</Select>)}
 				</div>
 				{/* END : Type */}
+
+				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
 
 				{/* BEGIN : Motive */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -126,6 +129,8 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 				</div>
 				{/* END : Motive */}
 
+				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
+
 				{/* BEGIN : Base Case */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
 					<Text>Base Case(s)</Text>
@@ -150,6 +155,8 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							key={index} />)}
 				</div>
 				{/* END : Base Case */}
+
+				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
 
 				{/* BEGIN : Induction Case */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>

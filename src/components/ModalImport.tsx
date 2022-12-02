@@ -49,8 +49,8 @@ const ModalImport = (props:
 		return (
 			<Box>
 				<form id="upload">
-					<Button colorScheme="blackAlpha" onClick={() => {setTextAreaValue(file)}} > Upload </Button>
-					<input type="file" id="file" accept=".json" onChange={parseFile} />
+					<Button variant="outline" colorScheme="blackAlpha" onClick={() => {setTextAreaValue(file)}} > Upload </Button>
+					<input style={{marginLeft: "5px"}} type="file" id="file" accept=".json" onChange={parseFile} />
 				</form>		
 			</Box>
 		);
@@ -75,7 +75,7 @@ const ModalImport = (props:
                 onChange={(e) => {setTextAreaValue(e.target.value)}}
             />        
         </div>
-        <Button colorScheme="blackAlpha" onClick={parseJSONAddNode} style={{margin: '5px 0'}}>Import</Button>
+        <Button variant="outline" colorScheme="blackAlpha" onClick={parseJSONAddNode} style={{margin: '5px 0'}}>Import</Button>
 		<UploadProof/>
 	  </Box>
 	)
