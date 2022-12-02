@@ -405,6 +405,12 @@ function renderNode(a: AST.ASTNode | undefined): string {
                 case "Tuple":
                     LI.createTuple(a.params.length)
                     return `(mk-tuple ${a.params.map(renderNode).join(" ")})`
+                case "ArraySelect":
+                    return `(ListElem ${a.params.map(renderNode).join(" ")})`
+                case "ArraySlice":
+                    return `(ListSlice ${a.params.map(renderNode).join(" ")} nil)`
+                case "++":
+                    return `(ListConcat ${a.params.map(renderNode).join(" ")})`
                 default:
                     return (a.params.length)
                     ? `(${fnSMT(a.fn)} ${a.params.map(renderNode).join(" ")})`

@@ -155,14 +155,14 @@ export type InfixApplication = {
 export type ArrayElem = {
     kind: "FunctionApplication",
     appType: "ArrayElem",
-    fn: "select",
+    fn: "ArraySelect",
     params: [Term, Term]
 }
 
 export type ArraySlice = {
     kind: "FunctionApplication",
     appType: "ArraySlice",
-    fn: "???", // TODO
+    fn: "ArraySlice", // TODO
     params: [Term, Term] | [Term, Term, Term]
 }
 
@@ -186,3 +186,6 @@ export type ParenTerm = {
     term: Term,
     isSquare: boolean
 }
+
+
+

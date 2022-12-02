@@ -1,4 +1,4 @@
-import { init, Z3LowLevel } from 'z3-solver';
+import { init, Z3LowLevel, Z3_config } from 'z3-solver';
 
 export namespace Z3Solver {
     
@@ -21,8 +21,9 @@ export namespace Z3Solver {
 
         public async solve(str : string) {
             console.log(str)
-            const cfg = Z3EvalLib.mk_config();
+            const cfg: Z3_config = Z3EvalLib.mk_config();
             Z3EvalLib.set_param_value(cfg, "proof", "true")
+            Z3EvalLib.set_param_value(cfg, "timeout", "1500")
             const result = await Z3EvalLib.eval_smtlib2_string(
                 Z3EvalLib.mk_context(cfg),
                 str + "\n(check-sat)"); 
