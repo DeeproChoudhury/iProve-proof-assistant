@@ -1,7 +1,6 @@
 import { stateless_map_terms } from "../logic/combinator";
 import { fnDisplay } from "../logic/util";
 import * as AST from "../types/AST"
-import { StatementType } from "../types/Statement";
 
 function d(a: AST.ASTNode): string {
     switch (a.kind) {
@@ -14,7 +13,8 @@ function d(a: AST.ASTNode): string {
         case "FunctionApplication": {
             const fn = fnDisplay(a.fn);
             switch (a.appType) {
-                case "PrefixFunc": return `${fn}(${a.params.map(d).join(", ")})`;
+                case "PrefixFunc": 
+                    return `${fn}${(a.typeParams) ? "<" + a.typeParams.map(d).join(",") + ">" : ""}(${a.params.map(d).join(", ")})`;
                 case "PrefixOp": return `(${fn})(${a.params.map(d).join(", ")})`;
                 case "InfixFunc": return `${d(a.params[0])} \`${fn}\` ${d(a.params[1])}`;
                 case "InfixOp": return `${d(a.params[0])} ${fn} ${d(a.params[1])}`;
@@ -39,9 +39,9 @@ function d(a: AST.ASTNode): string {
 
         case "FunctionDefinition":
             return `${a.ident} ${a.params.map(d).join(" ")} ::= ${d(a.def)}` 
-        case "Guard": return `\n  | ${a.cond} := ${a.res}`
+        case "Guard": return `\n  | ${d(a.cond)} := ${d(a.res)}`
         case "SimpleParam": return `${a.ident}`
-        case "ConsParam": return `(${a.A}::${a.B})`
+        case "ConsParam": return `(${d(a.A)}::${d(a.B)})`
         case "EmptyList": return "[]"
         case "ConstructedType": 
             return `(${a.c} ${a.params.map(d).join(" ")})` 
@@ -134,7 +134,8 @@ export function seek_parens(A: AST.Term): AST.Term {
 
 // utility rec function which takes in an array of terms and returns their
     // (left-associative) dis(/con)junction. See above comment to motivate existence.
-export function combineTerms(ts: AST.Line[], conjunct: string = "||"): AST.Term | undefined {
+export function combineTerms(ts_: AST.Line[], conjunct: string = "||"): AST.Term | undefined {
+    let ts = [...ts_];
     let A = ts.shift();
     if (!A) return undefined;
     let tail = combineTerms(ts, conjunct);
@@ -185,8 +186,8 @@ export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
  
  export function getSelector(n: number): string {
     switch (n) {
-        case 1: return "fst";
-        case 2: return "snd";
+        case 0: return "fst";
+        case 1: return "snd";
         default: return `elem${n}`;
     }
 }

@@ -1,6 +1,7 @@
 import * as AST from "../types/AST"
 import { AlphaAssignment, Unification, UnifyFail, UnifyScope } from "../types/LogicInterface"
 import { display } from "../util/trees"
+import evaluate from "./Parser"
 import { basic_preprocess, CommOperators, replace_vars, unify_preprocess } from "./simplifiers"
 import { bitmap_mex, get_from_scope, pop_scope, push_scope, set_bit, set_in_scope } from "./util"
 
@@ -13,6 +14,7 @@ function gen_unify_poss(
     bitmap: number,
     scope: UnifyScope): Unification 
 {
+    console.log("ANAB", A, B)
     if (i >= A.length) return scope
 
     let b_i: number | undefined = -1
@@ -77,6 +79,7 @@ function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: Unif
         }
         case "Variable": {
             if (B.kind != "Variable") return UNIFY_FAIL
+            console.log("[at variable]", A.ident, B.ident)
 
             if (!scope.sort_ctx_a.has(A.ident) || 
                 !scope.sort_ctx_b.has(B.ident) )
@@ -174,6 +177,10 @@ function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: Unif
 export function unifies(A_: AST.Term, B_: AST.Term): AlphaAssignment | undefined {
     let A: AST.Term = unify_preprocess(A_)
     let B: AST.Term = unify_preprocess(B_)
+
+    console.log("HERE AB")
+    console.log(display(A))
+    console.log(display(B))
 
     let verdict: Unification = gen_unify(B, A, {
         kind: "UnifyScope",

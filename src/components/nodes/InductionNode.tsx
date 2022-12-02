@@ -47,9 +47,9 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 		);
 	}
 
-	const onTypeSelect = (typeIndex: number) => {
+	const onTypeSelect = (typeIndex: number, index: number) => {
 		if (!isNaN(typeIndex)) {
-			nodeData.thisNode["types"].updateWithStatement(0, nodeData.typeDeclarationsRef.current[typeIndex]);
+			nodeData.thisNode["types"].updateWithStatement(index, nodeData.typeDeclarationsRef.current[typeIndex]);
 		}
 	}
 
@@ -76,28 +76,54 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 				</div>
 
 				{/* BEGIN : Type */}
-				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-					<Text>Type</Text>
+				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+					<Text>Type(s)</Text>
+					<IconButton
+						variant='outline'
+						aria-label='Add Induction Goal'
+						size='xs'
+						icon={<AddIcon />}
+						onClick={() => { nodeData.thisNode.types.add() }}
+					/>
 				</div>
-				<Select placeholder='Select type' size='xs' onChange={(event) => onTypeSelect(parseInt(event.target.value))} defaultValue={nodeData.types[0].value}>
-					{nodeData.typeDeclarationsRef.current.map((type, index) =>
-						<option value={index}>{type.value}</option>
-					)}
-				</Select>
+				<div style={{ display: 'flex', flexDirection: 'column' }}>
+					{nodeData.types.map((s: StatementType, index: number) =>
+						<Select
+							placeholder='Select type'
+							size='sm'
+							onChange={e => onTypeSelect(parseInt(e.target.value), index)}
+							key={index}>
+								{nodeData.typeDeclarationsRef.current.map((type, idx_) =>
+									<option value={idx_}>{type.value}</option>
+								)}
+							
+							</Select>)}
+				</div>
 				{/* END : Type */}
 
 				{/* BEGIN : Motive */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
-					<Text>Induction Goal</Text>
-				</div>
-				<Statement
-					onChange={e => onChange(e, "motive", 0)}
-					statement={nodeData.motive[0]}
-					index={0}
-					addable={false}
-					afterEdit={() => afterStatementEdit("motive", 0)}
+					<Text>Induction Goal(s)</Text>
+					<IconButton
+						variant='outline'
+						aria-label='Add Induction Goal'
+						size='xs'
+						icon={<AddIcon />}
+						onClick={() => { nodeData.thisNode.motive.add() }}
 					/>
-				{/* <Handle type="source" position={Position.Left} id="l" style={{ height: '10px', width: '10px' }} /> */}
+				</div>
+				<div style={{ display: 'flex', flexDirection: 'column' }}>
+					{nodeData.motive.map((s: StatementType, index: number) =>
+						<Statement
+							onChange={e => onChange(e, "motive", index)}
+							statement={s}
+							index={index}
+							addAbove={() => {nodeData.thisNode.motive.add(index) }}
+							addBelow={() => {nodeData.thisNode.motive.add(index + 1) }}
+							deleteStatement={() => { nodeData.thisNode.motive.remove(index) }}
+							afterEdit={() => afterStatementEdit("motive", index)}
+							key={index} />)}
+				</div>
 				{/* END : Motive */}
 
 				{/* BEGIN : Base Case */}

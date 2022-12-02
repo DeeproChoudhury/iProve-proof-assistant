@@ -1,9 +1,9 @@
 import { MutableRefObject } from "react";
 import { Edge } from "reactflow";
-import { rec_on } from "../logic/induction";
+import { mutual_rec_on, rec_on } from "../logic/induction";
 import { unifies } from "../logic/unifier";
 import Z3Solver from "../logic/Solver";
-import { Line, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
+import { ASTNode, Line, QuantifierApplication, Term, Type, TypeDef, Variable, VariableBinding } from "../types/AST";
 import { AnyNodeType, InductionNodeData, InductionNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { getOutputs, isInductionNode, setNodeWithId, setStatementsForNode } from "../util/nodes";
@@ -63,44 +63,68 @@ export const makeInductionNodeCallbacks = (
     setNode(node => ({...node, data: {...node.data, internalsStatus: "checking"}}));
     node.data.thisNode.parseAll();
 
-    let type_: StatementType | undefined = node.data.types[0]
-    if (!type_ || !type_.parsed) return;
-    let type: Line = type_.parsed
-    if (type.kind != "TypeDef") return;
-    let tdef: TypeDef = type
 
-    let motive_: StatementType | undefined = node.data.motive[0]
-    if (!motive_ || !motive_.parsed) return;
-    let motive: Line = motive_.parsed
-    if (motive.kind != "QuantifierApplication" || motive.vars.length != 1) 
+    let types: Line[] = unwrap_statements(node.data.types)
+    //   :/
+    if (types.some(x => x.kind != "TypeDef")) return;
+    let tdefs: TypeDef[] = (types as TypeDef[])
+
+    let motives_: Line[] = unwrap_statements(node.data.motive)
+    if (motives_.some(x => x.kind != "QuantifierApplication" || !x.vars.length))
       return;
-    let vbind: VariableBinding = motive.vars[0];
-    let identifier: Variable = vbind.symbol
-    let tident: Type | undefined = vbind.type
-    if (!tident) return;
-    motive = motive.term
+    let motives: QuantifierApplication[] = motives_ as QuantifierApplication[]
+    let vbinds: VariableBinding[] = motives.map(m => m.vars[0])
+    let identifiers: Variable[] = vbinds.map(v => v.symbol)
+    let tidents_: (Type | undefined)[] = vbinds.map(v => v.type)
+    if (tidents_.some(t => !t)) return;
+    let tidents: Type[] = tidents_ as Type[]
 
-    let cases: Line[] = 
-      node.data.baseCases
-        .concat(node.data.inductiveCases)
-        .map(x => x.parsed)
-        .filter(x => x != undefined)
-        .map(x => x as Line);
+    console.log("PREM", motives)
+    let final_motives = motives.map((m): Term =>
+      (m.vars.length < 2)
+        ? m.term
+        : {
+          kind: "QuantifierApplication",
+          term: m.term,
+          vars: m.vars.slice(1),
+          quantifier: m.quantifier
+        }
+    )
 
+    console.log("RAW CASES", node.data.baseCases, node.data.inductiveCases)
+    let cases: Line[] = unwrap_statements(node.data.baseCases.concat(node.data.inductiveCases))
     for (let c of cases) {
+      console.log("HERE C", c)
       if (!isTerm(c)) {
-        setError(undefined);
+        setError({
+          kind: "Semantic",
+          msg: "Inductive terms must be first-order formulae!"
+        });
         setNode(node => ({...node, data: {...node.data, internalsStatus: "invalid"}}));
         return;
       }
     }
 
     let precond: Term | undefined = conjunct(cases as Term[])
-    let IP: Term = (precond)
-      ? imply(precond, range_over(motive, [[identifier, tident]]))
-      : range_over(motive, [[identifier, tident]])
+    let cum_motives = conjunct(final_motives)
+    console.log("CMOTIVE", cum_motives, final_motives)
+    if (!cum_motives) {
+      setError({
+        kind: "Semantic",
+        msg: "Inductive terms must be first-order formulae!"
+      });
+      setNode(node => ({...node, data: {...node.data, internalsStatus: "invalid"}}));
+      return;
+    }
 
-    let gt_IP: Term = rec_on(tident, tdef)(identifier.ident, motive)
+    let tidentifiers = identifiers.map(
+      (v, i): [Variable, Type] => [v, tidents[i] as Type])
+    let IP: Term = (precond)
+      ? imply(precond, range_over(cum_motives, tidentifiers))
+      : range_over(cum_motives, tidentifiers)
+
+    let gt_IP: Term = mutual_rec_on(tidents, tdefs)(identifiers.map(x=>x.ident), final_motives)
+    
     console.log("GT", display(gt_IP))
     console.log("USER", display(IP))
     let verdict = unifies(IP, gt_IP)

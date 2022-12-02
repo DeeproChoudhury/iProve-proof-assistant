@@ -1,9 +1,9 @@
-import { Parser, ParserOutput, Token, ParseError, err } from 'typescript-parsec';
+import { Parser, ParserOutput, Token, ParseError, err, opt } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb, lrec_sc } from 'typescript-parsec';
 import * as AST from "../types/AST"
 import { UnifyScope } from '../types/LogicInterface';
-import { display } from '../util/trees';
+import { display, getSelector } from '../util/trees';
 import { unifies } from './unifier';
 Error.stackTraceLimit = Infinity;
 
@@ -50,6 +50,27 @@ function prec<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResult>
         (x: TResult[]) => x[0]
     )
 }
+
+/**
+ * A parser combinator which, given two parsers `A` and `B`, returns a parser
+ * which runs A and then B **if and only if** A fails, returning the result
+ * of A if it succeeded, and B otherwise
+ * 
+ * @param A - The first parser
+ * @param B - The backup parser
+ * @returns The parser corresponding to `A else B`
+ * 
+ */
+function if_else<TKind, TResult1, TResult2>(A: Parser<TKind, TResult1>, B: Parser<TKind, TResult2>)
+    : Parser<TKind, TResult1 | TResult2> {
+        return {
+            parse(token: Token<TKind> | undefined): ParserOutput<TKind, TResult1 | TResult2> {
+                let RA = A.parse(token)
+                if (!RA.successful) return B.parse(token)
+                return A.parse(token)
+            }
+        }
+    }
 
 /**
  * A parser combinator which allows debug output to be added to parsers
@@ -99,6 +120,7 @@ const lexer = buildLexer([
     [true, /^(::)/g, TokenKind.DoubleColon],
     [true, /^(:=)/g, TokenKind.FunDefToken],
     [true, /^(:)/g, TokenKind.Colon],
+    [true, /^\|/g, TokenKind.Guard],
     [true, /^(×)/g, TokenKind.Times],
     [true, /^(\.\.)/g, TokenKind.DoubleDot],
     [true, /^(\[\])/g, TokenKind.EmptyArray],
@@ -252,13 +274,15 @@ PREFIX_APPLY.setPattern(apply(
             kmid(str("("), tok(TokenKind.InfixSymbol), str(")")),
             tok(TokenKind.Symbol)
         ),
+        opt(kmid(str("<"), list_sc(TYPE, str(",")), str(">"))),
         kmid(str("("), list_sc(TERM, str(",")), str(")"))
     ),    
-    (value: [Token<TokenKind.InfixSymbol | TokenKind.Symbol>, AST.Term[]]): AST.PrefixApplication => {
+    (value: [Token<TokenKind.InfixSymbol | TokenKind.Symbol>, AST.Type[] | undefined, AST.Term[]]): AST.PrefixApplication => {
         return { 
             kind: "FunctionApplication",
             fn: value[0].text,
-            params: value[1],
+            params: value[2],
+            typeParams: value[1],
             appType: (value[0].kind === TokenKind.Symbol) ? "PrefixFunc" : "PrefixOp"
          }
     }
@@ -276,11 +300,11 @@ PAREN_TERM.setPattern(apply(
 
 ATOMIC_TERM.setPattern(apply(
     seq(
-        alt(
-            PREFIX_APPLY,
+        if_else(PREFIX_APPLY,
+            alt(
             VARIABLE,
             ARRAY_LITERAL,
-            PAREN_TERM),
+            PAREN_TERM)),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
             kmid(str("["), seq(apply(nil(), (_) => { return false; }), TERM, kright(str(".."), opt_sc(TERM))), str(")")),
@@ -511,14 +535,15 @@ END_SCOPE.setPattern(apply(
     (_): AST.EndScope => ({ kind: "EndScope" })
 ))
 
+const PATTERN = rule<TokenKind, AST.Pattern>();
 const CONS_PARAM = rule<TokenKind, AST.ConsParam>();
 CONS_PARAM.setPattern(apply(
     seq(
-        VARIABLE,
-        kright(tok(TokenKind.DoubleColon), VARIABLE)
+        PATTERN,
+        kright(tok(TokenKind.DoubleColon), PATTERN)
     ),
     (value): AST.ConsParam => 
-        ({ kind: "ConsParam", A: value[0].ident, B: value[1].ident })
+        ({ kind: "ConsParam", A: value[0], B: value[1] })
 ));
 const CONSTRUCTED_TYPE = rule<TokenKind, AST.ConstructedType>();
 // below
@@ -539,7 +564,6 @@ SIMPLE_PARAM.setPattern(apply(
 
 const GUARD = rule<TokenKind, AST.Guard>();
 
-const PATTERN = rule<TokenKind, AST.Pattern>();
 PATTERN.setPattern(alt(
     kmid(str("("), CONS_PARAM, str(")")),
     kmid(str("("), CONSTRUCTED_TYPE, str(")")),
@@ -564,7 +588,7 @@ TUPLE_PATTERN.setPattern(apply(
 ));
 
 const GUARD_TERM = rule<TokenKind, AST.Guard | AST.Term>();
-GUARD_TERM.setPattern(alt(
+GUARD_TERM.setPattern(if_else(
     GUARD,
     TERM
 ))
@@ -604,9 +628,10 @@ TYPE_CONSTRUCTOR.setPattern(apply(
         VARIABLE,
         rep_sc(TYPE)
     ),
-    (value): AST.TypeConstructor =>
-        // TODO: SELECTORS
-        ({ kind: "TypeConstructor", ident: value[0].ident, params: value[1], selectors: ["bruh"] })
+    (value: [AST.Variable, AST.Type[]]): AST.TypeConstructor =>
+        { let sels = []; for (let i = 0; i < value[1].length; i++) { sels.push(getSelector(i)); }
+        return { kind: "TypeConstructor", ident: value[0].ident, params: value[1],
+            selectors: sels }}
 ))
 
 const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
@@ -657,3 +682,12 @@ export function evaluate(line: string): AST.ASTNode | ParseError {
 }
 
 export default evaluate;
+
+/*
+const util = require("util")
+const D = (x: Object) => {
+  console.log(util.inspect(x, false, null, true))
+}
+
+D(evaluate("f x ::= | x := 2 | y := 4"))
+*/

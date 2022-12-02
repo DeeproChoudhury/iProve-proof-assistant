@@ -5,12 +5,12 @@ import { map_terms, stateless_map_terms } from "./combinator"
 
 export const AssocOperators: Set<string> = new Set([
     "&",
-    "|"
+    "||"
 ])
 
 export const CommOperators: Set<string> = new Set([
     "&",
-    "|"
+    "||"
 ])
 
 /**
