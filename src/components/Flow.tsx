@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spacer, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -131,11 +131,11 @@ function Flow() {
 
   /* Table used to display 'help' information to user */
   const operatorsToSymbols = [{ value: 'and', symbol: '&' },
-  { value: 'or', symbol: '|' },
+  { value: 'or', symbol: '||' },
   { value: 'iff', symbol: '<->' },
   { value: 'implies', symbol: '->' },
   { value: 'for all x', symbol: 'FA x.' },
-  { value: 'exists x', symbol: 'E x.' },
+  { value: 'exists x', symbol: 'EX x.' },
   { value: 'negation', symbol: '~'} ]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, typeDeclarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
@@ -279,7 +279,8 @@ function Flow() {
       <Modal isOpen={importModalShow}
         onClose={() => { setImportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+        <ModalOverlay />
+        <ModalContent className="iProveModal">
           <ModalHeader>Import Proof</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -293,7 +294,8 @@ function Flow() {
       <Modal isOpen={exportModalShow}
         onClose={() => { setExportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+        <ModalOverlay />
+        <ModalContent className="iProveModal">
           <ModalHeader>Export Proof</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -309,6 +311,74 @@ function Flow() {
         </ModalContent>
       </Modal>
       {/* END : Export Modal */}
+
+      
+
+      {/* START : Header*/}
+      <div className='header'>
+        
+      <span className="emBox">
+            <span className='highlight'>i</span>Prove
+          </span>
+
+        <Stack spacing={4} direction='row' align='center'>
+          
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('givenNode')}>Add Given</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('goalNode')}>Add Goal</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>Add Proof Node</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>Add Induction Node</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => { setImportModalShow(true) }}>Import Proofs</Button>
+          <Button className="headButton" variant="outline" onClick={() => { checkProofValid(nodes, edges); setExportModalShow(true) }}>
+            Export proof
+          </Button>
+          <Button className="headButton" variant="outline" onClick={() => { verifyProofGlobal() }}>
+            Verify Entire Proof
+          </Button>
+          <Button className="headButton" variant="outline" onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
+            {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+          </Button>
+
+
+          {/* START: display table mapping symbol to iprove syntax */}
+          <Popover>
+            <PopoverTrigger>
+              <Button className="headButton" variant="outline" >Symbols</Button>
+            </PopoverTrigger>
+            <PopoverContent style={{ width: "400px" }}>
+              <PopoverArrow />
+              <PopoverCloseButton />
+              <PopoverBody>
+                <TableContainer>
+                  <Table variant='simple'>
+                    <Thead>
+                      <Tr>
+                        <Th>Logical Operator</Th>
+                        <Th>iProve Symbol</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {operatorsToSymbols.map((p, index) =>
+                        {
+                          return <Tr key={index}>
+                            <Td>{p.value}</Td>
+                            <Td>
+                              <SymbolButton symbol={p.symbol} />
+                            </Td>
+                          </Tr>;
+                        }
+                      )}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              </PopoverBody>
+            </PopoverContent>
+          </Popover>
+          {/* END: display table mapping symbol to iProve syntax */}
+
+          
+        </Stack>
+      </div>
+      {/* END : Header Buttons */}
 
       {/* START : Export alert */}
       <div className="alert-container">
@@ -389,75 +459,14 @@ function Flow() {
       </div>
       {/* END : Error alert */}
 
-      {/* START : Header Buttons */}
-      <div>
-        <Stack style={{ marginLeft: '1em', marginBottom: '1em' }} spacing={4} direction='row' align='center'>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('givenNode')}>Add Given</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('goalNode')}>Add Goal</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>Add Proof Node</Button>
-          <Button colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>Add Induction Node</Button>
-          <Button colorScheme='purple' size='md' onClick={() => { setImportModalShow(true) }}>Import Proofs</Button>
-          <Button onClick={() => { setExportModalShow(true) }}>
-            Export proof
-          </Button>
-          <Button onClick={() => { verifyProofGlobal() }}>
-            Verify Edges
-          </Button>
-          <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
-            {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
-          </Button>
-
-
-          {/* START: display table mapping symbol to iprove syntax */}
-          <Popover>
-            <PopoverTrigger>
-              <Button>Symbols</Button>
-            </PopoverTrigger>
-            <PopoverContent style={{ width: "400px" }}>
-              <PopoverArrow />
-              <PopoverCloseButton />
-              <PopoverBody>
-                <TableContainer>
-                  <Table variant='simple'>
-                    <Thead>
-                      <Tr>
-                        <Th>Logical Operator</Th>
-                        <Th>iProve Symbol</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {operatorsToSymbols.map((p, index) =>
-                        {
-                          return <Tr key={index}>
-                            <Td>{p.value}</Td>
-                            <Td>
-                              <SymbolButton symbol={p.symbol} />
-                            </Td>
-                          </Tr>;
-                        }
-                      )}
-                    </Tbody>
-                  </Table>
-                </TableContainer>
-              </PopoverBody>
-            </PopoverContent>
-          </Popover>
-          {/* END: display table mapping symbol to iProve syntax */}
-
-          
-        </Stack>
-      </div>
-      {/* END : Header Buttons */}
-
-
       {/* START : Flow Graph */}
-      <div style={{ display: 'flex', flexDirection: 'row', height: "100vh" }}>
+      <div className="flowContainer">
         
         {/* START : Declarations SideBar */}
 
         <Grid 
           gap={3}
-          style={{ zIndex: 20 /* zIndex to move column to front*/ }}             
+          style={{ marginTop: "20vh", marginLeft: "4vw", zIndex: 20 /* zIndex to move column to front*/ }}             
           visibility={declarationSidebarVisible ? "visible" : "hidden"}
         >
 
@@ -485,7 +494,7 @@ function Flow() {
 
 
 
-        <div style={{ height: '85vh', width: '100%' }}>
+        <div className="flowCanvas">
           <ReactFlow
             nodes={(nodes)}
             nodeTypes={nodeTypes}

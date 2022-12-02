@@ -28,15 +28,15 @@ export default function GoalNode({ id, data }: NodeProps<StatementNodeData>) {
 
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           {data.edgesStatus === "unchecked" &&
-            <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button variant="outline" colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check incoming implications
             </Button>}
           {data.edgesStatus === "valid" &&
-            <Button colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button variant="outline" colorScheme='whatsapp' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check passed. Check again?
             </Button>}
           {data.edgesStatus === "invalid" &&
-            <Button colorScheme='red' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button variant="outline" colorScheme='red' size='xs' onClick={() => { data.thisNode.checkEdges() }}>
               Check failed. Check again?
             </Button>}
         </div>

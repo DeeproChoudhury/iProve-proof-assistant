@@ -1,8 +1,8 @@
 .statement-input {
-  font-family: monospace !important;
+  font-family: "Inconsolata", monospace !important;
   padding: 0 10px 0 10px !important;
 }
 
 .syntax-error {
-  background-color: rgb(255, 143, 143);
+  background-color: rgb(255, 143, 143) !important;
 }
