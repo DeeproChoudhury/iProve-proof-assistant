@@ -110,6 +110,8 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
           {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => setCollapsed(true)}>Hide</Button>}
           {isCollapsed && <Button size='xs' colorScheme='blackAlpha' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {/* {checkSyntaxButton} */}
+          <Button size="xs" colorScheme="blackAlpha" onClick={data.thisNode.autoAddReasons}>Add missing reasons</Button>
+          <Button size="xs" colorScheme="blackAlpha" onClick={data.thisNode.recheckReasons}>Re-check reasons</Button>
           {checkSolveReady ? checkSatButton : solveNotReadyPopover}
         </div>
         {/* END: Node End Buttons */}

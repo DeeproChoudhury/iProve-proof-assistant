@@ -254,7 +254,6 @@ function Flow() {
 
     for (const node of nodes) {
       node.data.thisNode.parseAll()
-      if (node.type !== "inductionNode") node.data.thisNode.autoAddReasons();
       await node.data.thisNode.checkInternal();
       await node.data.thisNode.checkEdges();
     }

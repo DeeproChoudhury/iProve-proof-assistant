@@ -119,15 +119,26 @@ export const makeNodeCallbacks = (
       });
     },
     checkInternal: async () => {
-        const node = nodesRef.current.find(n => n.id === nodeId);
-        if (!node || node.type !== "proofNode") return;
-        for (const listField of ["proofSteps", "goals"] as const) {
-          for (let i = 0; i < node.data[listField].length; i++) {
-            await checkReason(node.data, node.data[listField][i], status => node.data.thisNode[listField].updateReasonStatus(i, status), (_result) => {});
-          }
-        }
+        // const node = nodesRef.current.find(n => n.id === nodeId);
+        // if (!node || node.type !== "proofNode") return;
+        // for (const listField of ["proofSteps", "goals"] as const) {
+        //   for (let i = 0; i < node.data[listField].length; i++) {
+        //     await checkReason(node.data, node.data[listField][i], status => node.data.thisNode[listField].updateReasonStatus(i, status), (_result) => {});
+        //   }
+        // }
     },
-    autoAddReasons: async () => {
+    recheckReasons: async () => {
+      const node = nodesRef.current.find(n => n.id === nodeId);
+      if (!node || node.type !== "proofNode") return;
+      for (const listField of ["proofSteps", "goals"] as const) {
+        for (let i = 0; i < node.data[listField].length; i++) {
+          const reason = node.data[listField][i].reason;
+          if (reason && ["unchecked", "invalid"].includes(reason.status))
+            await checkReason(node.data, node.data[listField][i], status => node.data.thisNode[listField].updateReasonStatus(i, status), (_result) => {});
+        }
+      }
+    },
+    autoAddReasons: () => {
       const autoAddReason = (statement: StatementType, index: number): StatementType => {
         return { ...statement, reason: z3Reason([...new Array(index).keys()]) }
       };

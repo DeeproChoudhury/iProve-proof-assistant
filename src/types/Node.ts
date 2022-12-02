@@ -32,6 +32,7 @@ export type StatementNodeData = SharedNodeData & {
     goals: StatementListCallbacks;
     setWrappers: () => void;
     autoAddReasons: () => void;
+    recheckReasons: () => void;
   };
 };
 
