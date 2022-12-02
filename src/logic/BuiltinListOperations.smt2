@@ -1,4 +1,4 @@
-(declare-const IProveUnderspecifiedInt IProveUnderspecifiedInt)
+(declare-const IProveUnderspecifiedInt Int)
 
 (define-fun-rec ListExchange ((ls (List Int)) (cs (List Int))) (List Int)
    (if ((_ is nil) ls)

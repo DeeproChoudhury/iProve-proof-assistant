@@ -162,7 +162,7 @@ export const makeInductionNodeCallbacks = (
       const verdict = await LI.entails(unwrap_statements(givens), goal)
       success = (verdict.kind === "Valid")
     }
-    console.log('passed this?')
+    console.log('passed this?', success)
     
     {/* END LOGIC INTERFACE CRITICAL REGION */}
 

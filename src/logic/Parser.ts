@@ -318,14 +318,14 @@ ATOMIC_TERM.setPattern(apply(
             const arg2 = value[1][i][2]; // Have to put this in a variable for narrowing to work
             // hack, find a more elegant way to structure in general
             if (arg1)
-                R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "select", params: [
+                R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "ArraySelect", params: [
                     // HACK - prev is returned in an error state, value should always be defined
                     prev, (value[1][i][1] ?? prev)
                 ] };
             else if (arg2)
-                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1, arg2] };
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "ArraySlice", params: [prev, arg1, arg2] };
             else 
-                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1] };
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "ArraySlice", params: [prev, arg1] };
         }
         return R;
     }
