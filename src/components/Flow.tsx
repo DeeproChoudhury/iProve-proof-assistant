@@ -303,65 +303,7 @@ function Flow() {
       </Modal>
       {/* END : Export Modal */}
 
-      {/* START : Export alert */}
-      <div className="alert-container">
-        {exportModalShow && !proofValid && <Alert status='error' className="alert">
-          <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
-          <AlertDescription>
-            Proof can not be printed as proof is not valid.
-            For a proof graph to be valid, all paths into goal nodes must start at a given node,
-            only use valid edges and be acyclical.
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setExportModalShow(false) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-      {/* END : Export alert */}
-
-
-      {/* START : Proof valid alert */} 
-      <div className="alert-container">
-        {stopGlobalCheck === false && <Alert status='success' className="alert">
-          <AlertIcon />
-          <AlertTitle>Success!</AlertTitle>
-          <AlertDescription>
-            Proof is valid.
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setStopGlobalCheck(undefined) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-      {/* END : Proof valid alert */} 
-
-      {/* START : Error alert */} 
-      <div className="alert-container">
-        {error && <Alert status='error' className="alert">
-          <AlertIcon />
-          <AlertTitle>{error.kind ?? ""} Error!</AlertTitle>
-          <AlertDescription>
-            { renderError(error) }
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setError(undefined) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-      {/* END : Error alert */}
+      
 
       {/* START : Header*/}
       <div className='header'>
@@ -428,6 +370,66 @@ function Flow() {
         </Stack>
       </div>
       {/* END : Header Buttons */}
+
+      {/* START : Export alert */}
+      <div className="alert-container">
+        {exportModalShow && !proofValid && <Alert status='error' className="alert">
+          <AlertIcon />
+          <AlertTitle>Error!</AlertTitle>
+          <AlertDescription>
+            Proof can not be printed as proof is not valid.
+            For a proof graph to be valid, all paths into goal nodes must start at a given node,
+            only use valid edges and be acyclical.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setExportModalShow(false) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      {/* END : Export alert */}
+
+
+      {/* START : Proof valid alert */} 
+      <div className="alert-container">
+        {stopGlobalCheck === false && <Alert status='success' className="alert">
+          <AlertIcon />
+          <AlertTitle>Success!</AlertTitle>
+          <AlertDescription>
+            Proof is valid.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setStopGlobalCheck(undefined) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      {/* END : Proof valid alert */} 
+
+      {/* START : Error alert */} 
+      <div className="alert-container">
+        {error && <Alert status='error' className="alert">
+          <AlertIcon />
+          <AlertTitle>{error.kind ?? ""} Error!</AlertTitle>
+          <AlertDescription>
+            { renderError(error) }
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setError(undefined) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      {/* END : Error alert */}
 
 
       {/* START : Flow Graph */}

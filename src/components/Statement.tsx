@@ -80,7 +80,7 @@ const Statement = (props: StatementPropsType) => {
   return (
     <div className="nodrag" style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
       <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
-      <Input size="sm" ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1'}} key={index} value={value} />
+      <Input size="sm" ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1', backgroundColor: "rgb(252, 248, 242)" }} key={index} value={value} />
       {statement.reason && <ReasonIndicator reason={statement.reason} />}
       {addable ? <MoreOptions /> : <></>}
     </div>
