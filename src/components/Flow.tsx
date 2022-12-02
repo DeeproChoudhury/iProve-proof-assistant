@@ -252,7 +252,7 @@ function Flow() {
 
   const verifyProofGlobal = async () => {
 
-    for (const node of nodes) {
+    for await (const node of nodes) {
       node.data.thisNode.parseAll()
       await node.data.thisNode.checkInternal();
       await node.data.thisNode.checkEdges();
