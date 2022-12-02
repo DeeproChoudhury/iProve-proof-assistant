@@ -156,9 +156,9 @@ export const allParsed = (node: AnyNodeProps): boolean => {
 export const internalsStatus = (node: AnyNodeProps): CheckStatus => {
   switch (node.type) {
     case "givenNode":
-    case "proofNode":
-      return "valid";
     case "goalNode":
+      return "valid";
+    case "proofNode":
       const statements = [...node.data.proofSteps, ...node.data.goals];
       if (statements.some(statement => statement.reason?.status === "checking")) return "checking";
       else if (statements.some(statement => statement.reason?.status === "unchecked")) return "unchecked";

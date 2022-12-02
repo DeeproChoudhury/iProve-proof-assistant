@@ -258,12 +258,15 @@ function Flow() {
       await node.data.thisNode.checkEdges();
     }
     setNodes(nodes => {
-      const allValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid" && edgesStatus(node) === "valid");
-      setEdges(edges => {
-        const connectionsValid = checkProofValid(nodes, edges);
-        console.log(allValid, connectionsValid);
-        return edges;
-      });
+      const internalsValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid");
+      const edgesValid = nodes.every(node => allParsed(node) && edgesStatus(node) === "valid");
+      // if problem is with edges don't show anything as there are other errors being displayed
+      if (edgesValid && internalsValid) {
+        setStopGlobalCheck(false);
+      }
+      if (edgesValid && !internalsValid) {
+        setStopGlobalCheck(true);
+      }
       return nodes;
     });
   }
@@ -348,6 +351,25 @@ function Flow() {
       </div>
       {/* END : Proof valid alert */} 
 
+      {/* START : Proof invalid alert */} 
+      <div className="alert-container">
+        {stopGlobalCheck === true && <Alert status='error' className="alert">
+          <AlertIcon />
+          <AlertTitle>Error!</AlertTitle>
+          <AlertDescription>
+            Proof is invalid.
+          </AlertDescription>
+          <IconButton
+            variant='outline'
+            aria-label='Add given'
+            size='xs'
+            onClick={() => { setStopGlobalCheck(undefined) }}
+            icon={<CloseIcon />}
+          />
+        </Alert>}
+      </div>
+      {/* END : Proof invalid alert */} 
+
       {/* START : Error alert */} 
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
@@ -379,7 +401,7 @@ function Flow() {
             Export proof
           </Button>
           <Button onClick={() => { verifyProofGlobal() }}>
-            Verify Entire Proof
+            Verify Edges
           </Button>
           <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
             {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
