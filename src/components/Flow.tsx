@@ -1,5 +1,5 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, Spacer, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spacer, Stack } from '@chakra-ui/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
@@ -272,7 +272,8 @@ function Flow() {
       <Modal isOpen={importModalShow}
         onClose={() => { setImportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+        <ModalOverlay />
+        <ModalContent className="iProveModal">
           <ModalHeader>Import Proof</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -286,7 +287,8 @@ function Flow() {
       <Modal isOpen={exportModalShow && proofValid}
         onClose={() => { setExportModalShow(false) }}        // onAfterOpen={() => {}}
       >
-        <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+        <ModalOverlay />
+        <ModalContent className="iProveModal">
           <ModalHeader>Export Proof</ModalHeader>
           <ModalCloseButton />
           <ModalBody>

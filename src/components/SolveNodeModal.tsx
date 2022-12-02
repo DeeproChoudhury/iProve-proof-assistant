@@ -58,7 +58,7 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
   return (
     <Modal isOpen={isOpen} onClose={() => { setTags(new Array(100).fill('0')); onClose(); }} size='xl'>
       <ModalOverlay />
-      <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+      <ModalContent className="iProveModal">
         <ModalHeader>Check correctness of your proof node</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
