@@ -47,6 +47,15 @@ import {
 } from '@chakra-ui/react'
 import { InfoOutlineIcon } from '@chakra-ui/icons'
 import InfoPopover  from './InfoPopover'
+import {
+  Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+} from '@chakra-ui/react'
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -62,7 +71,7 @@ function Flow() {
   const [nodes, setNodes] = useState<StatementNodeType[]>([]);
   const [inductionNodes, setInductionNodes] = useState<InductionNodeType[]>([]);
 
-
+  const { isOpen, onOpen, onClose } = useDisclosure()
   const [edges, setEdges] = useState<Edge[]>([]);
   const [count, setCount] = useState(0);
   const [error, setError] = useState<ErrorLocation | undefined>(undefined);
@@ -141,7 +150,8 @@ function Flow() {
   { value: 'exists x', symbol: 'E x.' },
   { value: 'negation', symbol: '~'},
   { value: 'integer type', symbol: 'Int'},
-  { value: 'boolean type', symbol: 'Bool'} ]
+  { value: 'boolean type', symbol: 'Bool'},
+  { value: 'list type/empty list', symbol:'[ ]'} ]
 
   const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, inductionNodesRef, declarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
   const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(inductionNodesRef, edgesRef, declarationsRef, setInductionNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
@@ -423,25 +433,25 @@ function Flow() {
           <Button colorScheme='purple' size='md' onClick={() => addNode('givenNode')}>
             Add Given
           </Button>
-          <InfoPopover title = "" info="Are taken as givens by the proof solver" />
+          <InfoPopover ml="5px" title = "" info="Givens are not checked by the proof solver. These are the base for your proof." />
           </div>
           <div>
           <Button colorScheme='purple' size='md' onClick={() => addNode('goalNode')}>
             Add Goal
           </Button>
-          <InfoPopover title="" info="These are the goals you should work towards" />
+          <InfoPopover ml="5px" title="" info="These are the goals you should work towards. All must be validly proven for the proof to be complete." />
           </div>
           <div>
           <Button colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>
             Add Proof Node
           </Button>
-          <InfoPopover title="" info="Write your logical reasoning here" />
+          <InfoPopover ml="5px" title="" info="A proof node is made of givens, proof steps and goals. Givens must be proven by the goal statements of incoming edges. Proof steps are for reasoning. Goals are the statements the proof node seeks to prove. A proof node is valid if all statements can be obtained from previous statements and if a proof nodes' givens follows from its incoming edges." />
           </div>
           <div>
           <Button colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>
             Add Induction Node
           </Button>
-          <InfoPopover title = "" info="Checks inductive principles" />
+          <InfoPopover ml="5px" title = "" info="Checks inductive principles. Select the user defined type you would like to induct over, the property you want to prove. Then you'll have to insert the base case and inductive hypothesis. We'll check if you were right!" />
           </div>
            {/* END : Add Node Buttons */}
           <Button colorScheme='purple' size='md' onClick={() => { setImportModalShow(true) }}>Import Proofs</Button>
@@ -451,9 +461,51 @@ function Flow() {
           <Button onClick={() => { verifyProofGlobal() }}>
             Verify Entire Proof
           </Button>
-          <Button onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
-            {declarationSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+          <Button colorScheme='teal' onClick={onOpen}>
+            Settings
           </Button>
+          <Drawer
+            isOpen={isOpen}
+            placement='right'
+            onClose={onClose}
+          >
+            <DrawerOverlay />
+            <DrawerContent>
+              <DrawerCloseButton />
+              <DrawerHeader>iProve Settings</DrawerHeader>
+              <DrawerBody>
+                {/* START : Column for declarations */}
+                <Grid style={{ zIndex: 5 /* zIndex to move column to front*/ }}
+                  // templateRows='repeat(3, 1fr)'
+                  gap={60}
+                  visibility={declarationSidebarVisible ? "visible" : "hidden"}
+                >
+
+                  {/* START : General Declarations */}
+                  <GridItem >
+                    <Declarations
+                      statements={declarations}
+                      {...declarationsCallbacks}
+                      visible={true} />
+                  </GridItem>
+                  {/* END : General Declarations */}
+
+                  {/* START : Type Declarations */}
+                  <GridItem>
+                    <TypeDeclarations
+                      statements={typeDeclarations}
+                      {...typeDeclarationsCallbacks}
+                      visible={true} />
+                  </GridItem>
+                  {/* END : Type Declarations */}
+
+                </Grid>
+                {/* END : Column for declarations */}
+              </DrawerBody>
+              <DrawerFooter>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
           <Popover>
             <PopoverTrigger>
               <Button>Symbols</Button>
@@ -490,34 +542,6 @@ function Flow() {
 
       {/* START : Flow Graph */}
       <div style={{ display: 'flex', flexDirection: 'row', height: "85vh", marginTop: "5vh"}}>
-        {/* START : Column for declarations */}
-        <Grid style={{ zIndex: 5 /* zIndex to move column to front*/ }}
-          // templateRows='repeat(3, 1fr)'
-          gap={3}
-          visibility={declarationSidebarVisible ? "visible" : "hidden"}
-        >
-
-          {/* START : General Declarations */}
-          <GridItem >
-            <Declarations
-              statements={declarations}
-              {...declarationsCallbacks}
-              visible={true} />
-          </GridItem>
-          {/* END : General Declarations */}
-
-          {/* START : Type Declarations */}
-          <GridItem>
-            <TypeDeclarations
-              statements={typeDeclarations}
-              {...typeDeclarationsCallbacks}
-              visible={true} />
-          </GridItem>
-          {/* END : Type Declarations */}
-
-        </Grid>
-        {/* END : Column for declarations */}
-
 
         <div style={{ height: '85vh', width: '100%' }}>
           <ReactFlow
