@@ -14,6 +14,7 @@ import { IProveError } from "../types/ErrorLocation";
 import { parse_error } from "../util/errors";
 import { checkReason, z3Reason } from "../util/reasons";
 import { makeSharedNodeCallbacks } from "./sharedNodeCallbacks";
+import { LIQ } from "../logic/LogicInterfaceQueue";
 
 export type NodeCallbacks = StatementNodeData["thisNode"];
 
@@ -125,14 +126,14 @@ export const makeNodeCallbacks = (
         //   }
         // }
     },
-    recheckReasons: async () => {
+    recheckReasons: () => {
       const node = nodesRef.current.find(n => n.id === nodeId);
       if (!node || node.type !== "proofNode") return;
       for (const listField of ["proofSteps", "goals"] as const) {
         for (let i = 0; i < node.data[listField].length; i++) {
           const reason = node.data[listField][i].reason;
           if (reason && ["unchecked", "invalid"].includes(reason.status))
-            await checkReason(node.data, node.data[listField][i], status => node.data.thisNode[listField].updateReasonStatus(i, status), (_result) => {});
+            checkReason(node.data, node.data[listField][i], status => node.data.thisNode[listField].updateReasonStatus(i, status), (_result) => {});
         }
       }
     },
@@ -157,7 +158,7 @@ export const makeNodeCallbacks = (
         }    
       });
     },
-    checkEdges: async () => {
+    checkEdges: () => {
       // here we should get all incoming edges & nodes to nodeID
       // use the proofSteps (maybe goals?) of the incoming nodes and the givens of nodeId
       // to deduce whether the implication holds (using z3)
@@ -181,13 +182,14 @@ export const makeNodeCallbacks = (
       }
       
       // check that exp_implications follows from givens with z3
-      {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-      let success: boolean = false;
 
       let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
-      if (goal) { 
-        const verdict = await LI.entails(unwrap_statements(givens), goal)
-        success = (verdict.kind == "Valid")
+      if (!goal) {
+        setError({ kind: "Semantic", msg: "Malformed givens (they may not be declarations or definitions!)" });
+        return;
+      }
+      LIQ.queueEntails(unwrap_statements(givens), goal, verdict => {
+        const success = (verdict.kind == "Valid")
         
         if (verdict.kind == "Error") {
           setError(parse_error(verdict))
@@ -195,31 +197,27 @@ export const makeNodeCallbacks = (
         else if (verdict.kind != "Valid") {
           setError({ kind: "Proof" })
         }
-      } else {
-        setError({ kind: "Semantic", msg: "Malformed givens (they may not be declarations or definitions!)" })
-      }
-      
-      {/* END LOGIC INTERFACE CRITICAL REGION */}
-
-      setNode((node) => {
-        //set nodes
-        return {
-          ...node,
-          data: {
-            ...node.data,
-            edgesStatus: success ? "valid" : "invalid"
-          }
-        };
-      });
-      setEdges(eds => {
-        //set edges
-        return eds.map((edge) => {
-          if (edge.target === nodeId) {
-            edge.type = success ? "checked" : "invalid";
-          }
-          return edge;
+        setNode((node) => {
+          //set nodes
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              edgesStatus: success ? "valid" : "invalid"
+            }
+          };
+        });
+        setEdges(eds => {
+          //set edges
+          return eds.map((edge) => {
+            if (edge.target === nodeId) {
+              edge.type = success ? "checked" : "invalid";
+            }
+            return edge;
+          });
         });
       });
+
     },
     setWrappers: () => {
       // sets the indentation level for each statement inside a node

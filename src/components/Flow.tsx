@@ -46,6 +46,7 @@ import {
 import { renderError } from '../util/errors';
 import { allParsed, edgesStatus, internalsStatus } from '../util/nodes';
 import { SymbolButton } from './SymbolButton';
+import { LIQ } from '../logic/LogicInterfaceQueue';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -241,24 +242,26 @@ function Flow() {
 
   }, [makeThisNode]);
 
-  const verifyProofGlobal = async () => {
+  const verifyProofGlobal = () => {
 
-    for await (const node of nodes) {
+    for (const node of nodes) {
       node.data.thisNode.parseAll()
-      await node.data.thisNode.checkInternal();
-      await node.data.thisNode.checkEdges();
+      node.data.thisNode.checkInternal();
+      node.data.thisNode.checkEdges();
     }
-    setNodes(nodes => {
-      const internalsValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid");
-      const edgesValid = nodes.every(node => allParsed(node) && edgesStatus(node) === "valid");
-      // if problem is with edges don't show anything as there are other errors being displayed
-      if (edgesValid && internalsValid) {
-        setStopGlobalCheck(false);
-      }
-      if (edgesValid && !internalsValid) {
-        setStopGlobalCheck(true);
-      }
-      return nodes;
+    LIQ.queue(() => {
+      setNodes(nodes => {
+        const internalsValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid");
+        const edgesValid = nodes.every(node => allParsed(node) && edgesStatus(node) === "valid");
+        // if problem is with edges don't show anything as there are other errors being displayed
+        if (edgesValid && internalsValid) {
+          setStopGlobalCheck(false);
+        }
+        if (edgesValid && !internalsValid) {
+          setStopGlobalCheck(true);
+        }
+        return nodes;
+      });
     });
   }
 
