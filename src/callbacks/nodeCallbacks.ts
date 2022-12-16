@@ -20,8 +20,6 @@ export type NodeCallbacks = StatementNodeData["thisNode"];
 export const makeNodeCallbacks = (
   nodesRef: MutableRefObject<AnyNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
-  declarationsRef: MutableRefObject<StatementType[]>,
-  typeDeclarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<IProveError | undefined>,
@@ -178,17 +176,13 @@ export const makeNodeCallbacks = (
       const givens = incomingNodes.flatMap(getOutputs);
       const expImplications = getInputs(node);
       
-      if (declarationsRef.current.some(s => !s.parsed) || typeDeclarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
+      if (expImplications.some(s => !s.parsed)) {
         return; // TODO: show error message here
       }
       
       // check that exp_implications follows from givens with z3
       {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
       let success: boolean = false;
-
-      // TODO: WIRE UP TYPES BOX?
-      LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
-      LI.setTypes((node.data.typeDeclarationsRef.current.map(s => s.parsed) as unknown) as TypeDef[])
 
       let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
       if (goal) { 

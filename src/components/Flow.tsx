@@ -82,8 +82,6 @@ function Flow() {
   nodesRef.current = nodes;
   const edgesRef = useRef(edges);
   edgesRef.current = edges;
-  const declarationsRef = useRef(declarations);
-  declarationsRef.current = declarations;
   const typeDeclarationsRef = useRef(typeDeclarations);
   typeDeclarationsRef.current = typeDeclarations;
 
@@ -138,13 +136,13 @@ function Flow() {
   { value: 'exists x', symbol: 'EX x.' },
   { value: 'negation', symbol: '~'} ]
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, declarationsRef, typeDeclarationsRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
-  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, edgesRef, declarationsRef, setNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
+  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
+  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, edgesRef, setNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
 
-  const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setDeclarations, setError), []);
-  const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks(setTypeDeclarations, setError), []);
+  const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks("declarations", setDeclarations, setError), []);
+  const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks("typeDeclarations", setTypeDeclarations, setError), []);
 
-  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, setNodes, setEdges, declarationsRef, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
+  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, setNodes, setEdges, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
 
   const addNode = useCallback((nodeType: NodeKind) => {
     const count = nextId();
@@ -162,7 +160,6 @@ function Flow() {
           inductiveCases: [],
           baseCases: [],
           motive: [{ value: '', wrappers: [] }],
-          declarationsRef,
           typeDeclarationsRef,
           thisNode: makeThisInductionNode(`${count}`)
         },
@@ -180,8 +177,6 @@ function Flow() {
           givens: [],
           proofSteps: [],
           goals: nodeType !== 'goalNode' ? [blankStatement] : [],
-          declarationsRef,
-          typeDeclarationsRef,
           thisNode: makeThisNode(`${count}`)
         },
         position: { x: 300, y: 0 },
@@ -213,9 +208,7 @@ function Flow() {
             edgesValid: true,
             internalsStatus: "unchecked",
             edgesStatus: "unchecked",
-            declarationsRef,
             // inductiveHypotheses: node.data.inductiveHypotheses,
-            typeDeclarationsRef,
             types: node.data.types,
             thisNode: makeThisInductionNode(`${id}`),
 
@@ -230,8 +223,6 @@ function Flow() {
       } else {
         const n = node;
         n.data.edgesStatus = "unchecked";
-        n.data.declarationsRef = declarationsRef;
-        n.data.typeDeclarationsRef = typeDeclarationsRef;
         n.data.thisNode = makeThisNode(`${id}`);
         return n;
       }
