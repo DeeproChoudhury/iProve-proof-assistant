@@ -61,7 +61,7 @@ deploy-job:      # This job runs in the deploy stage.
     # - if: $CI_COMMIT_REF_NAME == "master"
   script:
     - echo "Deploying application..."
-    - fuser 5000/tcp
+    - fuser -k 5000/tcp
     - export ENV=production
     - CI= yarn build
     - export GEM_HOME="$HOME/.gem"
