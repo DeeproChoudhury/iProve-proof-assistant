@@ -65,12 +65,12 @@ deploy-job:      # This job runs in the deploy stage.
     - CI= yarn build
     - export GEM_HOME="$HOME/.gem"
     - gem install dpl
-    - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
     - hostname 
     - echo 'Deploying to port 5000'
     - fuser -k 5000/tcp
     - openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes -config ssl.config
-    - serve -s build --ssl-cert cert.pem --ssl-key key.pem --cors -p 5000 -c ../serve.json &> n &
+    - serve -s build --ssl-cert cert.pem --ssl-key key.pem --cors -p 5000 -c ../serve.json &> /dev/null &
+    - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
   artifacts:
     paths:
       - node_modules/
