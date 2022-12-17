@@ -9,8 +9,6 @@ export type NodeKind = "proofNode" | "givenNode" | "goalNode" | "inductionNode";
 type SharedNodeData = {
   label: string;
   edgesStatus: CheckStatus;
-  declarationsRef: MutableRefObject<StatementType[]>;
-  typeDeclarationsRef: MutableRefObject<StatementType[]>;
 }
 
 type SharedNodeCallbacks = {
@@ -42,6 +40,7 @@ export type InductionNodeData = SharedNodeData & {
   motive: StatementType[];
   inductiveCases: StatementType[];
   baseCases: StatementType[];
+  typeDeclarationsRef: MutableRefObject<StatementType[]>;
   thisNode: SharedNodeCallbacks & {
     types: StatementListCallbacks;
     motive: StatementListCallbacks;

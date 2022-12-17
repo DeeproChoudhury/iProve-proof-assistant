@@ -20,7 +20,6 @@ export type InductionNodeCallbacks = InductionNodeData["thisNode"];
 export const makeInductionNodeCallbacks = (
   nodesRef: MutableRefObject<AnyNodeType[]>,
   edgesRef: MutableRefObject<Edge[]>,
-  declarationsRef: MutableRefObject<StatementType[]>,
   setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>,
   setError: Setter<IProveError | undefined>,
@@ -148,14 +147,11 @@ export const makeInductionNodeCallbacks = (
     const incomingNodes = currNodes.filter(node => incomingNodesIds.has(node.id))
     const givens = incomingNodes.flatMap(getOutputs);
     const expImplications = [...node.data.baseCases, ...node.data.inductiveCases];
-    if (declarationsRef.current.some(s => !s.parsed) || expImplications.some(s => !s.parsed)) {
+    if (expImplications.some(s => !s.parsed)) {
       return; // TODO: show error message here
     }
     {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
     let success: boolean = false;
-
-    // TODO: WIRE UP TYPES BOX?
-    LI.setDeclarations(unwrap_statements(node.data.declarationsRef.current))
 
     let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
     if (goal) { 

@@ -3,11 +3,11 @@ import { CheckStatus, Z3Reason } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { absoluteIndexToLocal } from "./nodes";
 import { Setter } from "./setters";
-import { unwrap_statements } from "./statements";
+import { statementToLine, unwrap_statements } from "./statements";
 import { LI, LogicInterface } from "../logic/LogicInterface";
 import { IProveError } from  "../types/ErrorLocation";
 import { mk_error, parse_error } from "./errors";
-import { TypeDef } from "../types/AST";
+import { Line, TypeDef } from "../types/AST";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
@@ -30,10 +30,8 @@ export const checkReason = async (data: StatementNodeData, statement: StatementT
   updateReasonStatus("checking");
 
   {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-  LI.setDeclarations(unwrap_statements(data.declarationsRef.current))
-  LI.setTypes((data.typeDeclarationsRef.current.map(s => s.parsed) as unknown) as TypeDef[])
   if (statement.parsed) {
-    const verdict = await LI.entails(unwrap_statements(depStatements), statement.parsed)
+    const verdict = await LI.entails(unwrap_statements(depStatements), statementToLine(statement) as Line)
     switch (verdict.kind) {
       case "Valid":
         setCheckFailed(undefined);

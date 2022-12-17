@@ -10,7 +10,6 @@ export const makeFlowCallbacks = (
   nodes: AnyNodeType[],
   setNodes: Setter<AnyNodeType[]>,
   setEdges: Setter<Edge[]>, 
-  declarationsRef: MutableRefObject<StatementType[]>,
   nextId: () => number,
   makeThisNode: (id: string) => NodeCallbacks) => ({
   // onNodeDragStop: (event: React.MouseEvent, node: Node, selectedNodes: Node[]) => {
