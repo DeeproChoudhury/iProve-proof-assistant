@@ -6,7 +6,7 @@ import { IProveError } from "../types/ErrorLocation";
 import { mk_error } from "./errors";
 import { isTerm, toWrapperFunc } from "./trees";
 
-export const updateWithParsed = (setError: Setter<IProveError | undefined>) => (statement: StatementType) => {
+export const updateWithParsed = (setError: (err: IProveError | undefined) => void) => (statement: StatementType) => {
   const parsedOrError = evaluate(statement.value);
   if(parsedOrError.kind === "Error") {
     statement.syntaxCorrect = false;

@@ -1,6 +1,4 @@
-import { MutableRefObject } from "react";
 import { Node } from "reactflow";
-import { StatementListCallbacks } from "../callbacks/statementListCallbacks";
 import { CheckStatus } from "./Reason";
 import { StatementType } from "./Statement";
 
@@ -24,14 +22,14 @@ export type StatementNodeData = SharedNodeData & {
   givens: StatementType[];
   proofSteps: StatementType[];
   goals: StatementType[];
-  thisNode: SharedNodeCallbacks & {
-    givens: StatementListCallbacks;
-    proofSteps: StatementListCallbacks;
-    goals: StatementListCallbacks;
-    setWrappers: () => void;
-    autoAddReasons: () => void;
-    recheckReasons: () => void;
-  };
+  // thisNode: SharedNodeCallbacks & {
+  //   givens: StatementListCallbacks;
+  //   proofSteps: StatementListCallbacks;
+  //   goals: StatementListCallbacks;
+  //   setWrappers: () => void;
+  //   autoAddReasons: () => void;
+  //   recheckReasons: () => void;
+  // };
 };
 
 export type InductionNodeData = SharedNodeData & {
@@ -40,17 +38,18 @@ export type InductionNodeData = SharedNodeData & {
   motive: StatementType[];
   inductiveCases: StatementType[];
   baseCases: StatementType[];
-  typeDeclarationsRef: MutableRefObject<StatementType[]>;
-  thisNode: SharedNodeCallbacks & {
-    types: StatementListCallbacks;
-    motive: StatementListCallbacks;
-    baseCases: StatementListCallbacks;
-    inductiveCases: StatementListCallbacks;
-    invalidateInternals: () => void;
-  }
+  identifier: StatementType[];
+  // typeDeclarationsRef: MutableRefObject<StatementType[]>;
+  // thisNode: SharedNodeCallbacks & {
+  //   types: StatementListCallbacks;
+  //   motive: StatementListCallbacks;
+  //   baseCases: StatementListCallbacks;
+  //   inductiveCases: StatementListCallbacks;
+  //   invalidateInternals: () => void;
+  // }
 }; 
 
-export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "inductiveCases" | "baseCases" | "motive") : never
+export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "inductiveCases" | "baseCases" | "motive" | "identifier") : never
 
 export type AnyNodeData = StatementNodeData | InductionNodeData;
 

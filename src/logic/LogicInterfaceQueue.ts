@@ -1,3 +1,4 @@
+import { current, isDraft } from "immer";
 import * as AST from "../types/AST";
 import { LI, LogicInterface, ProofOutcome } from "./LogicInterface";
 
@@ -15,6 +16,8 @@ export class LogicInterfaceQueue {
   }
 
   queueEntails(reasons: AST.Line[], goal: AST.Line, cb: (outcome: ProofOutcome) => void) {
+    if (isDraft(reasons)) reasons = current(reasons);
+    if (isDraft(goal)) goal = current(goal);
     this.queue(() => this.li.entails(reasons, goal).then(cb));
   }
 }

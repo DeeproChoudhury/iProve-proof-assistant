@@ -1,23 +1,21 @@
 import { Box } from "@chakra-ui/react";
 import './TypeDeclarations.css';
-import { StatementType } from "../types/Statement";
 import StatementList from "./StatementList";
-import { DeclarationCallbacks } from "../callbacks/declarationsCallbacks";
+import { useIProveStore } from "../store/store";
 
-export type TypesPropsType = DeclarationCallbacks & {
-  statements: StatementType[];
-}
 
-const TypeDeclarations = (props: TypesPropsType) => {
-  const { statements, update, add, remove, checkSyntax } = props;
+const TypeDeclarations = () => {
+  const typeDeclarations = useIProveStore(store => store.typeDeclarations);
+  const actions = useIProveStore(store => store.actions.typeDeclarations);
+
   return (
     <Box className={"types"} style={{ resize: "horizontal", overflow: "auto", minWidth: "300px"}}>
       <StatementList
         title="Types"
-        statements={statements}
-        callbacks={{add, update, remove}}
+        statements={typeDeclarations}
+        callbacks={actions}
         isScrollable={true}
-        afterStatementEdit={() => checkSyntax()}
+        afterStatementEdit={actions.parseAll}
       />
     </Box>
   )
