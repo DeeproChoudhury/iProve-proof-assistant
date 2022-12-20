@@ -8,10 +8,11 @@ import { LI, LogicInterface } from "../logic/LogicInterface";
 import { IProveError } from  "../types/ErrorLocation";
 import { mk_error, parse_error } from "./errors";
 import { Line, TypeDef } from "../types/AST";
+import { LIQ } from "../logic/LogicInterfaceQueue";
 
 export const z3Reason = (dependencies: number[]): Z3Reason => ({ kind: "Z3", dependencies, status: "unchecked" });
 
-export const checkReason = async (data: StatementNodeData, statement: StatementType, updateReasonStatus: (status: CheckStatus) => void, setCheckFailed: Setter<IProveError | undefined>) => {
+export const checkReason = (data: StatementNodeData, statement: StatementType, updateReasonStatus: (status: CheckStatus) => void, setCheckFailed: Setter<IProveError | undefined>) => {
   if (!statement.reason) return;
   const depStatements = statement.reason.dependencies.map(absIndex => {
     const [listField, relIndex] = absoluteIndexToLocal(data, absIndex);
@@ -29,9 +30,14 @@ export const checkReason = async (data: StatementNodeData, statement: StatementT
 
   updateReasonStatus("checking");
 
-  {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
-  if (statement.parsed) {
-    const verdict = await LI.entails(unwrap_statements(depStatements), statementToLine(statement) as Line)
+  if (!statement.parsed) {
+    setCheckFailed({
+      kind: "Semantic",
+      msg: "Your objective has not been parsed! Exit the modal and try again"
+    });
+    updateReasonStatus("invalid");
+  }
+  LIQ.queueEntails(unwrap_statements(depStatements), statementToLine(statement) as Line, verdict => {
     switch (verdict.kind) {
       case "Valid":
         setCheckFailed(undefined);
@@ -51,14 +57,6 @@ export const checkReason = async (data: StatementNodeData, statement: StatementT
         setCheckFailed({ kind: "Proof" });
         updateReasonStatus("invalid");
     }
-  } else {
-    setCheckFailed({
-      kind: "Semantic",
-      msg: "Your objective has not been parsed! Exit the modal and try again"
-    });
-    updateReasonStatus("invalid");
-  }
-  data.thisNode.checkInternal();
-  
-  {/* END LOGIC INTERFACE CRITICAL REGION */}
+    data.thisNode.checkInternal();
+  });
 }

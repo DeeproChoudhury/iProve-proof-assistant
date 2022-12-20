@@ -14,6 +14,7 @@ import { makeStatementListCallbacks } from "./statementListCallbacks";
 import { IProveError } from "../types/ErrorLocation";
 import { LI } from "../logic/LogicInterface";
 import { makeSharedNodeCallbacks } from "./sharedNodeCallbacks";
+import { LIQ } from "../logic/LogicInterfaceQueue";
 
 export type InductionNodeCallbacks = InductionNodeData["thisNode"];
 
@@ -136,7 +137,7 @@ export const makeInductionNodeCallbacks = (
     console.log("VERDICT", display(verdict.term))
     setNode(node => ({...node, data: {...node.data, internalsStatus: "valid"}}));
   };
-  const checkEdges = async () => {
+  const checkEdges = () => {
     const currEdges = edgesRef.current;
     const currNodes = nodesRef.current;
     const node = currNodes.find((n) => n.id === nodeId);
@@ -150,38 +151,35 @@ export const makeInductionNodeCallbacks = (
     if (expImplications.some(s => !s.parsed)) {
       return; // TODO: show error message here
     }
-    {/* BEGIN LOGIC INTERFACE CRITICAL REGION */}
     let success: boolean = false;
 
     let goal: Term | undefined = conjunct(unwrap_statements(expImplications))
-    if (goal) { 
-      const verdict = await LI.entails(unwrap_statements(givens), goal)
+    if (!goal) return;
+     
+    LIQ.queueEntails(unwrap_statements(givens), goal, verdict => {
       success = (verdict.kind === "Valid")
-    }
-    console.log('passed this?')
-    
-    {/* END LOGIC INTERFACE CRITICAL REGION */}
 
-    setNode((node) => {
-      //set nodes
-      return {
-        ...node,
-        data: {
-          ...node.data,
-          edgesValid: success ? "valid" : "invalid"
-        }
-      };
-    });
-    setEdges(eds => {
-      //set edges
-      return eds.map((edge) => {
-        if (edge.target === nodeId) {
-          edge.type = success ? "checked" : "invalid";
-        }
-        return edge;
+      setNode((node) => {
+        //set nodes
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            edgesValid: success ? "valid" : "invalid"
+          }
+        };
       });
+      setEdges(eds => {
+        //set edges
+        return eds.map((edge) => {
+          if (edge.target === nodeId) {
+            edge.type = success ? "checked" : "invalid";
+          }
+          return edge;
+        });
+      });
+      return;
     });
-    return;
   };
   return {
     ...makeSharedNodeCallbacks(setNodes, isInductionNode, nodeId),
