@@ -1,7 +1,9 @@
+import { current } from "immer";
 import { addEdge, applyEdgeChanges, applyNodeChanges, Connection, EdgeChange, Node, NodeChange } from "reactflow";
 import { ActionContext, actionsWithContext } from "../store/ActionContext";
 import { IProveDraft, StoreType } from "../store/store";
 import { AnyNodeType } from "../types/Node";
+import { StatementType } from "../types/Statement";
 
 export const onNodesChange = ({ draft }: ActionContext<StoreType>, changes: NodeChange[]) => {
   draft.nodes = applyNodeChanges(changes, draft.nodes as Node[]) as AnyNodeType[];
@@ -22,9 +24,10 @@ export const onConnect = ({ draft }: ActionContext<StoreType>, params: Connectio
       continue;
     }
     const source = draft.nodes.find(node => node.id === params.source);
-    const sourceGoals = source && source.type !== "inductionNode" ? 
-      JSON.parse(JSON.stringify(source.data.goals.filter(s => !node.data.givens.map(g => g.value).includes(s.value)).map(s => {return {...s, reason: undefined}}))) : [];
-    node.data.givens = [...sourceGoals, node.data.givens];
+    const sourceGoals: StatementType[] = source && source.type !== "inductionNode" ? 
+      source.data.goals.filter(s => !node.data.givens.map(g => g.value).includes(s.value)).map(s => {return {...s, reason: undefined}}) : [];
+    node.data.givens = [...sourceGoals, ...node.data.givens];
+    console.log(node.data.givens);
   }
 
   draft.edges = addEdge({...params, 

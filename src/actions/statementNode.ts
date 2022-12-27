@@ -42,8 +42,8 @@ export const autoAddReasons = (ctx: ActionContext<StatementNodeType>) => {
       && statement.reason?.status !== "checking"
     ) statement.reason = z3Reason([...new Array(index).keys()]);
   }
-  node.data.proofSteps.forEach(autoAddReason);
-  node.data.goals.forEach(autoAddReason);
+  node.data.proofSteps.forEach((statement, index) => autoAddReason(statement, index + node.data.givens.length));
+  node.data.goals.forEach((statement, index) => autoAddReason(statement, index + node.data.givens.length + node.data.proofSteps.length));
 }
 
 export const recheckReasons = (ctx: ActionContext<StatementNodeType>) => {
