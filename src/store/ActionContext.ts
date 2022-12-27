@@ -19,6 +19,7 @@ export class ActionContext<T> {
   // this is a separate function as it is the only piece of state that is modified
   // non-locally
   setError(error: IProveError | undefined): void {
+    console.log("setting error to " + error);
     this.#draft.error = error;
   }
 

@@ -155,7 +155,7 @@ const actions = {
   add, update, remove, parse, parseAll, addReason, removeReason, updateReasonStatus, checkReason
 } as const;
 
-export const makeStatementNodeStatementListActions = (set: (cb: (draft: IProveDraft) => void) => void, lens: (draft: IProveDraft) => Draft<NodeAndList>) => {
+export const makeStatementListWithReasonsActions = (set: (cb: (draft: IProveDraft) => void) => void, lens: (draft: IProveDraft) => Draft<NodeAndList>) => {
   return actionsWithContext<keyof typeof actions, NodeAndList, typeof actions>(set, actions, lens);
 }
 

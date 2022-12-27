@@ -328,7 +328,7 @@ function Flow() {
 
         <div className="flowCanvas">
           <ReactFlow
-            nodes={(nodes)}
+            nodes={nodes}
             nodeTypes={nodeTypes}
             edges={edges}
             edgeTypes={edgeTypes}

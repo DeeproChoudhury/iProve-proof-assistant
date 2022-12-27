@@ -1,8 +1,28 @@
 import type { Draft } from "immer";
+import evaluate from "../logic/Parser";
 import { ActionContext, ActionRecord, actionsWithContext, RemoveFirstArg } from "../store/ActionContext";
 import { IProveDraft } from "../store/store";
+import { Line } from "../types/AST";
 import { StatementType } from "../types/Statement";
-import { updateWithParsed } from "../util/statements";
+import { mk_error } from "../util/errors";
+
+const updateWithParsed = (ctx: ActionContext<StatementType[]>, index: number) => {
+  const statement = ctx.draft[index];
+  const parsedOrError = evaluate(statement.value);
+  if(parsedOrError.kind === "Error") {
+    statement.syntaxCorrect = false;
+    ctx.setError(mk_error({
+      kind: "Syntax", statement: statement, column: parsedOrError.pos?.columnBegin,
+      msg: parsedOrError.message
+        .replace("token: <END-OF-FILE>", "entire input")
+    }));
+  } else {
+    // console.log(parsedOrError);
+    statement.parsed = parsedOrError as Line; // TODO: avoid cast here?
+    statement.syntaxCorrect = true;
+  }
+  return statement;
+}
 
 export const add = ({ draft }: ActionContext<StatementType[]>, index?: number) => {
   draft.splice(index ?? draft.length, 0, { value: "", wrappers: [] })
@@ -17,8 +37,8 @@ export const remove = ({ draft }: ActionContext<StatementType[]>, index: number)
   draft.splice(index, 1);
 };
 
-export const parse = ({ draft, setError }: ActionContext<StatementType[]>, index: number) => {
-  draft[index] = updateWithParsed(setError)(draft[index]);
+export const parse = (ctx: ActionContext<StatementType[]>, index: number) => {
+  ctx.draft[index] = updateWithParsed(ctx, index);
 };
 
 export const parseAll = (ctx: ActionContext<StatementType[]>) => {

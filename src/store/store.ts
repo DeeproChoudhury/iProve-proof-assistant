@@ -7,11 +7,11 @@ import { AnyNodeType, InductionNodeType, ListField, StatementNodeType } from "..
 import { StatementType } from "../types/Statement";
 import { makeAnyNodeActions } from "../actions/anyNode";
 import { makeStatementListActions } from "../actions/statementList";
-import { makeStatementNodeStatementListActions } from "../actions/statementNodeStatementList";
+import { makeStatementListWithReasonsActions } from "../actions/statementListWithReasons";
 import { makeInductionNodeActions } from "../actions/inductionNode";
 import { makeStatementNodeActions } from "../actions/statementNode";
 import { makeFlowActions } from "../actions/flow";
-import { makeGlobalActions } from "../actions/addNode";
+import { makeGlobalActions } from "../actions/global";
 import { CheckStatus } from "../types/Reason";
 
 type State = {
@@ -33,7 +33,7 @@ type Actions = {
     forNode: (nodeId: string) => ReturnType<typeof makeAnyNodeActions>,
     forStatementNode: (nodeId: string) =>
       ReturnType<typeof makeAnyNodeActions>
-      & Record<ListField<StatementNodeType["data"]>, ReturnType<typeof makeStatementNodeStatementListActions>>
+      & Record<ListField<StatementNodeType["data"]>, ReturnType<typeof makeStatementListWithReasonsActions>>
       & ReturnType<typeof makeStatementNodeActions>
     forInductionNode: (nodeId: string) =>
       ReturnType<typeof makeAnyNodeActions>
@@ -64,7 +64,7 @@ const getInductionNodeOrThrow = (store: StoreType, nodeId: string): InductionNod
   return node;
 }
 
-const listFieldToStmtNodeStmtListActions = (set: (cb: (draft: IProveDraft) => void) => void, nodeId: string, listField: ListField<StatementNodeType["data"]>) => makeStatementNodeStatementListActions(set, draft => ({ node: getStatementNodeOrThrow(draft, nodeId), listField }));
+const listFieldToStmtNodeStmtListActions = (set: (cb: (draft: IProveDraft) => void) => void, nodeId: string, listField: ListField<StatementNodeType["data"]>) => makeStatementListWithReasonsActions(set, draft => ({ node: getStatementNodeOrThrow(draft, nodeId), listField }));
 
 const listFieldToInductionNodeStmtListActions = (set: (cb: (draft: IProveDraft) => void) => void, nodeId: string, listField: ListField<InductionNodeType["data"]>) => makeStatementListActions(set, draft => getInductionNodeOrThrow(draft, nodeId).data[listField]);
 

@@ -6,7 +6,7 @@ import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
 import { z3Reason } from "../util/reasons";
 import { isBlockEnd, isBlockStart, isTerm } from "../util/trees";
-import { checkReason, updateReasonStatus } from "./statementNodeStatementList";
+import { checkReason, updateReasonStatus } from "./statementListWithReasons";
 
 export const checkInternal = (ctx: ActionContext<StatementNodeType>) => {}
 
