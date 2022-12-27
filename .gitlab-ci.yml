@@ -68,8 +68,8 @@ deploy-job:      # This job runs in the deploy stage.
     - hostname 
     - echo 'Deploying to port 5000'
     - openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -nodes -config ssl.config
-    - serve -s build --ssl-cert cert.pem --ssl-key key.pem --cors -p 5000 -c ../serve.json &> output &
-    - cat output
+    - serve -s build --ssl-cert cert.pem --ssl-key key.pem --cors -p 5000 -c ../serve.json &> /dev/null &
+    # - cat output
     - gem install dpl
     - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
   artifacts:
