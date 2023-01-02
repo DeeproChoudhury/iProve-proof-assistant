@@ -1,18 +1,10 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Spacer, Stack } from '@chakra-ui/react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack } from '@chakra-ui/react';
+import { useState } from 'react';
 import ReactFlow, {
   Background, Controls, Edge, Node
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { makeDeclarationCallbacks } from '../callbacks/declarationsCallbacks';
-import { makeFlowCallbacks } from '../callbacks/flowCallbacks';
-import { makeInductionNodeCallbacks } from '../callbacks/inductionNodeCallbacks';
-import { makeNodeCallbacks } from '../callbacks/nodeCallbacks';
-import Z3Solver from '../logic/Solver';
-import { IProveError } from '../types/ErrorLocation';
-import { AnyNodeType, NodeKind } from '../types/Node';
-import { StatementType } from '../types/Statement';
 import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
 import ImplicationEdge from './edges/ImplicationEdge';
@@ -44,8 +36,8 @@ import {
   TableContainer,
 } from '@chakra-ui/react'
 import { renderError } from '../util/errors';
-import { allParsed, edgesStatus, internalsStatus } from '../util/nodes';
 import { SymbolButton } from './SymbolButton';
+import { useIProveStore } from '../store/store';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -56,39 +48,21 @@ const nodeTypes = {
 const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid: InvalidEdge };
 
 function Flow() {
+  const nodes = useIProveStore(store => store.nodes);
+  const edges = useIProveStore(store => store.edges);
+  const error = useIProveStore(store => store.error);
+  const proofStatus = useIProveStore(store => store.proofStatus);
+  const actions = useIProveStore(store => store.actions);
   const [proofValid, setProofValid] = useState(true);
 
-  const [nodes, setNodes] = useState<AnyNodeType[]>([]);
 
-
-  const [edges, setEdges] = useState<Edge[]>([]);
-  const [count, setCount] = useState(0);
-  const [error, setError] = useState<IProveError | undefined>(undefined);
-  const [stopGlobalCheck, setStopGlobalCheck] = useState<boolean | undefined>(undefined);
-  const [declarations, setDeclarations] = useState<StatementType[]>([]);
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
-
-  const [typeDeclarations, setTypeDeclarations] = useState<StatementType[]>([]);
-  const localZ3Solver = useMemo(() => new Z3Solver.Z3Prover(""), []);
 
   /**
    * Modals
    */
   const [importModalShow, setImportModalShow] = useState(false); // show modal for importing proof (see ModalImport.tsx)
   const [exportModalShow, setExportModalShow] = useState(false); // show modal for exporting proof (see ModalExport.tsx)
-
-  // update refs everytime this hook runs
-  const nodesRef = useRef(nodes);
-  nodesRef.current = nodes;
-  const edgesRef = useRef(edges);
-  edgesRef.current = edges;
-  const typeDeclarationsRef = useRef(typeDeclarations);
-  typeDeclarationsRef.current = typeDeclarations;
-
-  const nextId = useCallback(() => {
-    setCount(count + 1);
-    return count;
-  }, [count]);
 
   const checkProofValid = (ns: Node[], es: Edge[]): boolean => {
     const givens = ns.filter(node => node.type === "givenNode");
@@ -136,131 +110,11 @@ function Flow() {
   { value: 'exists x', symbol: 'EX x.' },
   { value: 'negation', symbol: '~'} ]
 
-  const makeThisNode = useMemo(() => makeNodeCallbacks(nodesRef, edgesRef, setNodes, setEdges, setError, setStopGlobalCheck, localZ3Solver), [localZ3Solver]);
-  const makeThisInductionNode = useMemo(() => makeInductionNodeCallbacks(nodesRef, edgesRef, setNodes, setEdges, setError, localZ3Solver), [localZ3Solver]);
-
-  const declarationsCallbacks = useMemo(() => makeDeclarationCallbacks("declarations", setDeclarations, setError), []);
-  const typeDeclarationsCallbacks = useMemo(() => makeDeclarationCallbacks("typeDeclarations", setTypeDeclarations, setError), []);
-
-  const flowCallbacks = useMemo(() => makeFlowCallbacks(nodes, setNodes, setEdges, nextId, makeThisNode), [nodes, nextId, makeThisNode]);
-
-  const addNode = useCallback((nodeType: NodeKind) => {
-    const count = nextId();
-    console.log(nodes);
-
-    if (nodeType === "inductionNode") {
-      setNodes(nds => [...nds, {
-        id: `${count}`,
-        data: {
-          label: `Node ${count}`,
-          internalsStatus: "unchecked",
-          edgesStatus: "unchecked",
-          types: [{ value: '', wrappers: [] }],
-          identifier: [{ value: '', wrappers: [] }],
-          inductiveCases: [],
-          baseCases: [],
-          motive: [{ value: '', wrappers: [] }],
-          typeDeclarationsRef,
-          thisNode: makeThisInductionNode(`${count}`)
-        },
-        position: { x: 300, y: 0 },
-        type: 'inductionNode',
-      }]);
-    }
-    else {
-      const blankStatement = { value: '', wrappers: [] };
-      setNodes(nds => [...nds, {
-        id: `${count}`,
-        data: {
-          label: `Node ${count}`,
-          edgesStatus: "unchecked",
-          givens: [],
-          proofSteps: [],
-          goals: nodeType !== 'goalNode' ? [blankStatement] : [],
-          thisNode: makeThisNode(`${count}`)
-        },
-        position: { x: 300, y: 0 },
-        type: nodeType,
-      }]);
-    }
-
-  }, [nextId, makeThisNode, makeThisInductionNode]);
-
-
   /**
    * Import Proof given json data. Input list of node data.
    * 
    * @remarks does not need callback?
    */
-  const addImportedProof = useCallback((json: any) => {
-    // Create Given, Proof, Goal Nodes from input data
-    const nodeData = json.nodes.map((node: any) => {
-      const id = node.id;
-      setCount(Math.max(count, id) + 1);
-
-      if (node.type === "inductionNode") {
-        return {
-          id: `${id}`,
-          data: {
-            label: node.data.label,
-            allParsed: false,
-            internalsValid: false,
-            edgesValid: true,
-            internalsStatus: "unchecked",
-            edgesStatus: "unchecked",
-            // inductiveHypotheses: node.data.inductiveHypotheses,
-            types: node.data.types,
-            thisNode: makeThisInductionNode(`${id}`),
-
-            inductiveCases: node.data.inductiveCases,
-            baseCases: node.data.baseCases,
-            motive: node.data.motive,
-
-          },
-          position: node.position,
-          type: node.type,
-        }
-      } else {
-        const n = node;
-        n.data.edgesStatus = "unchecked";
-        n.data.thisNode = makeThisNode(`${id}`);
-        return n;
-      }
-    });
-    
-    const edges = json.edges.map((edge: any) => {
-      const e = edge;
-      e.type = "implication";
-      return e;
-    })
-
-    setDeclarations(json.declarations);
-    setTypeDeclarations(json.types);
-    setNodes(nodeData);
-    setEdges(edges);
-
-  }, [makeThisNode]);
-
-  const verifyProofGlobal = async () => {
-
-    for await (const node of nodes) {
-      node.data.thisNode.parseAll()
-      await node.data.thisNode.checkInternal();
-      await node.data.thisNode.checkEdges();
-    }
-    setNodes(nodes => {
-      const internalsValid = nodes.every(node => allParsed(node) && internalsStatus(node) === "valid");
-      const edgesValid = nodes.every(node => allParsed(node) && edgesStatus(node) === "valid");
-      // if problem is with edges don't show anything as there are other errors being displayed
-      if (edgesValid && internalsValid) {
-        setStopGlobalCheck(false);
-      }
-      if (edgesValid && !internalsValid) {
-        setStopGlobalCheck(true);
-      }
-      return nodes;
-    });
-  }
 
   return (
     <div style={{ position: 'relative' }}>
@@ -275,7 +129,7 @@ function Flow() {
           <ModalHeader>Import Proof</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <ModalImport addImportedProof={addImportedProof} />
+            <ModalImport />
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -290,14 +144,7 @@ function Flow() {
           <ModalHeader>Export Proof</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <ModalExport data={
-              JSON.stringify({
-                nodes: nodes,
-                declarations: declarations,
-                types: typeDeclarations,
-                edges: edges,
-              })
-            } />
+            <ModalExport />
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -314,15 +161,15 @@ function Flow() {
 
         <Stack spacing={4} direction='row' align='center'>
           
-          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('givenNode')}>Add Given</Button>
-          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('goalNode')}>Add Goal</Button>
-          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('proofNode')}>Add Proof Node</Button>
-          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => addNode('inductionNode')}>Add Induction Node</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addGivenNode}>Add Given</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addGoalNode}>Add Goal</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addProofNode}>Add Proof Node</Button>
+          <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addInductionNode}>Add Induction Node</Button>
           <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => { setImportModalShow(true) }}>Import Proofs</Button>
           <Button className="headButton" variant="outline" onClick={() => { checkProofValid(nodes, edges); setExportModalShow(true) }}>
             Export proof
           </Button>
-          <Button className="headButton" variant="outline" onClick={() => { verifyProofGlobal() }}>
+          <Button className="headButton" variant="outline" onClick={actions.global.verifyProofGlobal}>
             Verify Entire Proof
           </Button>
           <Button className="headButton" variant="outline" onClick={() => { setDeclarationSidebarVisible(!declarationSidebarVisible) }}>
@@ -395,7 +242,7 @@ function Flow() {
 
       {/* START : Proof valid alert */} 
       <div className="alert-container">
-        {stopGlobalCheck === false && <Alert status='success' className="alert">
+        {proofStatus === "invalid" && <Alert status='success' className="alert">
           <AlertIcon />
           <AlertTitle>Success!</AlertTitle>
           <AlertDescription>
@@ -405,7 +252,7 @@ function Flow() {
             variant='outline'
             aria-label='Add given'
             size='xs'
-            onClick={() => { setStopGlobalCheck(undefined) }}
+            onClick={actions.global.resetProofStatus}
             icon={<CloseIcon />}
           />
         </Alert>}
@@ -414,7 +261,7 @@ function Flow() {
 
       {/* START : Proof invalid alert */} 
       <div className="alert-container">
-        {stopGlobalCheck === true && <Alert status='error' className="alert">
+        {proofStatus === "invalid" && <Alert status='error' className="alert">
           <AlertIcon />
           <AlertTitle>Error!</AlertTitle>
           <AlertDescription>
@@ -424,7 +271,7 @@ function Flow() {
             variant='outline'
             aria-label='Add given'
             size='xs'
-            onClick={() => { setStopGlobalCheck(undefined) }}
+            onClick={actions.global.resetProofStatus}
             icon={<CloseIcon />}
           />
         </Alert>}
@@ -443,7 +290,7 @@ function Flow() {
             variant='outline'
             aria-label='Add given'
             size='xs'
-            onClick={() => { setError(undefined) }}
+            onClick={actions.global.resetError}
             icon={<CloseIcon />}
           />
         </Alert>}
@@ -463,19 +310,13 @@ function Flow() {
 
           {/* START : General Declarations */}
           <GridItem >
-            <Declarations
-              statements={declarations}
-              {...declarationsCallbacks}
-              />
+            <Declarations />
           </GridItem>
           {/* END : General Declarations */}
 
           {/* START : Type Declarations */}
           <GridItem>
-            <TypeDeclarations
-              statements={typeDeclarations}
-              {...typeDeclarationsCallbacks}
-              />
+            <TypeDeclarations />
           </GridItem>
           {/* END : Type Declarations */}
 
@@ -487,12 +328,12 @@ function Flow() {
 
         <div className="flowCanvas">
           <ReactFlow
-            nodes={(nodes)}
+            nodes={nodes}
             nodeTypes={nodeTypes}
             edges={edges}
             edgeTypes={edgeTypes}
             disableKeyboardA11y={true} // disable keyboard movemement
-            {...flowCallbacks}
+            {...actions.flow}
           >
             <Background />
             <Controls position='bottom-right' />

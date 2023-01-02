@@ -4,8 +4,9 @@ import {
 } from '@chakra-ui/react';
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { NodeProps } from 'reactflow';
+import { useStatementNodeActions } from '../../store/hooks';
 import { ListField, StatementNodeData } from '../../types/Node';
-import { allParsed, localIndexToAbsolute, makeRecheckCallback } from '../../util/nodes';
+import { allParsed, localIndexToAbsolute } from '../../util/nodes';
 import SolveNodeModal from '../SolveNodeModal';
 import StatementList from '../StatementList';
 import { DeleteNodePopover } from './GeneralNode';
@@ -13,7 +14,8 @@ import { MoveableHandles } from './MoveableHandle';
 import { NodeHandle } from './NodeHandle';
 
 function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
-  const afterStatementEdit = useCallback(makeRecheckCallback({ type: "proofNode", data }), [data]);
+  const actions = useStatementNodeActions(id);
+  const afterStatementEdit = actions.recheck;
   const [target, setTarget] = useState<any>();
   
   useEffect(() => {
@@ -28,7 +30,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
     <Button size='xs' 
       colorScheme='blackAlpha' 
       onClick={() => { 
-        data.thisNode.parseAll();
+        actions.parseAll();
         onSolveModalOpen();
       }}>
       Solve
@@ -57,18 +59,19 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
         {isSolveModalOpen && <SolveNodeModal
           isOpen={isSolveModalOpen}
           onClose={onSolveModalClose}
-          node={data} />}
+          node={data}
+          nodeId={id}/>}
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           {data.edgesStatus === "unchecked" &&
-            <Button colorScheme='whatsapp' variant="outline" size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button colorScheme='whatsapp' variant="outline" size='xs' onClick={() => { actions.checkEdges() }}>
               Check incoming implications
             </Button>}
           {data.edgesStatus === "valid" &&
-            <Button colorScheme='whatsapp' variant="outline" size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button colorScheme='whatsapp' variant="outline" size='xs' onClick={() => { actions.checkEdges() }}>
               Check passed. Check again?
             </Button>}
           {data.edgesStatus === "invalid" &&
-            <Button colorScheme='red' variant="outline" size='xs' onClick={() => { data.thisNode.checkEdges() }}>
+            <Button colorScheme='red' variant="outline" size='xs' onClick={() => { actions.checkEdges() }}>
               Check failed. Check again?
             </Button>}
         </div>
@@ -76,7 +79,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
         <StatementList
           title="Givens"
           statements={data.givens}
-          callbacks={data.thisNode.givens}
+          callbacks={actions.givens}
           indexToDisplayedIndex={index => localIndexToAbsolute(data, "givens", index)}
           afterStatementEdit={(index) => afterStatementEdit("givens", index)}
         />
@@ -88,7 +91,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
         <StatementList
           title="Proof Steps"
           statements={data.proofSteps}
-          callbacks={data.thisNode.proofSteps}
+          callbacks={actions.proofSteps}
           isCollapsed={isCollapsed}
           indexToDisplayedIndex={index => localIndexToAbsolute(data, "proofSteps", index)}
           afterStatementEdit={(index) => afterStatementEdit("proofSteps", index)}
@@ -100,7 +103,7 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
         <StatementList
           title="Goals"
           statements={data.goals}
-          callbacks={data.thisNode.goals}
+          callbacks={actions.goals}
           indexToDisplayedIndex={index => localIndexToAbsolute(data, "goals", index)}
           afterStatementEdit={(index) => afterStatementEdit("goals", index)}
         />
@@ -108,12 +111,12 @@ function ProofNode({ id, data }: NodeProps<StatementNodeData>) {
 
         {/* BEGIN: Node End Buttons */}
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-          <DeleteNodePopover deleteNode={data.thisNode.delete} />
+          <DeleteNodePopover deleteNode={actions.deleteNode} />
           {data.proofSteps.length >= 3 && !isCollapsed && <Button size='xs' colorScheme='gray' onClick={() => setCollapsed(true)}>Hide</Button>}
           {isCollapsed && <Button size='xs' colorScheme='gray' onClick={() => { setCollapsed(false) }}>Show</Button>}
           {/* {checkSyntaxButton} */}
-          <Button size="xs" colorScheme="blackAlpha" onClick={data.thisNode.autoAddReasons}>Add missing reasons</Button>
-          <Button size="xs" colorScheme="blackAlpha" onClick={data.thisNode.recheckReasons}>Re-check reasons</Button>
+          <Button size="xs" colorScheme="blackAlpha" onClick={actions.autoAddReasons}>Add missing reasons</Button>
+          <Button size="xs" colorScheme="blackAlpha" onClick={actions.recheckReasons}>Re-check reasons</Button>
           {checkSolveReady ? checkSatButton : solveNotReadyPopover}
         </div>
         {/* END: Node End Buttons */}

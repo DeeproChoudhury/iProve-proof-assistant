@@ -1,30 +1,29 @@
 import { Box, Button, Textarea } from '@chakra-ui/react';
 import { useCallback, useState } from 'react';
+import { useIProveStore } from '../store/store';
 
 /**
  * Modal contents for importing proofs in JSON format
  * 
  * @returns box for modal contents
  */
-const ModalImport = (props: 
-	{ 
-		addImportedProof : (json: any) => void
-	}
-) => {
+const ModalImport = () => {
 
-    const [textAreaValue, setTextAreaValue] = useState("");
+  const addImportedProof = useIProveStore(store => store.actions.global.addImportedProof);
 
-    /**
-     * Parse well formed JSON input into node and add to background 
-     */
-    const parseJSONAddNode = () => {
-        const importedProof = JSON.parse(textAreaValue);
+  const [textAreaValue, setTextAreaValue] = useState("");
 
-		// add nodes to graph
-        props.addImportedProof(
-          importedProof 
-        )
-    }
+  /**
+   * Parse well formed JSON input into node and add to background 
+   */
+  const parseJSONAddNode = () => {
+      const importedProof = JSON.parse(textAreaValue);
+
+	// add nodes to graph
+      addImportedProof(
+        importedProof 
+      )
+  }
 
 	// file contents when uploaded
 	const [file, setFile] = useState("");
