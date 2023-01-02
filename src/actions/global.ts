@@ -68,7 +68,7 @@ export const addImportedProof = ({ draft }: ActionContext<StoreType>, json: any)
         data: {
           label: node.data.label,
           internalsStatus: "unchecked",
-          edgesStatus: "unchecked",
+          edgesStatus: node.data.edgesStatus,
           types: node.data.types,
 
           inductiveCases: node.data.inductiveCases,
@@ -82,14 +82,14 @@ export const addImportedProof = ({ draft }: ActionContext<StoreType>, json: any)
       }
     } else {
       const n = node;
-      n.data.edgesStatus = "unchecked";
+      n.data.edgesStatus = node.data.edgesStatus;
       return n;
     }
   });
   
   draft.edges = json.edges.map((edge: any) => {
     const e = edge;
-    e.type = "implication";
+    e.type = edge.type;
     return e;
   })
 
