@@ -32,8 +32,11 @@ install-dependencies:       # This job runs in the build stage, which runs first
     - yarn install
     - yarn add serve
   artifacts:
+    public: false
     paths:
       - node_modules/
+
+
 
 
 unit-test-job:   # This job runs in the test stage.
@@ -42,6 +45,7 @@ unit-test-job:   # This job runs in the test stage.
     - echo "Running unit tests"
     - yarn test --ci --watchAll=false
   artifacts:
+    public: false
     paths:
       - node_modules/
   
