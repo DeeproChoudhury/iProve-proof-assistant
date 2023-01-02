@@ -2,7 +2,7 @@ import { CloseIcon } from '@chakra-ui/icons';
 import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack } from '@chakra-ui/react';
 import { useState } from 'react';
 import ReactFlow, {
-  Background, Controls, Edge, Node
+  Background, Controls,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import Declarations from './Declarations';
@@ -53,7 +53,6 @@ function Flow() {
   const error = useIProveStore(store => store.error);
   const proofStatus = useIProveStore(store => store.proofStatus);
   const actions = useIProveStore(store => store.actions);
-  const [proofValid, setProofValid] = useState(true);
 
 
   const [declarationSidebarVisible, setDeclarationSidebarVisible] = useState(true);
@@ -63,43 +62,6 @@ function Flow() {
    */
   const [importModalShow, setImportModalShow] = useState(false); // show modal for importing proof (see ModalImport.tsx)
   const [exportModalShow, setExportModalShow] = useState(false); // show modal for exporting proof (see ModalExport.tsx)
-
-  const checkProofValid = (ns: Node[], es: Edge[]): boolean => {
-    const givens = ns.filter(node => node.type === "givenNode");
-    const goals = ns.filter(node => node.type === "goalNode");
-    const valid = checkValid(ns, goals, givens, es, []);
-    return valid;
-  }
-
-  const checkValid = (ns: Node[], currs: Node[], givens: Node[], es: Edge[], visited: Node[]): boolean => {
-    // check that all paths into goals eventually start at givens and only use valid edges and do not cycle
-    const non_given_currs = currs.filter(node => !givens.includes(node));
-    const cycle_found = non_given_currs.some(n => visited.includes(n)); //check if any current node has already been found
-    if (cycle_found) {
-      console.log("here3");
-      return false;
-    }
-    const new_visited = visited.concat(non_given_currs);
-    const non_given_currs_ids = non_given_currs.map(node => node.id);
-    if (non_given_currs_ids.length === 0) {
-      return true
-    }
-    const valid_edges_to_non_given_currs: Edge[] = es.filter(e => non_given_currs_ids.includes(e.target));
-    const prev_ids = valid_edges_to_non_given_currs.map(e => e.source);
-    const hit_currs = valid_edges_to_non_given_currs.map(e => e.target);
-    const no_incoming_edges_non_givens = non_given_currs_ids.filter(id => !hit_currs.includes(id));
-    if (no_incoming_edges_non_givens.length > 0) {
-      console.log("here2");
-      return false; //path can't end at a non_given node
-    }
-    const prev_nodes = ns.filter(node => prev_ids.includes(node.id));
-    if (prev_nodes.length === 0) {
-      console.log("here1");
-      return false;
-    } else {
-      return checkValid(ns, prev_nodes, givens, es, new_visited);
-    }
-  }
 
   /* Table used to display 'help' information to user */
   const operatorsToSymbols = [{ value: 'and', symbol: '&' },
@@ -166,7 +128,7 @@ function Flow() {
           <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addProofNode}>Add Proof Node</Button>
           <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addInductionNode}>Add Induction Node</Button>
           <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={() => { setImportModalShow(true) }}>Import Proofs</Button>
-          <Button className="headButton" variant="outline" onClick={() => { checkProofValid(nodes, edges); setExportModalShow(true) }}>
+          <Button className="headButton" variant="outline" onClick={() => { setExportModalShow(true) }}>
             Export proof
           </Button>
           <Button className="headButton" variant="outline" onClick={actions.global.verifyProofGlobal}>
@@ -217,28 +179,6 @@ function Flow() {
         </Stack>
       </div>
       {/* END : Header Buttons */}
-
-      {/* START : Export alert */}
-      <div className="alert-container">
-        {exportModalShow && !proofValid && <Alert status='error' className="alert">
-          <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
-          <AlertDescription>
-            Proof can not be printed as proof is not valid.
-            For a proof graph to be valid, all paths into goal nodes must start at a given node,
-            only use valid edges and be acyclical.
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={() => { setExportModalShow(false) }}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-      {/* END : Export alert */}
-
 
       {/* START : Proof valid alert */} 
       <div className="alert-container">
