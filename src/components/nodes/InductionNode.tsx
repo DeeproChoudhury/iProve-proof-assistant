@@ -1,7 +1,7 @@
 import { InductionNodeData, ListField } from "../../types/Node";
 import { AddIcon } from '@chakra-ui/icons';
 import {
-	Box, Button, IconButton, Select, Text
+	Box, Button, Divider, IconButton, Select, Text
 } from '@chakra-ui/react';
 import { ReactElement, ReactNode, useCallback, useEffect, useState } from "react";
 import "./InductionNode.css"
@@ -11,10 +11,13 @@ import { StatementType } from "../../types/Statement";
 import { DeleteNodePopover } from "./GeneralNode";
 import Moveable from "react-moveable";
 import { MoveableHandles } from "./MoveableHandle";
-import { makeRecheckCallback } from "../../util/nodes";
+import { useInductionNodeActions } from "../../store/hooks";
+import { useIProveStore } from "../../store/store";
 
 function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): ReactElement {
 	const [target, setTarget] = useState<any>();
+  const actions = useInductionNodeActions(id);
+  const typeDeclarations = useIProveStore(store => store.typeDeclarations);
 	
 	useEffect(() => {
 		return setTarget(document.querySelector(`#induction-node-${id}`)!);
@@ -22,10 +25,10 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	const statusStyle = nodeData.internalsStatus !== 'unchecked' ? nodeData.internalsStatus + "-induction" : '';
 	const componentStyle = "induction-node " + statusStyle;
 	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
-		nodeData.thisNode[k].update(updated, evt.target.value);
+		actions[k].update(updated, evt.target.value);
 	}, [nodeData]);
 
-  const afterStatementEdit = useCallback(makeRecheckCallback({ type: "inductionNode", data: nodeData }), [nodeData]);
+  const afterStatementEdit = actions.recheck;
 
   const targetHandle: ReactNode = <Handle type="target" position={Position.Top} style={{ height: '10px', width: '10px' }} />;
   const sourceHandle: ReactNode = <Handle type="source" position={Position.Bottom} id="b" style={{ height: '10px', width: '10px' }} />;
@@ -33,7 +36,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
     <Button size='xs'
       colorScheme='blackAlpha' 
       onClick={() => { 
-		nodeData.thisNode.checkInternal();
+		actions.checkInternal();
       }}>
       Check induction principle
     </Button>;
@@ -41,7 +44,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	const NodeBottomButtons = () => {
 		return (
 			<div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '5px' }}>
-				<DeleteNodePopover deleteNode={nodeData.thisNode.delete} />
+				<DeleteNodePopover deleteNode={actions.deleteNode} />
 				{checkSatButton}
 			</div>
 		);
@@ -49,7 +52,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 
 	const onTypeSelect = (typeIndex: number, index: number) => {
 		if (!isNaN(typeIndex)) {
-			nodeData.thisNode["types"].updateWithStatement(index, nodeData.typeDeclarationsRef.current[typeIndex]);
+			actions["types"].updateWithStatement(index, typeDeclarations[typeIndex]);
 		}
 	}
 
@@ -62,15 +65,15 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 				{targetHandle}
 				<div style={{ display: 'flex', justifyContent: 'center' }}>
 					{nodeData.edgesStatus === "unchecked" &&
-						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+						<Button variant="outline" colorScheme='whatsapp' size='xs' onClick={() => { actions.checkEdges() }}>
 							Check incoming implications
 						</Button>}
 					{nodeData.edgesStatus === "valid" &&
-						<Button colorScheme='whatsapp' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+						<Button variant="outline" colorScheme='whatsapp' size='xs' onClick={() => { actions.checkEdges() }}>
 							Check passed. Check again?
 						</Button>}
 					{nodeData.edgesStatus === "invalid" &&
-						<Button colorScheme='red' size='xs' onClick={() => { nodeData.thisNode.checkEdges() }}>
+						<Button variant="outline" colorScheme='red' size='xs' onClick={() => { actions.checkEdges() }}>
 							Check failed. Check again?
 						</Button>}
 				</div>
@@ -83,23 +86,26 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 						aria-label='Add Induction Goal'
 						size='xs'
 						icon={<AddIcon />}
-						onClick={() => { nodeData.thisNode.types.add() }}
+						onClick={() => { actions.types.add() }}
 					/>
 				</div>
-				<div style={{ display: 'flex', flexDirection: 'column' }}>
+				<div style={{ display: 'flex', flexDirection: 'column', marginTop: "10px" }}>
 					{nodeData.types.map((s: StatementType, index: number) =>
 						<Select
 							placeholder='Select type'
 							size='sm'
+							style={{backgroundColor: "rgb(252, 248, 242)", borderRadius: "3px"}}
 							onChange={e => onTypeSelect(parseInt(e.target.value), index)}
 							key={index}>
-								{nodeData.typeDeclarationsRef.current.map((type, idx_) =>
+								{typeDeclarations.map((type, idx_) =>
 									<option value={idx_}>{type.value}</option>
 								)}
 							
 							</Select>)}
 				</div>
 				{/* END : Type */}
+
+				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
 
 				{/* BEGIN : Motive */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -109,7 +115,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 						aria-label='Add Induction Goal'
 						size='xs'
 						icon={<AddIcon />}
-						onClick={() => { nodeData.thisNode.motive.add() }}
+						onClick={() => { actions.motive.add() }}
 					/>
 				</div>
 				<div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -118,13 +124,15 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							onChange={e => onChange(e, "motive", index)}
 							statement={s}
 							index={index}
-							addAbove={() => {nodeData.thisNode.motive.add(index) }}
-							addBelow={() => {nodeData.thisNode.motive.add(index + 1) }}
-							deleteStatement={() => { nodeData.thisNode.motive.remove(index) }}
+							addAbove={() => {actions.motive.add(index) }}
+							addBelow={() => {actions.motive.add(index + 1) }}
+							deleteStatement={() => { actions.motive.remove(index) }}
 							afterEdit={() => afterStatementEdit("motive", index)}
 							key={index} />)}
 				</div>
 				{/* END : Motive */}
+
+				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
 
 				{/* BEGIN : Base Case */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -134,7 +142,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 						aria-label='Add Base Case'
 						size='xs'
 						icon={<AddIcon />}
-						onClick={() => { nodeData.thisNode.baseCases.add() }}
+						onClick={() => { actions.baseCases.add() }}
 					/>
 				</div>
 				<div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -143,13 +151,15 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							onChange={e => onChange(e, "baseCases", index)}
 							statement={s}
 							index={index}
-							addAbove={() => { nodeData.thisNode.baseCases.add(index) }}
-							addBelow={() => { nodeData.thisNode.baseCases.add(index + 1) }}
-							deleteStatement={() => { nodeData.thisNode.baseCases.remove(index) }}
+							addAbove={() => { actions.baseCases.add(index) }}
+							addBelow={() => { actions.baseCases.add(index + 1) }}
+							deleteStatement={() => { actions.baseCases.remove(index) }}
 							afterEdit={() => afterStatementEdit("baseCases", index)}
 							key={index} />)}
 				</div>
 				{/* END : Base Case */}
+
+				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
 
 				{/* BEGIN : Induction Case */}
 				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
@@ -159,7 +169,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 						aria-label='Add given'
 						size='xs'
 						icon={<AddIcon />}
-						onClick={() => { nodeData.thisNode.inductiveCases.add() }}
+						onClick={() => { actions.inductiveCases.add() }}
 					/>
 				</div>
 				<div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -168,9 +178,9 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							onChange={e => onChange(e, "inductiveCases", index)}
 							statement={s}
 							index={index}
-							addAbove={() => { nodeData.thisNode.inductiveCases.add(index) }}
-							addBelow={() => { nodeData.thisNode.inductiveCases.add(index + 1) }}
-							deleteStatement={() => { nodeData.thisNode.inductiveCases.remove(index) }}
+							addAbove={() => { actions.inductiveCases.add(index) }}
+							addBelow={() => { actions.inductiveCases.add(index + 1) }}
+							deleteStatement={() => { actions.inductiveCases.remove(index) }}
 							afterEdit={() => afterStatementEdit("inductiveCases", index)}
 							key={index} />)}
 				</div>

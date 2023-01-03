@@ -7,21 +7,24 @@ import { StatementNodeData } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { renderError } from '../util/errors';
 import { absoluteIndexToLocal } from '../util/nodes';
-import { checkReason, z3Reason } from '../util/reasons';
+import { z3Reason } from '../util/reasons';
 import { IProveError } from "../types/ErrorLocation";
 import ModalStatement from './ModalStatement';
 import './SolveNodeModal.css';
+import { useStatementNodeActions } from '../store/hooks';
 
 export type SolveNodeModalPropsType = {
   isOpen: boolean,
   onClose: () => void,
   node: StatementNodeData,
+  nodeId: string,
 }
 
 type Tag = '0' | '1' | '2'; 
 
 const SolveNodeModal = (props: SolveNodeModalPropsType) => {
-  const { isOpen, onClose, node } = props;
+  const { isOpen, onClose, node, nodeId } = props;
+  const nodeActions = useStatementNodeActions(nodeId)
   const [tags, setTags] = useState<Tag[]>(Array(node.givens.length + node.proofSteps.length + node.goals.length).fill('0'));
   const relevantTags = tags.slice(0, node.givens.length + node.proofSteps.length + node.goals.length);
   const [checkError, setCheckFailed] = useState<IProveError | undefined>(undefined);
@@ -50,15 +53,14 @@ const SolveNodeModal = (props: SolveNodeModalPropsType) => {
     const conclusionAbsIndex = relevantTags.indexOf('2') //node.proofSteps.findIndex((s, i) => tags[node.givens.length + i] === '2') === -1 ? "goals" : "proofSteps";
     if (conclusionAbsIndex === -1) return;
     const [conclusionType, conclusionRelIndex] = absoluteIndexToLocal(node, conclusionAbsIndex);
-    const conclusion = node[conclusionType][conclusionRelIndex];
-    node.thisNode[conclusionType].addReason(conclusionRelIndex, z3Reason(reasonsIndexes));
-    checkReason(node, conclusion, status => (node.thisNode[conclusionType].updateReasonStatus(conclusionRelIndex, status)), setCheckFailed);
+    nodeActions[conclusionType].addReason(conclusionRelIndex, z3Reason(reasonsIndexes));
+    nodeActions[conclusionType].checkReason(conclusionRelIndex);
   }
 
   return (
     <Modal isOpen={isOpen} onClose={() => { setTags(new Array(100).fill('0')); onClose(); }} size='xl'>
       <ModalOverlay />
-      <ModalContent style={{ backgroundColor: "rgb(56, 119, 156)", color: 'white' }}>
+      <ModalContent className="iProveModal">
         <ModalHeader>Check correctness of your proof node</ModalHeader>
         <ModalCloseButton />
         <ModalBody>

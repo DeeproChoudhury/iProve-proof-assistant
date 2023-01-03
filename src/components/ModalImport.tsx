@@ -1,30 +1,29 @@
 import { Box, Button, Textarea } from '@chakra-ui/react';
 import { useCallback, useState } from 'react';
+import { useIProveStore } from '../store/store';
 
 /**
  * Modal contents for importing proofs in JSON format
  * 
  * @returns box for modal contents
  */
-const ModalImport = (props: 
-	{ 
-		addImportedProof : (json: any) => void
-	}
-) => {
+const ModalImport = () => {
 
-    const [textAreaValue, setTextAreaValue] = useState("");
+  const addImportedProof = useIProveStore(store => store.actions.global.addImportedProof);
 
-    /**
-     * Parse well formed JSON input into node and add to background 
-     */
-    const parseJSONAddNode = () => {
-        const importedProof = JSON.parse(textAreaValue);
+  const [textAreaValue, setTextAreaValue] = useState("");
 
-		// add nodes to graph
-        props.addImportedProof(
-          importedProof 
-        )
-    }
+  /**
+   * Parse well formed JSON input into node and add to background 
+   */
+  const parseJSONAddNode = () => {
+      const importedProof = JSON.parse(textAreaValue);
+
+	// add nodes to graph
+      addImportedProof(
+        importedProof 
+      )
+  }
 
 	// file contents when uploaded
 	const [file, setFile] = useState("");
@@ -49,8 +48,8 @@ const ModalImport = (props:
 		return (
 			<Box>
 				<form id="upload">
-					<Button colorScheme="blackAlpha" onClick={() => {setTextAreaValue(file)}} > Upload </Button>
-					<input type="file" id="file" accept=".json" onChange={parseFile} />
+					<Button variant="outline" colorScheme="blackAlpha" onClick={() => {setTextAreaValue(file)}} > Upload </Button>
+					<input style={{marginLeft: "5px"}} type="file" id="file" accept=".json" onChange={parseFile} />
 				</form>		
 			</Box>
 		);
@@ -75,7 +74,7 @@ const ModalImport = (props:
                 onChange={(e) => {setTextAreaValue(e.target.value)}}
             />        
         </div>
-        <Button colorScheme="blackAlpha" onClick={parseJSONAddNode} style={{margin: '5px 0'}}>Import</Button>
+        <Button variant="outline" colorScheme="blackAlpha" onClick={parseJSONAddNode} style={{margin: '5px 0'}}>Import</Button>
 		<UploadProof/>
 	  </Box>
 	)

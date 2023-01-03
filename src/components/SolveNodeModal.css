@@ -4,7 +4,7 @@
 }
 .errorMessage {
   color: rgb(254, 83, 61);
-  font-family: monospace;
+  font-family: "Inconsolata", monospace;
   font-size: 1.3em;
   padding-top: 10px;
 }

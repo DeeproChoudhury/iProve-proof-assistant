@@ -1,11 +1,23 @@
-import { Box, Button, Textarea } from '@chakra-ui/react';
+import { Box, Button, Textarea, useToast } from '@chakra-ui/react';
+import { useIProveStore } from '../store/store';
 
 /**
  * Modal contents for Exporting proofs in JSON format
  * 
  * @returns box for modal contents
  */
-const ModalExport = (props: { data : string}) => {
+const ModalExport = () => {
+  const nodes = useIProveStore(store => store.nodes);
+  const edges = useIProveStore(store => store.edges);
+  const declarations = useIProveStore(store => store.declarations);
+  const typeDeclarations = useIProveStore(store => store.typeDeclarations);
+
+  const data = JSON.stringify({
+    nodes,
+    declarations,
+    types: typeDeclarations,
+    edges
+  })
 
 	/**
 	 * Download proof as json file
@@ -14,7 +26,7 @@ const ModalExport = (props: { data : string}) => {
 	 * */ 
     const DownloadProof = () => {
 		const a = document.createElement("a");
-		const file = new Blob([props.data], { type: "text/plain" });
+		const file = new Blob([data], { type: "text/plain" });
 		a.href = URL.createObjectURL(file);
 		a.download = "proof.json";
 		a.click();
@@ -23,6 +35,7 @@ const ModalExport = (props: { data : string}) => {
 	/**
      * Box for exporting
      */
+   const toast = useToast()
     return (
       <Box borderRadius='md' my='1'>
         <div style={{display: 'flex'}}>
@@ -33,19 +46,29 @@ const ModalExport = (props: { data : string}) => {
                 background='gray.100'
                 textColor='blackAlpha.900'
                 _placeholder={{ color: 'gray.400'}}
-                value={props.data}
+                value={data}
                 isDisabled
             />
         </div>
 
         {/* START : Copy to Clipboard Button */}
-        <Button colorScheme="blackAlpha" onClick={() => {navigator.clipboard.writeText(props.data)}} style={{margin: '5px 0'}}>
+        <Button variant="outline" colorScheme="blackAlpha" onClick={() => {
+          
+            navigator.clipboard.writeText(data);
+            toast({
+              title: 'Copied!',
+              description: "Proof has been copied to clipboard",
+              status: 'success',
+              duration: 5000,
+              isClosable: true,
+            })
+          }} style={{margin: '5px 0'}}>
             Copy to Clipboard
         </Button>
         {/* END : Copy to Clipboard Button */}
 
 		{/* START : Download Proof Button */}
-		<Button colorScheme="blackAlpha" onClick={() => {DownloadProof()}} style={{margin: '5px 0'}}>
+		<Button variant="outline" colorScheme="blackAlpha" onClick={() => {DownloadProof()}} style={{margin: '5px 5px'}}>
 			Download Proof
 		</Button>
 		{/* END : Download Proof Button */}		

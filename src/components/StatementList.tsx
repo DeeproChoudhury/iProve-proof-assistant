@@ -1,13 +1,17 @@
 import { AddIcon } from "@chakra-ui/icons";
 import { Box, IconButton, Text } from "@chakra-ui/react";
-import { StatementListCallbacks } from "../callbacks/statementListCallbacks";
 import { StatementType } from "../types/Statement";
 import Statement from "./Statement";
 
 export type StatementListPropsType = {
   title: string;
   statements: StatementType[];
-  callbacks: Pick<StatementListCallbacks, "add" | "update" | "remove">;
+  callbacks: {
+    add: (index?: number) => void;
+    update: (index: number, value: string) => void;
+    remove: (index: number) => void;
+    removeReason?: (index: number) => void;
+  };
   isCollapsed?: boolean;
   isScrollable?: boolean
   indexToDisplayedIndex?: (index: number) => number;
@@ -22,12 +26,13 @@ export default function StatementList({ title, statements, callbacks, isCollapse
     onChange: (e: any) => callbacks.update(index, e.target.value),
     addAbove: () => callbacks.add(index),
     addBelow: () => callbacks.add(index + 1),
+    removeReason: () => callbacks.removeReason?.(index),
     deleteStatement: () => callbacks.remove(index),
     afterEdit: () => afterStatementEdit(index),
   });
 
   return <div style={{ display: 'flex', flexDirection: 'column' }}>
-    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+    <div style={{ fontFamily: "Montserrat", fontWeight: "400", display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
       <Text>{title}</Text>
       <IconButton
         variant='outline'
