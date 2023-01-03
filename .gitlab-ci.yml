@@ -47,6 +47,13 @@ unit-test-job:   # This job runs in the test stage.
   script:
     - echo "Running unit tests"
     - yarn test --ci --watchAll=false
+  cache:
+    key:
+      files:
+        - package.json
+    paths:
+      - node_modules
+    when: 'always'
 
 lint-test-job:   # This job also runs in the test stage.
   stage: test    # It can run at the same time as unit-test-job (in parallel).
@@ -77,6 +84,9 @@ deploy-job:      # This job runs in the deploy stage.
     - gem install dpl
     - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
   cache:
+    key:
+      files:
+        - package.json
     paths:
       - node_modules
       - build
