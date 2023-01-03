@@ -31,10 +31,13 @@ install-dependencies:       # This job runs in the build stage, which runs first
     # - npm install yarn
     - yarn install
     - yarn add serve
-  artifacts:
-    public: false
+  cache:
+    key:
+      files:
+        - package.json
     paths:
-      - node_modules/
+      - node_modules
+    when: 'always'
 
 
 
@@ -44,11 +47,13 @@ unit-test-job:   # This job runs in the test stage.
   script:
     - echo "Running unit tests"
     - yarn test --ci --watchAll=false
-  artifacts:
-    public: false
+  cache:
+    key:
+      files:
+        - package.json
     paths:
-      - node_modules/
-  
+      - node_modules
+    when: 'always'
 
 lint-test-job:   # This job also runs in the test stage.
   stage: test    # It can run at the same time as unit-test-job (in parallel).
@@ -67,6 +72,8 @@ deploy-job:      # This job runs in the deploy stage.
     - echo "Deploying application..."
     - fuser -k 5000/tcp || echo "nothing running on 5000"
     - export ENV=production
+    - ls
+    - pwd
     - CI= yarn build
     - export GEM_HOME="$HOME/.gem"
     - hostname 
@@ -76,7 +83,10 @@ deploy-job:      # This job runs in the deploy stage.
     # - cat output
     - gem install dpl
     - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
-  artifacts:
+  cache:
+    key:
+      files:
+        - package.json
     paths:
-      - node_modules/
+      - node_modules
       - build
