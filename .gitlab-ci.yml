@@ -71,6 +71,8 @@ deploy-job:      # This job runs in the deploy stage.
     - echo "Deploying application..."
     - fuser -k 5000/tcp || echo "nothing running on 5000"
     - export ENV=production
+    - ls
+    - pwd
     - CI= yarn build
     - export GEM_HOME="$HOME/.gem"
     - hostname 
