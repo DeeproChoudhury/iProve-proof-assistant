@@ -31,8 +31,9 @@ install-dependencies:       # This job runs in the build stage, which runs first
     # - npm install yarn
     - yarn install
     - yarn add serve
-  artifacts:
-    public: false
+  cache:
+    key:
+      - package.json
     paths:
       - node_modules/
 
@@ -44,8 +45,9 @@ unit-test-job:   # This job runs in the test stage.
   script:
     - echo "Running unit tests"
     - yarn test --ci --watchAll=false
-  artifacts:
-    public: false
+  cache:
+    key:
+      - package.json
     paths:
       - node_modules/
   
@@ -76,7 +78,7 @@ deploy-job:      # This job runs in the deploy stage.
     # - cat output
     - gem install dpl
     - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_PRODUCTION_KEY
-  artifacts:
+  cache:
     paths:
       - node_modules/
       - build
