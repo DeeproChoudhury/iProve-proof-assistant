@@ -33,9 +33,10 @@ install-dependencies:       # This job runs in the build stage, which runs first
     - yarn add serve
   cache:
     key:
-      - package.json
+      files:
+        - package.json
     paths:
-      - node_modules/
+      - node_modules
 
 
 
@@ -47,7 +48,8 @@ unit-test-job:   # This job runs in the test stage.
     - yarn test --ci --watchAll=false
   cache:
     key:
-      - package.json
+      files:
+        - package.json
     paths:
       - node_modules/
   
