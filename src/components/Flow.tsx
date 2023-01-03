@@ -304,19 +304,29 @@ function Flow() {
 
         <Grid 
           gap={3}
-          style={{ marginTop: "20vh", marginLeft: "4vw", zIndex: 20 /* zIndex to move column to front*/ }}             
+          style={{ 
+            zIndex: 20 /* zIndex to move column to front*/,
+            resize: "horizontal",
+            overflow: "scroll",
+            minWidth: "10vw", 
+            marginTop: "20vh",             
+            marginBottom: "10vh", 
+            marginLeft: "4vw",
+            backgroundColor: "#1a29ff4b"
+
+          }}             
           visibility={declarationSidebarVisible ? "visible" : "hidden"}
         >
 
           {/* START : General Declarations */}
-          <GridItem >
-            <Declarations />
+          <GridItem style={{width: "inherit"}}>
+            <Declarations/>
           </GridItem>
           {/* END : General Declarations */}
 
           {/* START : Type Declarations */}
-          <GridItem>
-            <TypeDeclarations />
+          <GridItem style={{width: "inherit"}}>
+            <TypeDeclarations/>
           </GridItem>
           {/* END : Type Declarations */}
 

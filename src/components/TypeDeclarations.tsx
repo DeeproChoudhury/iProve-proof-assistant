@@ -9,7 +9,7 @@ const TypeDeclarations = () => {
   const actions = useIProveStore(store => store.actions.typeDeclarations);
 
   return (
-    <Box className={"types"} style={{ resize: "horizontal", overflow: "auto", minWidth: "300px"}}>
+    <Box className={"types"} >
       <StatementList
         title="Types"
         statements={typeDeclarations}

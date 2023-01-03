@@ -8,7 +8,7 @@ const Declarations = () => {
   const actions = useIProveStore(store => store.actions.declarations);
 
   return (
-    <Box className={"declarations"} style={{ resize: "horizontal", overflow: "auto", minWidth: "300px"}}>
+    <Box className={"declarations"}>
       <StatementList
         title="Declarations"
         statements={declarations}
