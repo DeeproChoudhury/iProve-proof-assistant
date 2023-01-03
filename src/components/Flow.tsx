@@ -70,7 +70,7 @@ function Flow() {
   { value: 'implies', symbol: '->' },
   { value: 'for all x', symbol: 'FA x.' },
   { value: 'exists x', symbol: 'EX x.' },
-  { value: 'negation', symbol: '~'} ]
+  { value: 'negation', symbol: '~' }]
 
   /**
    * Import Proof given json data. Input list of node data.
@@ -112,17 +112,17 @@ function Flow() {
       </Modal>
       {/* END : Export Modal */}
 
-      
+
 
       {/* START : Header*/}
       <div className='header'>
-        
-      <span className="emBox">
-            <span className='highlight'>i</span>Prove
-          </span>
+
+        <span className="emBox">
+          <span className='highlight'>i</span>Prove
+        </span>
 
         <Stack spacing={4} direction='row' align='center'>
-          
+
           <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addGivenNode}>Add Given</Button>
           <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addGoalNode}>Add Goal</Button>
           <Button className="headButton" variant="outline" colorScheme='purple' size='md' onClick={actions.global.addProofNode}>Add Proof Node</Button>
@@ -157,15 +157,14 @@ function Flow() {
                       </Tr>
                     </Thead>
                     <Tbody>
-                      {operatorsToSymbols.map((p, index) =>
-                        {
-                          return <Tr key={index}>
-                            <Td>{p.value}</Td>
-                            <Td>
-                              <SymbolButton symbol={p.symbol} />
-                            </Td>
-                          </Tr>;
-                        }
+                      {operatorsToSymbols.map((p, index) => {
+                        return <Tr key={index}>
+                          <Td>{p.value}</Td>
+                          <Td>
+                            <SymbolButton symbol={p.symbol} />
+                          </Td>
+                        </Tr>;
+                      }
                       )}
                     </Tbody>
                   </Table>
@@ -175,12 +174,12 @@ function Flow() {
           </Popover>
           {/* END: display table mapping symbol to iProve syntax */}
 
-          
+
         </Stack>
       </div>
       {/* END : Header Buttons */}
 
-      {/* START : Proof valid alert */} 
+      {/* START : Proof valid alert */}
       <div className="alert-container">
         {proofStatus === "invalid" && <Alert status='success' className="alert">
           <AlertIcon />
@@ -197,9 +196,9 @@ function Flow() {
           />
         </Alert>}
       </div>
-      {/* END : Proof valid alert */} 
+      {/* END : Proof valid alert */}
 
-      {/* START : Proof invalid alert */} 
+      {/* START : Proof invalid alert */}
       <div className="alert-container">
         {proofStatus === "invalid" && <Alert status='error' className="alert">
           <AlertIcon />
@@ -216,15 +215,15 @@ function Flow() {
           />
         </Alert>}
       </div>
-      {/* END : Proof invalid alert */} 
+      {/* END : Proof invalid alert */}
 
-      {/* START : Error alert */} 
+      {/* START : Error alert */}
       <div className="alert-container">
         {error && <Alert status='error' className="alert">
           <AlertIcon />
           <AlertTitle>{error.kind ?? ""} Error!</AlertTitle>
           <AlertDescription>
-            { renderError(error) }
+            {renderError(error)}
           </AlertDescription>
           <IconButton
             variant='outline'
@@ -239,39 +238,39 @@ function Flow() {
 
       {/* START : Flow Graph */}
       <div className="flowContainer">
-        
+
         {/* START : Declarations SideBar */}
 
-        <Grid 
+        <Grid
           gap={3}
-          style={{ 
+          style={{
             zIndex: 20 /* zIndex to move column to front*/,
             resize: "horizontal",
             overflow: "scroll",
-            minWidth: "10vw", 
-            marginTop: "20vh",             
-            marginBottom: "10vh", 
+            minWidth: "10vw",
+            marginTop: "20vh",
+            marginBottom: "10vh",
             marginLeft: "4vw",
             backgroundColor: "#1a29ff4b"
 
-          }}             
+          }}
           visibility={declarationSidebarVisible ? "visible" : "hidden"}
         >
 
           {/* START : General Declarations */}
-          <GridItem style={{width: "inherit"}}>
-            <Declarations/>
+          <GridItem style={{ width: "inherit" }}>
+            <Declarations />
           </GridItem>
           {/* END : General Declarations */}
 
           {/* START : Type Declarations */}
-          <GridItem style={{width: "inherit"}}>
-            <TypeDeclarations/>
+          <GridItem style={{ width: "inherit" }}>
+            <TypeDeclarations />
           </GridItem>
           {/* END : Type Declarations */}
 
         </Grid>
-            
+
         {/* END : Declarations SideBar */}
 
 
