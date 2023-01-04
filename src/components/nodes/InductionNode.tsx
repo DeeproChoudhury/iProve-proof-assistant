@@ -9,7 +9,6 @@ import { Handle, NodeProps, Position } from "reactflow";
 import Statement from "../Statement";
 import { StatementType } from "../../types/Statement";
 import { DeleteNodePopover } from "./GeneralNode";
-import Moveable from "react-moveable";
 import { MoveableHandles } from "./MoveableHandle";
 import { useInductionNodeActions } from "../../store/hooks";
 import { useIProveStore } from "../../store/store";
@@ -26,7 +25,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	const componentStyle = "induction-node " + statusStyle;
 	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
 		actions[k].update(updated, evt.target.value);
-	}, [nodeData]);
+	}, [actions]);
 
   const afterStatementEdit = actions.recheck;
 
@@ -83,7 +82,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 					<Text>Type(s)</Text>
 					<IconButton
 						variant='outline'
-						aria-label='Add Induction Goal'
+						aria-label='Type'
 						size='xs'
 						icon={<AddIcon />}
 						onClick={() => { actions.types.add() }}
@@ -104,33 +103,6 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							</Select>)}
 				</div>
 				{/* END : Type */}
-
-				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
-
-				{/* BEGIN : Motive */}
-				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
-					<Text>Induction Goal(s)</Text>
-					<IconButton
-						variant='outline'
-						aria-label='Add Induction Goal'
-						size='xs'
-						icon={<AddIcon />}
-						onClick={() => { actions.motive.add() }}
-					/>
-				</div>
-				<div style={{ display: 'flex', flexDirection: 'column' }}>
-					{nodeData.motive.map((s: StatementType, index: number) =>
-						<Statement
-							onChange={e => onChange(e, "motive", index)}
-							statement={s}
-							index={index}
-							addAbove={() => {actions.motive.add(index) }}
-							addBelow={() => {actions.motive.add(index + 1) }}
-							deleteStatement={() => { actions.motive.remove(index) }}
-							afterEdit={() => afterStatementEdit("motive", index)}
-							key={index} />)}
-				</div>
-				{/* END : Motive */}
 
 				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
 
@@ -185,6 +157,34 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 							key={index} />)}
 				</div>
 				{/* END : Induction Case */}
+
+
+				<Divider style={{padding: "7px 0 7px 0", color: "gray"}}/>
+
+				{/* BEGIN : Motive */}
+				<div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', marginTop: '5px' }}>
+					<Text>Induction Goal(s)</Text>
+					<IconButton
+						variant='outline'
+						aria-label='Add Induction Goal'
+						size='xs'
+						icon={<AddIcon />}
+						onClick={() => { actions.motive.add() }}
+					/>
+				</div>
+				<div style={{ display: 'flex', flexDirection: 'column' }}>
+					{nodeData.motive.map((s: StatementType, index: number) =>
+						<Statement
+							onChange={e => onChange(e, "motive", index)}
+							statement={s}
+							index={index}
+							addAbove={() => {actions.motive.add(index) }}
+							addBelow={() => {actions.motive.add(index + 1) }}
+							deleteStatement={() => { actions.motive.remove(index) }}
+							afterEdit={() => afterStatementEdit("motive", index)}
+							key={index} />)}
+				</div>
+				{/* END : Motive */}
 
 				{/* START : Node Bottom Buttons */}
 				<NodeBottomButtons />
