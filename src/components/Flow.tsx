@@ -1,11 +1,10 @@
 import { CloseIcon } from '@chakra-ui/icons';
-import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, Grid, GridItem, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack } from '@chakra-ui/react';
+import { Alert, AlertDescription, AlertIcon, AlertTitle, Button, IconButton, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader, ModalOverlay, Stack } from '@chakra-ui/react';
 import { useState } from 'react';
 import ReactFlow, {
   Background, Controls,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import Declarations from './Declarations';
 import CheckedEdge from './edges/CheckedEdge';
 import ImplicationEdge from './edges/ImplicationEdge';
 import InvalidEdge from './edges/InvalidEdge';
@@ -17,7 +16,6 @@ import GoalNode from './nodes/GoalNode';
 import InductionNode from './nodes/InductionNode';
 import ProofNode from './nodes/ProofNode';
 import './nodes/ProofNode.css';
-import TypeDeclarations from './TypeDeclarations';
 import {
   Popover,
   PopoverTrigger,
@@ -38,6 +36,7 @@ import {
 import { renderError } from '../util/errors';
 import { SymbolButton } from './SymbolButton';
 import { useIProveStore } from '../store/store';
+import Sidebar from './Sidebar';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -238,43 +237,7 @@ function Flow() {
 
       {/* START : Flow Graph */}
       <div className="flowContainer">
-
-        {/* START : Declarations SideBar */}
-
-        <Grid
-          gap={3}
-          style={{
-            zIndex: 20 /* zIndex to move column to front*/,
-            resize: "horizontal",
-            overflow: "scroll",
-            minWidth: "10vw",
-            marginTop: "20vh",
-            marginBottom: "10vh",
-            marginLeft: "4vw",
-            backgroundColor: "#1a29ff4b"
-
-          }}
-          visibility={declarationSidebarVisible ? "visible" : "hidden"}
-        >
-
-          {/* START : General Declarations */}
-          <GridItem style={{ width: "inherit" }}>
-            <Declarations />
-          </GridItem>
-          {/* END : General Declarations */}
-
-          {/* START : Type Declarations */}
-          <GridItem style={{ width: "inherit" }}>
-            <TypeDeclarations />
-          </GridItem>
-          {/* END : Type Declarations */}
-
-        </Grid>
-
-        {/* END : Declarations SideBar */}
-
-
-
+        <Sidebar visible={declarationSidebarVisible} />
         <div className="flowCanvas">
           <ReactFlow
             nodes={nodes}
