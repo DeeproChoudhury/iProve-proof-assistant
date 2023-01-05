@@ -1,6 +1,7 @@
 import * as AST from "../types/AST"
 import { AlphaAssignment, Unification, UnifyFail, UnifyScope } from "../types/LogicInterface"
-import { display } from "../util/trees"
+import { display, isDeclaration, mk_var, ParamType, PrimitiveType } from "../util/trees"
+import { LogicInterface } from "./LogicInterface"
 import evaluate from "./Parser"
 import { basic_preprocess, CommOperators, replace_vars, unify_preprocess } from "./simplifiers"
 import { bitmap_mex, get_from_scope, pop_scope, push_scope, set_bit, set_in_scope } from "./util"
@@ -30,6 +31,30 @@ function gen_unify_poss(
         pop_scope(scope)
     }
 }
+
+export function gen_decls(T: AST.TypeDef): AST.Declaration[] {
+    let R: AST.Declaration[] = [{
+         kind: "SortDeclaration", symbol: mk_var(T.ident), arity: T.params.length }
+        ];
+    for (let param of T.params) R.push(
+        { kind: "SortDeclaration", symbol: mk_var(param), arity: 0 }
+    );
+    for (let cons of T.cases) {
+        R.push({
+            kind: "FunctionDeclaration",
+            symbol: cons.ident,
+            type: {
+                kind: "FunctionType",
+                retType: T.params.length > 0
+                    ? ParamType(T.ident, T.params.map(PrimitiveType))
+                    : PrimitiveType(T.ident),
+                argTypes: cons.params,
+            }
+        });
+    }
+    return R;
+}
+
 
 /**
  * The recursive driver function around which `unifies` is a wrapper.

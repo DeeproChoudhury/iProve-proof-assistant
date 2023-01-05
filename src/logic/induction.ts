@@ -83,14 +83,3 @@ export function mutual_rec_on(Ts: AST.Type[], type_defs: AST.TypeDef[]):
         );
     }
 }
-
-
-const TD1 = evaluate("type Reds ::= BaseR | Red Greens Int") as AST.TypeDef
-const TD2 = evaluate("type Greens ::= BaseG | Green Reds") as AST.TypeDef
-const M1 = evaluate("P(x)") as AST.Term
-const M2 = evaluate("Q(x)") as AST.Term
-
-console.log(display(mutual_rec_on(
-    [{kind: "PrimitiveType", ident: "Reds"}],
-    [TD1]
-)(["x"], [M1])))

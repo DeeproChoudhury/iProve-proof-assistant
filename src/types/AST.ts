@@ -100,7 +100,7 @@ export type VariableBinding = {
 export type BlockStart = VariableDeclaration | Assumption | BeginScope;
 export type Line = Declaration | Term | Tactic | FunctionDefinition | TypeDef
 
-export type Declaration = FunctionDeclaration | VariableDeclaration
+export type Declaration = FunctionDeclaration | VariableDeclaration | SortDeclaration
 
 export type FunctionDeclaration = {
     kind: "FunctionDeclaration",
@@ -112,6 +112,12 @@ export type VariableDeclaration = {
     kind: "VariableDeclaration",
     symbol: Variable,
     type?: Type
+}
+
+export type SortDeclaration = {
+    kind: "SortDeclaration",
+    symbol: Variable,
+    arity: number
 }
 
 export type Term = Variable | FunctionApplication | QuantifierApplication | EquationTerm | ParenTerm | ArrayLiteral

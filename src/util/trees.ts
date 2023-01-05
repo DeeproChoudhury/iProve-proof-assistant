@@ -60,6 +60,11 @@ function d(a: AST.ASTNode): string {
 }
 export const display: (line: AST.ASTNode) => string = d
 
+export const isDeclaration = (line: AST.Line): line is AST.Declaration => (
+    line.kind === "FunctionDeclaration"
+        || line.kind === "SortDeclaration"
+        || line.kind === "VariableDeclaration"
+)
 export const isTerm = (line: AST.Line): line is AST.Term => (
     line.kind === "Variable"
         || line.kind === "FunctionApplication"
@@ -97,6 +102,14 @@ export function range_over(t: AST.Term, vars: [AST.Variable, AST.Type][]): AST.T
         quantifier: "A"
     }
     : t
+}
+
+export function PrimitiveType(s: string): AST.PrimitiveType {
+    return { kind: "PrimitiveType", ident: s }
+}
+
+export function ParamType(ident: string, params: AST.Type[]): AST.ParamType {
+    return { kind: "ParamType", ident: ident, params: params }
 }
 
 export function imply(L: AST.Term | undefined, R: AST.Term): AST.Term {
@@ -159,6 +172,7 @@ export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
  export const isBlockEnd = (line: AST.Line): line is AST.EndScope => {
     return line.kind === "EndScope";
  }
+
  
  export const toWrapperFunc = (w: AST.BlockStart): ((term: AST.Term) => AST.Term) => {
    if (w.kind === "VariableDeclaration") {

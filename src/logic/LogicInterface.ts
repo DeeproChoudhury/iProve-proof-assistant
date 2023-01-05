@@ -1,8 +1,9 @@
 import { defineStyle } from "@chakra-ui/react";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
-import { conjunct, getSelector, isTerm } from "../util/trees";
+import { conjunct, getSelector, isDeclaration, isTerm } from "../util/trees";
 import Z3Solver from "./Solver";
+import { gen_decls } from "./unifier";
 import { fnSMT } from "./util";
 
 export type ProofOutcome = ProofError | ProofVerdict
@@ -264,6 +265,16 @@ export class LogicInterface {
         return R
     }
 
+    induction_unifies(A: AST.Term, B: AST.Term): boolean {
+        let TDs = this.types.map(gen_decls);
+        let decls = this.declarations.filter(isDeclaration);
+    
+        let rendered_decls = this.rendered_tuples +
+            "\n" + TDs.flat().concat(decls).map(renderNode).join("\n");
+        
+        
+    }
+
     toString(): string {
         let res = "";
         let types = "";
@@ -392,6 +403,7 @@ function renderNode(a: AST.ASTNode | undefined): string {
         case "FunctionType": return `(${a.argTypes.map(renderNode).join(" ")})  ${renderNode(a.retType)}`;
         case "VariableBinding": return `(${renderNode(a.symbol)} ${a.type ? renderNode(a.type) : "Int"})`;
         case "FunctionDeclaration": return "";
+        case "SortDeclaration": return `(declare-sort ${renderNode(a.symbol)} ${a.arity})`;
         case "VariableDeclaration": return `(declare-const ${renderNode(a.symbol)} ${a.type ? `${renderNode(a.type)}` : "Int"})`;
         case "Variable": return a.ident;
         case "FunctionApplication": {
