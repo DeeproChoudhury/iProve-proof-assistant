@@ -1,6 +1,5 @@
 import { AddIcon } from "@chakra-ui/icons";
 import { Box, IconButton, Text } from "@chakra-ui/react";
-import { StatementListCallbacks } from "../callbacks/statementListCallbacks";
 import { StatementType } from "../types/Statement";
 import Statement from "./Statement";
 
@@ -8,10 +7,10 @@ export type StatementListPropsType = {
   title: string;
   statements: StatementType[];
   callbacks: {
-    add: StatementListCallbacks["add"];
-    update: StatementListCallbacks["update"];
-    remove: StatementListCallbacks["remove"];
-    removeReason?: StatementListCallbacks["removeReason"];
+    add: (index?: number) => void;
+    update: (index: number, value: string) => void;
+    remove: (index: number) => void;
+    removeReason?: (index: number) => void;
   };
   isCollapsed?: boolean;
   isScrollable?: boolean

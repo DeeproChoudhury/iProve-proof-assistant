@@ -1,24 +1,20 @@
 import { Box } from "@chakra-ui/react";
 import './Declarations.css';
-import { StatementType } from "../types/Statement";
-import { DeclarationCallbacks } from "../callbacks/declarationsCallbacks";
 import StatementList from "./StatementList";
+import { useIProveStore } from "../store/store";
 
-export type DeclarationsPropsType = DeclarationCallbacks & {
-  statements: StatementType[];
-}
-
-const Declarations = (props: DeclarationsPropsType) => {
-  const { statements, add, update, remove, checkSyntax } = props;
+const Declarations = () => {
+  const declarations = useIProveStore(store => store.declarations);
+  const actions = useIProveStore(store => store.actions.declarations);
 
   return (
-    <Box className={"declarations"} style={{ resize: "horizontal", overflow: "auto", minWidth: "300px"}}>
+    <Box className={"declarations"}>
       <StatementList
         title="Declarations"
-        statements={statements}
-        callbacks={{add, update, remove}}
+        statements={declarations}
+        callbacks={actions}
         isScrollable={true}
-        afterStatementEdit={() => checkSyntax()}
+        afterStatementEdit={actions.parseAll}
       />
     </Box>
   )

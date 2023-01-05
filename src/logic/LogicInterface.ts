@@ -53,6 +53,7 @@ export class LogicInterface {
 
         let E: string | undefined
         for (let r of reasons) {
+            console.log(r);
             this.pushGiven(r)
             E = this.resolve_error();
             if (E) return { kind: "Error", emitter: "IProve", msg: E }
