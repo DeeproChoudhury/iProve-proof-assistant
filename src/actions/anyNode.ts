@@ -4,10 +4,9 @@ import { IProveDraft } from '../store/store';
 import { AnyNodeType, InductionNodeType, ListField, StatementNodeType } from '../types/Node';
 import { parseAll as parseAllStatements } from "./statementList";
 import { mutual_rec_on } from "../logic/induction";
-import { induction_unifies, unifies } from "../logic/unifier";
 import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type } from "../types/AST";
 import { unwrap_statements } from "../util/statements";
-import { isTerm, conjunct, imply, range_over, display } from "../util/trees";
+import { isTerm, conjunct, imply, range_over, display, iff } from "../util/trees";
 import { getInputs, getOutputs } from "../util/nodes";
 import { LIQ } from "../logic/LogicInterfaceQueue";
 import { invalidateInternals } from "./inductionNode";
@@ -100,16 +99,17 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   
   console.log("GT", display(gt_IP))
   console.log("USER", display(IP))
-  let verdict = induction_unifies(IP, gt_IP)
-  verdict.then((v) => {
-    if (!v) {
-      ctx.setError(undefined)
-      node.data.internalsStatus = "invalid";
-      return;
-    }
 
-    node.data.internalsStatus = "valid";
-  });
+  LIQ.queueEntails([], iff(IP, gt_IP), ctx.newAction((ctx, verdict) => {
+    let success = (verdict.kind === "Valid")
+
+    if (success) {
+      ctx.draft.data.internalsStatus = "valid";
+    } else {
+      ctx.setError(undefined)
+      ctx.draft.data.internalsStatus = "invalid";
+    }
+  }), true);
 }
 
 export const checkEdges = (ctx: ActionContext<AnyNodeType>) => {

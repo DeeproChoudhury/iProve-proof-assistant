@@ -58,18 +58,6 @@ export function gen_decls(T: AST.TypeDef): AST.Declaration[] {
     return R;
 }
 
-export function induction_unifies(A: AST.Term, B: AST.Term): Promise<boolean> {
-    console.log("HERE IS IND_UNIFIES")
-    var pRes: (value: boolean | PromiseLike<boolean>) => void;
-    let R = new Promise<boolean>(function (resolve) {
-        pRes = resolve;
-      })
-    LIQ.queueEntails([], iff(A, B), (oc) => {
-        pRes(oc.kind == "Valid");
-    }, true);
-    return R
-}
-
 /**
  * The recursive driver function around which `unifies` is a wrapper.
  * 
