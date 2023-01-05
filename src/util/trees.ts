@@ -9,6 +9,7 @@ function d(a: AST.ASTNode): string {
         case "VariableBinding": return d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
+        case "SortDeclaration": return `data ${d(a.symbol)}`
         case "Variable": return a.ident;
         case "FunctionApplication": {
             const fn = fnDisplay(a.fn);
@@ -118,6 +119,14 @@ export function imply(L: AST.Term | undefined, R: AST.Term): AST.Term {
         kind: "FunctionApplication",
         appType: "InfixOp",
         fn: "->",
+        params: [parenthesize(L), parenthesize(R)]
+    }
+}
+export function iff(L: AST.Term, R: AST.Term): AST.Term {
+    return {
+        kind: "FunctionApplication",
+        appType: "InfixOp",
+        fn: "<->",
         params: [parenthesize(L), parenthesize(R)]
     }
 }

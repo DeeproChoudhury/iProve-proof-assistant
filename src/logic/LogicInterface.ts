@@ -48,7 +48,7 @@ export class LogicInterface {
             return this.entails(reasons, goal)
         }
 
-    async entails(reasons: AST.Line[], goal: AST.Line, reset: boolean = true): Promise<ProofOutcome> {
+    async entails(reasons: AST.Line[], goal: AST.Line, strip_types: boolean = false, reset: boolean = true): Promise<ProofOutcome> {
         if (reset) this.newProof()
 
         let E: string | undefined
@@ -62,7 +62,7 @@ export class LogicInterface {
         this.setGoal(goal)
         E = this.resolve_error();
         if (E) return { kind: "Error", emitter: "IProve", msg: E }
-        const rendered = `${LI}`;
+        const rendered = this.toString(strip_types);
         E = this.resolve_error();
         if (E) return { kind: "Error", emitter: "IProve", msg: E }
 
@@ -266,23 +266,18 @@ export class LogicInterface {
         return R
     }
 
-    induction_unifies(A: AST.Term, B: AST.Term): boolean {
-        let TDs = this.types.map(gen_decls);
-        let decls = this.declarations.filter(isDeclaration);
-    
-        let rendered_decls = this.rendered_tuples +
-            "\n" + TDs.flat().concat(decls).map(renderNode).join("\n");
-        
-        
-    }
-
-    toString(): string {
+    toString(strip_types: boolean = false): string {
         let res = "";
         let types = "";
 
         // TYPES
-        for (let v of this.rendered_types)
-            types += `${v}\n`
+        if (strip_types) {
+            types += this.types.map(gen_decls).flat().map(renderNode).join("\n")
+        }
+        else {
+            for (let v of this.rendered_types)
+                types += `${v}\n`
+        }
 
         // FUNCTIONS
         let decls: string[] = []

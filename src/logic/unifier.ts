@@ -1,7 +1,8 @@
 import * as AST from "../types/AST"
 import { AlphaAssignment, Unification, UnifyFail, UnifyScope } from "../types/LogicInterface"
-import { display, isDeclaration, mk_var, ParamType, PrimitiveType } from "../util/trees"
+import { display, iff, isDeclaration, mk_var, ParamType, PrimitiveType } from "../util/trees"
 import { LogicInterface } from "./LogicInterface"
+import { LIQ } from "./LogicInterfaceQueue"
 import evaluate from "./Parser"
 import { basic_preprocess, CommOperators, replace_vars, unify_preprocess } from "./simplifiers"
 import { bitmap_mex, get_from_scope, pop_scope, push_scope, set_bit, set_in_scope } from "./util"
@@ -33,6 +34,7 @@ function gen_unify_poss(
 }
 
 export function gen_decls(T: AST.TypeDef): AST.Declaration[] {
+    console.log("HERE IS GEN_DECLS")
     let R: AST.Declaration[] = [{
          kind: "SortDeclaration", symbol: mk_var(T.ident), arity: T.params.length }
         ];
@@ -52,9 +54,18 @@ export function gen_decls(T: AST.TypeDef): AST.Declaration[] {
             }
         });
     }
+    console.log(R)
     return R;
 }
 
+export function induction_unifies(A: AST.Term, B: AST.Term): boolean {
+    console.log("HERE IS IND_UNIFIES")
+    var complete = false;
+    LIQ.queueEntails([], iff(A, B), (oc) => {
+        complete = oc.kind == "Valid";
+    }, true);
+    return complete;
+}
 
 /**
  * The recursive driver function around which `unifies` is a wrapper.

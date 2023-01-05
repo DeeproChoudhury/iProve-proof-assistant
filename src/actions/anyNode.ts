@@ -4,7 +4,7 @@ import { IProveDraft } from '../store/store';
 import { AnyNodeType, InductionNodeType, ListField, StatementNodeType } from '../types/Node';
 import { parseAll as parseAllStatements } from "./statementList";
 import { mutual_rec_on } from "../logic/induction";
-import { unifies } from "../logic/unifier";
+import { induction_unifies, unifies } from "../logic/unifier";
 import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type } from "../types/AST";
 import { unwrap_statements } from "../util/statements";
 import { isTerm, conjunct, imply, range_over, display } from "../util/trees";
@@ -100,14 +100,14 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   
   console.log("GT", display(gt_IP))
   console.log("USER", display(IP))
-  let verdict = unifies(IP, gt_IP)
+  let verdict = induction_unifies(IP, gt_IP)
   if (!verdict) {
     ctx.setError(undefined)
     node.data.internalsStatus = "invalid";
     return;
   }
 
-  console.log("VERDICT", display(verdict.term))
+  //console.log("VERDICT", display(verdict.term))
   node.data.internalsStatus = "valid";
 }
 

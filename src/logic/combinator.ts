@@ -71,6 +71,7 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
             case "VariableBinding":
             case "FunctionDeclaration":
             case "VariableDeclaration":
+            case "SortDeclaration":
             case "TypeDef":
             case "TypeConstructor":
             case "ParamType":
