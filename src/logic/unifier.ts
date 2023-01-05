@@ -58,13 +58,16 @@ export function gen_decls(T: AST.TypeDef): AST.Declaration[] {
     return R;
 }
 
-export function induction_unifies(A: AST.Term, B: AST.Term): boolean {
+export function induction_unifies(A: AST.Term, B: AST.Term): Promise<boolean> {
     console.log("HERE IS IND_UNIFIES")
-    var complete = false;
+    var pRes: (value: boolean | PromiseLike<boolean>) => void;
+    let R = new Promise<boolean>(function (resolve) {
+        pRes = resolve;
+      })
     LIQ.queueEntails([], iff(A, B), (oc) => {
-        complete = oc.kind == "Valid";
+        pRes(oc.kind == "Valid");
     }, true);
-    return complete;
+    return R
 }
 
 /**

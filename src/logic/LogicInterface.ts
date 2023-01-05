@@ -398,7 +398,7 @@ function renderNode(a: AST.ASTNode | undefined): string {
         case "PrimitiveType": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(renderNode).join(" ")})  ${renderNode(a.retType)}`;
         case "VariableBinding": return `(${renderNode(a.symbol)} ${a.type ? renderNode(a.type) : "Int"})`;
-        case "FunctionDeclaration": return "";
+        case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${renderNode(a.type)})`;
         case "SortDeclaration": return `(declare-sort ${renderNode(a.symbol)} ${a.arity})`;
         case "VariableDeclaration": return `(declare-const ${renderNode(a.symbol)} ${a.type ? `${renderNode(a.type)}` : "Int"})`;
         case "Variable": return a.ident;

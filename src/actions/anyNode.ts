@@ -101,14 +101,15 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   console.log("GT", display(gt_IP))
   console.log("USER", display(IP))
   let verdict = induction_unifies(IP, gt_IP)
-  if (!verdict) {
-    ctx.setError(undefined)
-    node.data.internalsStatus = "invalid";
-    return;
-  }
+  verdict.then((v) => {
+    if (!v) {
+      ctx.setError(undefined)
+      node.data.internalsStatus = "invalid";
+      return;
+    }
 
-  //console.log("VERDICT", display(verdict.term))
-  node.data.internalsStatus = "valid";
+    node.data.internalsStatus = "valid";
+  });
 }
 
 export const checkEdges = (ctx: ActionContext<AnyNodeType>) => {
