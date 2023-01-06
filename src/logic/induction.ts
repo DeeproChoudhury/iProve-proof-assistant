@@ -1,6 +1,6 @@
 import * as AST from "../types/AST";
 import { IdentState } from "../types/LogicInterface";
-import { conjunct, construct_type, display, imply, mk_var, range_over, strict_rw } from "../util/trees";
+import { conjunct, construct_type, display, imply, mk_var, range_over, strict_rw, substitute_types } from "../util/trees";
 import evaluate from "./Parser";
 
 /**
@@ -15,10 +15,10 @@ import evaluate from "./Parser";
  * @returns The recursor map of T
  * 
  */
-export function rec_on(T: AST.Type, type_def: AST.TypeDef):
-    (ident_: string, motive: AST.Term) => AST.Term {
-        return (ident_, motive) => 
-            mutual_rec_on([T], [type_def])([ident_], [motive])
+export function rec_on(type_def: AST.TypeDef):
+    (binding: AST.VariableBinding, motive: AST.Term) => AST.Term {
+        return (binding, motive) => 
+            mutual_rec_on([type_def])([binding], [motive])
     }
 
 /**
@@ -39,24 +39,38 @@ export function rec_on(T: AST.Type, type_def: AST.TypeDef):
  * @returns The mutual recursor map of Ts
  * 
  */
-export function mutual_rec_on(Ts: AST.Type[], type_defs: AST.TypeDef[]):
- (idents_: string[], motives: AST.Term[]) => AST.Term {
-    return (idents_: string[], motives: AST.Term[]): AST.Term => {
-        console.log("HERE WE GO", idents_, motives, Ts, type_defs)
-        let idents: AST.Variable[] = idents_.map(mk_var);
-        let Tsd = Ts.map(display)
-        let Tset = new Set(Tsd);
+export function mutual_rec_on(type_defs: AST.TypeDef[]):
+ (bindings: AST.VariableBinding[], motives: AST.Term[]) => AST.Term {
+    let TMap = new Map(type_defs.map((x) => [x.ident, x]))
+    return (bindings: AST.VariableBinding[], motives: AST.Term[]): AST.Term => {
+        console.log("HERE WE GO", motives, type_defs)
+        // :/
+        for (let x of bindings) { if (!x.type) return { kind: "Variable", ident: "ERRORVAR"}; }
+        let fts = bindings.map((x) => display(x.type as AST.Type))
 
         let cum_precons: AST.Term[] = []
-        for (let [i, type_def] of type_defs.entries()) {
-            let motive = motives[i]
-            let T = Ts[i]
-            let ident = idents[i]
+        for (let [i, motive] of motives.entries()) {
+            let BIT = bindings[i].type
 
+            if (!BIT || BIT.kind == "ListType" || BIT.kind == "TupleType") { 
+                cum_precons.push(motive); continue;
+            }
+            let type_def = TMap.get(BIT.ident);
+            if (!type_def) { 
+                cum_precons.push(motive); continue;
+            }
+            console.log("AB", BIT.kind, type_def)
+            if (BIT.kind == "ParamType")
+                type_def = substitute_types(type_def, BIT.params);
+            console.log("CD", BIT.kind, type_def)
+
+            let ident = bindings[i].symbol;
             let cases: AST.Term[] = type_def.cases.map(con => {
                 let vars: [AST.Variable, AST.Type][] = con.params.map(
-                    (v, j) => [mk_var(`InductiveParameter${j}`), v]
+                    (v, j) => { console.log(v.kind); return [mk_var(`InductiveParameter${j}`), v] }
                 );
+
+                console.log("VARS", `${type_def}`, vars.map((v) => display(v[1])))
                 
                 let subbed = strict_rw(motive, ident, construct_type(
                     con,
@@ -64,22 +78,28 @@ export function mutual_rec_on(Ts: AST.Type[], type_defs: AST.TypeDef[]):
                 ));
 
                 let precons: AST.Term[] = vars
-                    .filter(pt => Tset.has(display(pt[1])))
-                    .map(pt => {
-                        let idx = Tsd.indexOf(display(pt[1]))
-                        return strict_rw(motives[idx], idents[idx], pt[0])
+                    .flatMap(pt => {
+                        let R = []
+                        for (let [j, b] of fts.entries()) {
+                            if (b == display(pt[1])) {
+                                R.push(strict_rw(motives[j], bindings[j].symbol, pt[0]))
+                            }
+                        } 
+                        return R
                     });
                 let final_case: AST.Term = imply(conjunct(precons), subbed)
                 return range_over(final_case, vars)
             })
             cum_precons = cum_precons.concat(cases)
         }
+
         console.log(cum_precons.map(display))
         let full_motive = conjunct(motives)
         if (!full_motive) return { kind: "Variable", ident: "ERRORVAR"};
+
         return imply(
             conjunct(cum_precons),
-            range_over(full_motive, idents.map( (x, i) => [x, Ts[i]] ))
+            range_over(full_motive, bindings.map((x) => [x.symbol, x.type as AST.Type]))
         );
     }
 }

@@ -630,6 +630,7 @@ TYPE_CONSTRUCTOR.setPattern(apply(
     ),
     (value: [AST.Variable, AST.Type[]]): AST.TypeConstructor =>
         { let sels = []; for (let i = 0; i < value[1].length; i++) { sels.push(getSelector(i)); }
+        console.log("PARSEDV", value);
         return { kind: "TypeConstructor", ident: value[0].ident, params: value[1],
             selectors: sels }}
 ))

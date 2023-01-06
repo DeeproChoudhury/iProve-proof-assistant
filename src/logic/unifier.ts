@@ -33,16 +33,17 @@ function gen_unify_poss(
     }
 }
 
-export function gen_decls(T: AST.TypeDef): AST.Declaration[] {
+export function gen_decls(T: AST.TypeDef): [AST.SortDeclaration[], AST.FunctionDeclaration[]] {
     console.log("HERE IS GEN_DECLS")
-    let R: AST.Declaration[] = [{
+    let R1: AST.SortDeclaration[] = [{
          kind: "SortDeclaration", symbol: mk_var(T.ident), arity: T.params.length }
         ];
-    for (let param of T.params) R.push(
+    for (let param of T.params) R1.push(
         { kind: "SortDeclaration", symbol: mk_var(param), arity: 0 }
     );
+    let R2: AST.FunctionDeclaration[] = [];
     for (let cons of T.cases) {
-        R.push({
+        R2.push({
             kind: "FunctionDeclaration",
             symbol: cons.ident,
             type: {
@@ -54,8 +55,8 @@ export function gen_decls(T: AST.TypeDef): AST.Declaration[] {
             }
         });
     }
-    console.log(R)
-    return R;
+    console.log(R1, R2)
+    return [R1, R2];
 }
 
 /**

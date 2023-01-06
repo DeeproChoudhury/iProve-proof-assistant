@@ -1,6 +1,7 @@
-import { stateless_map_terms } from "../logic/combinator";
+import { map_terms, stateless_map_terms } from "../logic/combinator";
 import { fnDisplay } from "../logic/util";
 import * as AST from "../types/AST"
+import { StatefulTransformer } from "../types/LogicInterface";
 
 function d(a: AST.ASTNode): string {
     switch (a.kind) {
@@ -61,6 +62,20 @@ function d(a: AST.ASTNode): string {
 }
 export const display: (line: AST.ASTNode) => string = d
 
+export function underdetermine(T: AST.TypeDef): AST.TypeDef {
+    return {
+        kind: "TypeDef",
+        ident: T.ident,
+        params: T.params,
+        cases: T.cases.concat([{
+            kind: "TypeConstructor",
+            ident: `IProveUnderdeterminer_${T.ident}`,
+            params: [],
+            selectors: []
+        }])
+    }
+}
+
 export const isDeclaration = (line: AST.Line): line is AST.Declaration => (
     line.kind === "FunctionDeclaration"
         || line.kind === "SortDeclaration"
@@ -89,6 +104,54 @@ export function mk_var(ident: string): AST.Variable {
         ident: ident
     }
 }
+
+export function rw_types(goal: AST.Type, L: AST.PrimitiveType, R: AST.Type): AST.Type {
+    switch(goal.kind) {
+        case "ListType":
+            return { kind: "ListType", param: rw_types(goal.param, L, R)}
+        case "ParamType":
+            return { kind: "ParamType", ident: goal.ident, params: goal.params.map(
+                (x) => rw_types(x, L, R))}
+        case "PrimitiveType":
+            return (L.kind == "PrimitiveType" && goal.ident == L.ident) ? R : goal
+        case "TupleType":
+            return { kind: "TupleType", params: goal.params.map(
+                (x) => rw_types(x, L, R))}
+    }
+}
+
+export function substitute_types(T: AST.TypeDef, Ps: AST.Type[]): AST.TypeDef {
+    return {
+        kind: "TypeDef",
+        ident: T.ident,
+        params: T.params,
+        cases: T.cases.map((v): AST.TypeConstructor => ({
+            kind: "TypeConstructor",
+            ident: v.ident,
+            selectors: v.selectors,
+            params: v.params.map((p) => {
+                let cparam = p;
+                for (let i = 0; i < Ps.length; i++)
+                    cparam = rw_types(cparam, PrimitiveType(T.params[i]), Ps[i])
+                return cparam
+            })
+        }))
+    }
+}
+
+const extract_construction: StatefulTransformer<AST.Term, Map<string, AST.Type[]>>
+    = (T: AST.Term, M: Map<string, AST.Type[]>): [AST.Term, Map<string, AST.Type[]>] => {
+        if (T.kind == "QuantifierApplication") {
+            for (let vb of T.vars) {
+                let T = vb.type;
+                if (T?.kind == "ParamType")
+                    M.set(T.ident, T.params)
+            }
+        }
+        return [T, M]
+    }
+export const extract_constructions: (A: AST.Term) => [AST.Term, Map<string, AST.Type[]>] 
+    = map_terms( extract_construction, new Map );
 
 export function range_over(t: AST.Term, vars: [AST.Variable, AST.Type][]): AST.Term {
     return vars.length ?

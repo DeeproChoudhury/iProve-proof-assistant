@@ -1,7 +1,9 @@
 import { defineStyle } from "@chakra-ui/react";
+import { StringChain } from "lodash";
+import { type } from "os";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
-import { conjunct, getSelector, isDeclaration, isTerm } from "../util/trees";
+import { conjunct, getSelector, isDeclaration, isTerm, underdetermine } from "../util/trees";
 import Z3Solver from "./Solver";
 import { gen_decls } from "./unifier";
 import { fnSMT } from "./util";
@@ -266,23 +268,22 @@ export class LogicInterface {
         return R
     }
 
+    renderDatatypes(strip_types: boolean = false): string {
+        let arities = this.types.map((x) => `(${x.ident} ${x.params.length})`)
+        let decls = (strip_types ? this.types.map(underdetermine) : this.types)
+            .map((x) => `(par (${x.params.join(" ")}) (${x.cases.map(renderNode).join(" ")}))`)
+        return`(declare-datatypes (${arities.join(" ")}) (${decls.join(" ")}))`
+    }
+
     toString(strip_types: boolean = false): string {
         let res = "";
-        let types = "";
-
-        // TYPES
-        if (strip_types) {
-            types += this.types.map(gen_decls).flat().map(renderNode).join("\n")
-        }
-        else {
-            for (let v of this.rendered_types)
-                types += `${v}\n`
-        }
+        let types = this.renderDatatypes(strip_types);
 
         // FUNCTIONS
         let decls: string[] = []
         let defns: string[] = []
         let consts: string[] = []
+
         for (let [k, _] of this.function_declarations) {
             let rendered = this.renderFunctionDeclaration(k, consts);
             if (this.error_state || !rendered)
@@ -431,8 +432,7 @@ function renderNode(a: AST.ASTNode | undefined): string {
     
         case "TypeDef": {
             let cons = a.cases.map(renderNode).join(" ");
-            let type_params = a.params.join(" ");
-            return `(declare-datatypes (${type_params}) ((${a.ident} ${cons})))`
+            return `(${a.ident} ${cons})`
         }
         case "TypeConstructor": {
             let params = a.params.map(

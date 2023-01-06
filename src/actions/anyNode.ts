@@ -4,7 +4,7 @@ import { IProveDraft } from '../store/store';
 import { AnyNodeType, InductionNodeType, ListField, StatementNodeType } from '../types/Node';
 import { parseAll as parseAllStatements } from "./statementList";
 import { mutual_rec_on } from "../logic/induction";
-import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type } from "../types/AST";
+import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type, ASTNode } from "../types/AST";
 import { unwrap_statements } from "../util/statements";
 import { isTerm, conjunct, imply, range_over, display, iff } from "../util/trees";
 import { getInputs, getOutputs } from "../util/nodes";
@@ -89,13 +89,14 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
     return;
   }
 
+
   let tidentifiers = identifiers.map(
     (v, i): [Variable, Type] => [v, tidents[i] as Type])
   let IP: Term = (precond)
     ? imply(precond, range_over(cum_motives, tidentifiers))
     : range_over(cum_motives, tidentifiers)
 
-  let gt_IP: Term = mutual_rec_on(tidents, tdefs)(identifiers.map(x=>x.ident), final_motives)
+  let gt_IP: Term = mutual_rec_on(tdefs)(motives.map((m) => m.vars[0]), final_motives)
   
   console.log("GT", display(gt_IP))
   console.log("USER", display(IP))
