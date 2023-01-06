@@ -314,10 +314,11 @@ ATOMIC_TERM.setPattern(apply(
         let R : AtomicTerm = value[0];
         for (let i = 0; i < value[1].length; i++) {
             let prev : AST.Term = (R) ? R : value[0];
+            const arg0 = value[1][i][0];
             const arg1 = value[1][i][1];
             const arg2 = value[1][i][2]; // Have to put this in a variable for narrowing to work
             // hack, find a more elegant way to structure in general
-            if (arg1)
+            if (arg0)
                 R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "ArraySelect", params: [
                     // HACK - prev is returned in an error state, value should always be defined
                     prev, (value[1][i][1] ?? prev)

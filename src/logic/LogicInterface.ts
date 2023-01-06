@@ -3,7 +3,7 @@ import { StringChain } from "lodash";
 import { type } from "os";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
-import { conjunct, getSelector, isDeclaration, isTerm, underdetermine } from "../util/trees";
+import { conjunct, getSelector, isDeclaration, isTerm, PrimitiveType, underdetermine } from "../util/trees";
 import Z3Solver from "./Solver";
 import { gen_decls } from "./unifier";
 import { fnSMT } from "./util";
@@ -18,6 +18,69 @@ type ProofError = {
     emitter: "IProve" | "Z3",
     msg: string
 }
+
+const ListSlice = (t: string) => `
+(define-fun-rec ListSlice ((ls (List ${t})) (s Int) (e Int) (cs (List ${t}))) (List ${t})
+   (if ((_ is nil) ls)
+      (ListReverse cs)
+      (if (= e 0)
+         (ListReverse cs)
+         (if (= s 0)
+            (ListSlice (tail ls) 0 (- e 1) (insert (head ls) cs))
+            (ListSlice (tail ls) (- s 1) (- e 1) cs)
+         )
+      )
+   )
+)`;
+
+const ListElem = (t: string) => `
+(define-fun-rec ListElem ((ls (List ${t})) (i Int)) ${t}
+   (if ((_ is nil) ls)
+      IProveUnderspecified${t}
+      (if (= i 0)
+         (head ls)
+         (ListElem (tail ls) (- i 1))
+      )
+   )
+)`;
+
+const ListReverse = (t: string) => `
+(define-fun-rec ListReverse ((ls (List ${t}))) (List ${t}) (ListExchange ls nil))`;
+
+const ListConcat = (t: string) => `
+(define-fun-rec ListConcat ((ls (List ${t})) (cs (List ${t}))) (List ${t}) 
+   (ListExchange (ListReverse ls) cs))`;
+
+const ListExchange = (t: string) => `
+(define-fun-rec ListExchange ((ls (List ${t})) (cs (List ${t}))) (List ${t})
+   (if ((_ is nil) ls)
+      cs
+      (ListExchange (tail ls) (insert (head ls) cs))
+   )
+)`;
+
+const ListUnderspecified = (t: string) => `(declare-const IProveUnderspecified${t} ${t})`;
+
+export type ListOp = "Slice" | "Underspecified" | "Exchange" | "Reverse" | "Concat" | "Elem"
+export function renderListOperation(op: ListOp, type: AST.Type): string {
+    if (type.kind != "ListType") return "";
+    let ty = renderNode(type.param)
+    switch (op) {
+        case "Concat":
+            return ListConcat(ty)
+        case "Elem":
+            return ListElem(ty)
+        case "Exchange":
+            return ListExchange(ty)
+        case "Reverse":
+            return ListReverse(ty)
+        case "Slice":
+            return ListSlice(ty)
+        case "Underspecified":
+            return ListUnderspecified(ty)
+    }
+}
+
 
 export class LogicInterface {
     // persist after reset
@@ -275,9 +338,95 @@ export class LogicInterface {
         return`(declare-datatypes (${arities.join(" ")}) (${decls.join(" ")}))`
     }
 
+    deriveType(T: AST.Term, V: Map<string, AST.Type | undefined>, F: Map<string, AST.FunctionType>): AST.Type | undefined {
+        switch(T.kind) {
+            case "ArrayLiteral":
+                let A = (T.elems.length > 0) ? this.deriveType(T.elems[0], V, F) : undefined
+                return A ? {
+                    kind: "ListType",
+                    param: A
+                 } : undefined
+            case "FunctionApplication":
+                return F.get(T.fn)?.retType
+            case "ParenTerm":
+                return this.deriveType(T.term, V, F)
+            case "Variable":
+                return V.get(T.ident)
+            case "QuantifierApplication":
+            case "EquationTerm":
+                return PrimitiveType("Bool")
+        }
+    }
+
+    extractListOps(T: AST.Term | undefined, R: [ListOp, AST.Type | undefined][], V: Map<string, AST.Type | undefined>, F: Map<string, AST.FunctionType>): void  {
+        if (!T) return;
+
+        switch(T.kind) {
+            case "ArrayLiteral":
+                for (let e of T.elems) this.extractListOps(e, R, V, F)
+                break;
+            case "FunctionApplication":
+                for (let e of T.params) this.extractListOps(e, R, V, F)
+                let derived = this.deriveType(T.params[0], V, F);
+                switch(T.appType) {
+                    case "ArrayElem":
+                        R.push(["Underspecified", derived]);
+                        R.push(["Elem", derived]);
+                        break;
+                    case "ArraySlice":
+                        R.push(["Exchange", derived]);
+                        R.push(["Reverse", derived]);
+                        R.push(["Slice", derived]);
+                        break;
+                    case "InfixOp":
+                    case "InfixFunc":
+                        if (T.fn == "++") {
+                            R.push(["Exchange", derived]);
+                            R.push(["Reverse", derived]);
+                            R.push(["Concat", derived]);
+                        }
+                        break;
+                }
+                break;
+            case "ParenTerm":
+                this.extractListOps(T.term, R, V, F)
+                break;
+            case "Variable":
+                break;
+            case "QuantifierApplication":
+                let old: [string, AST.Type | undefined][] = []
+                for (let vb of T.vars) {
+                    old.push([vb.symbol.ident, V.get(vb.symbol.ident)])
+                    V.set(vb.symbol.ident, vb.type)
+                }
+                this.extractListOps(T.term, R, V, F)
+                for (let [s,v] of old) V.set(s, v)
+                break;
+            case "EquationTerm":
+                this.extractListOps(T.lhs, R, V, F)
+                this.extractListOps(T.rhs, R, V, F)
+        }
+    }
+
+    updateWithDeclaration(D: AST.Line, V: Map<string, AST.Type | undefined>, F: Map<string, AST.FunctionType>): void {
+        switch (D.kind) {
+            case "FunctionDeclaration":
+                F.set(D.symbol, D.type)
+                break;
+            case "SortDeclaration":
+                break;
+            case "VariableDeclaration":
+                V.set(D.symbol.ident, D.type)
+        }
+    }
+
     toString(strip_types: boolean = false): string {
         let res = "";
         let types = this.renderDatatypes(strip_types);
+
+        let V: Map<string, AST.Type | undefined> = new Map;
+        let F: Map<string, AST.FunctionType> = new Map;
+        let list_ops: [ListOp, AST.Type | undefined][] = [];
 
         // FUNCTIONS
         let decls: string[] = []
@@ -306,6 +455,7 @@ export class LogicInterface {
 
         // GLOBALS
         for (let v of this.declarations) {
+            this.updateWithDeclaration(v, V, F)
             switch (v.kind) {
                 case "FunctionDefinition":
                 case "FunctionDeclaration":
@@ -314,32 +464,41 @@ export class LogicInterface {
                     res += `${renderNode(v)}\n`; break;
                 case "TypeDef":
                     types += `${renderNode(v)}\n`; break;
-
                 default:
+                    if (isTerm(v)) this.extractListOps(v, list_ops, V, F);
                     res += `(assert ${renderNode(v)})`
             }
         }
 
         // GIVENS
         for (let v of this.givens) {
+            this.updateWithDeclaration(v, V, F)
             switch (v.kind) {
                 case "VariableDeclaration":
                     res += renderNode(v); break;
                 default:
+                    if (isTerm(v)) this.extractListOps(v, list_ops, V, F);
                     res += `(assert ${renderNode(v)})`
             }
             res += "\n"
         }
 
         // GOAL
+        this.extractListOps(this.goal, list_ops, V, F);
         res += `(assert (not ${renderNode(this.goal)}))\n`
 
-        //console.log("PRETUPE", res)
         // TUPLES
         for (let [_,v] of this.rendered_tuples)
             res = `${v}\n` + res
 
-        return types + res;
+        // LISTS
+        let LIST_OPS: Set<string> = new Set
+        for (let [o, t] of list_ops) {
+            if (!t) continue;
+            LIST_OPS.add(renderListOperation(o, t))
+        }
+
+        return types + Array.from(LIST_OPS).join("\n") + res;
     }
 }
 
