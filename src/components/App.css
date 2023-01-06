@@ -87,3 +87,7 @@
 ::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0);
 }
+
+.alert-container {
+  z-index: 10000 !important;
+}
