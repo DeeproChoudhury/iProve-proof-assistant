@@ -142,11 +142,24 @@ export const checkEdges = (ctx: ActionContext<AnyNodeType>) => {
 }
 
 export const invalidateEdges = (ctx: ActionContext<AnyNodeType>) => {
-  ctx.draft.data.edgesStatus = "unchecked";
+  const node = ctx.draft;
+  node.data.edgesStatus = "unchecked";
+  const edges = ctx.replaceLens(draft => draft.edges).draft;
+  for (const edge of edges) {
+    if (edge.target === node.id) {
+      edge.type = "unchecked";
+    }
+  }
 };
 
 export const invalidateOutgoingEdges = (ctx: ActionContext<AnyNodeType>) => {
-  // not implemented yet
+  const node = ctx.draft;
+  const edges = ctx.replaceLens(draft => draft.edges).draft;
+  for (const edge of edges) {
+    if (edge.source === node.id) {
+      edge.type = "unchecked";
+    }
+  }
 };
 
 export const recheck = (ctx: ActionContext<AnyNodeType>, listField: ListField<AnyNodeType["data"]>, updated: number): void => {
