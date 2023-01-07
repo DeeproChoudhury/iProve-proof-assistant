@@ -3,7 +3,7 @@ import { StringChain } from "lodash";
 import { type } from "os";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
-import { conjunct, getSelector, isDeclaration, isTerm, PrimitiveType, underdetermine } from "../util/trees";
+import { conjunct, getSelector, imply, isDeclaration, isTerm, mk_var, PrimitiveType, underdetermine } from "../util/trees";
 import Z3Solver from "./Solver";
 import { gen_decls } from "./unifier";
 import { fnSMT } from "./util";
@@ -59,7 +59,8 @@ const ListExchange = (t: string) => `
    )
 )`;
 
-const ListUnderspecified = (t: string) => `(declare-const IProveUnderspecified${t} ${t})`;
+const ListUnderspecified = (safe: string, unsafe: string) =>
+    `(declare-const IProveUnderspecified${safe} ${unsafe})`;
 
 export type ListOp = "Slice" | "Underspecified" | "Exchange" | "Reverse" | "Concat" | "Elem"
 export function renderListOperation(op: ListOp, type: AST.Type): string {
@@ -77,7 +78,7 @@ export function renderListOperation(op: ListOp, type: AST.Type): string {
         case "Slice":
             return ListSlice(ty)
         case "Underspecified":
-            return ListUnderspecified(ty)
+            return ListUnderspecified(LI.displaySafeType(type.param), ty)
     }
 }
 
@@ -90,6 +91,8 @@ export class LogicInterface {
     function_declarations: Map<string, AST.FunctionDeclaration> = new Map();
     rendered_tuples: Map<number, string> = new Map();
     global_fn_defs: Map<string, AST.FunctionDefinition[]> = new Map();
+    partial_funs: Set<string> = new Set();
+    partial_undets: Set<string> = new Set();
 
     // change on reset
     givens: AST.Line[] = [];
@@ -98,6 +101,7 @@ export class LogicInterface {
     rendered_goal: string | undefined;
     local_fn_defs: Map<string, AST.FunctionDefinition[]> = new Map();
     error_state: string | undefined;
+    
 
     error(state: string) { this.error_state = state; }
     resolve_error() 
@@ -124,7 +128,7 @@ export class LogicInterface {
             if (E) return { kind: "Error", emitter: "IProve", msg: E }
         }
 
-        this.setGoal(goal)
+        this.setGoal(conjunct([goal, LI.wellDef(goal as AST.Term)]) as AST.Term)
         E = this.resolve_error();
         if (E) return { kind: "Error", emitter: "IProve", msg: E }
         const rendered = this.toString(strip_types);
@@ -170,12 +174,15 @@ export class LogicInterface {
         let defs = M.get(A.ident)
         if (!defs) M.set(A.ident, [A])
         else defs.push(A)
+
+        this.partial_funs.add(A.ident);
     }
 
     setDeclarations(A: AST.Line[]): void {
         this.declarations = A;
         this.function_declarations = new Map;
         this.global_fn_defs = new Map;
+        this.partial_funs = new Set;
 
         A.forEach((t) => {
             if (t.kind == "FunctionDeclaration") {
@@ -186,6 +193,19 @@ export class LogicInterface {
             } else if (t.kind == "FunctionDefinition")
                 this.pushFnDef(t, this.global_fn_defs)
         })
+    }
+
+    displaySafeType(T: AST.Type): string {
+        switch(T.kind) {
+            case "ListType":
+                return `${this.displaySafeType(T.param)}_List`;
+            case "ParamType":
+                return `${T.ident}_${T.params.map(this.displaySafeType).join("_")}`;
+            case "PrimitiveType":
+                return T.ident
+            case "TupleType":
+                return `__${T.params.map(this.displaySafeType).join("_")}__`;
+        }
     }
 
     // Add instance given
@@ -249,7 +269,7 @@ export class LogicInterface {
     }
 
     renderTermOrGuard(G: AST.Guard | AST.Term, alt: string): string {
-        if (!(G.kind == "Guard")) return renderNode(G)
+        if (!(G.kind == "Guard")) return `(IProveMkResult ${renderNode(LI.wellDef(G))} ${renderNode(G)})`
         return this.renderGuard(G, alt)
     }
 
@@ -257,10 +277,44 @@ export class LogicInterface {
         let t_alt: string = alt;
         if (G.next)
             t_alt = this.renderGuard(G.next, alt)
-        return `(if ${renderNode(G.cond)} ${renderNode(G.res)} ${t_alt})`;
+        return `(if ${renderNode(G.cond)} (IProveMkResult ${renderNode(LI.wellDef(G.res))} ${renderNode(G.res)}) ${t_alt})`;
     }
 
-    renderFunctionDeclaration(ident: string, consts: string[]): [string, string | undefined][] | undefined {
+    wellDef(T: AST.Term): AST.Term {
+        switch(T.kind) {
+            case "ArrayLiteral":
+                return conjunct(T.elems.map(LI.wellDef)) as AST.Term;
+            case "EquationTerm":
+                return imply(LI.wellDef(T.rhs), LI.wellDef(T.lhs));
+            case "FunctionApplication":
+                let is_partial = LI.partial_funs.has(T.fn)
+                let definedPredicate: AST.PrefixApplication = {
+                    kind: "FunctionApplication",
+                    appType: "PrefixFunc",
+                    params: T.params,
+                    fn: `IProveWellDefined_${T.fn}`
+                }
+                let R = conjunct(T.params.map(LI.wellDef)) as AST.Term;
+                return is_partial ? conjunct([R, definedPredicate]) as AST.Term : R;
+            case "ParenTerm":
+                return LI.wellDef(T.term);
+            case "QuantifierApplication":
+                return {
+                    kind: "QuantifierApplication",
+                    quantifier: T.quantifier,
+                    vars: T.vars,
+                    var_nesting: T.var_nesting,
+                    term: LI.wellDef(T.term)
+                }
+            case "Variable":
+                return mk_var("true");
+        }
+    }
+
+    
+    
+
+    renderFunctionDeclaration(ident: string, consts: Set<string>): [string, string | undefined][] | undefined {
         let A = this.global_fn_defs.get(ident);
         let defs: AST.FunctionDefinition[] 
             = (A ?? []).concat(this.local_fn_defs.get(ident) ?? []);
@@ -289,18 +343,18 @@ export class LogicInterface {
             let concu: PatternData = [];
             for (let [i,p] of a.params.entries()) {
                 concu = concu.concat(renderPattern(p, `IProveParameter${i}`))
-                pdatas.push([concu, (a.def as AST.Term)]);
             }
+            pdatas.push([concu, a.def]);
         }
 
         let sections: string[] = [];
         console.log("PDATAS", pdatas)
-        const overall_alt = `IProveConstant${consts.length}`
+        const overall_alt = `(IProveMkResult false IProveUnderdetermined${this.displaySafeType(decl.type.retType)})`
         for (let [i, [p, d]] of pdatas.entries()) {
             const alt: string = `(${ident}__${i + 1} ${params.join(" ")})`;
             let sec: string = this.renderTermOrGuard(d, alt);
             for (let D of p.reverse()) {
-                console.log("HERE D", D)
+                console.log("HERE D")
                 if (D.kind == "Condition")
                     sec = `(if ${D.value} ${sec} ${alt})`
                 else
@@ -309,8 +363,7 @@ export class LogicInterface {
 
             sections.push(sec)
         }
-
-        consts.push(`${overall_alt} ${renderNode(decl.type.retType)}`)
+        
         sections.push(overall_alt);
 
         let rendered_params: string[] = [];
@@ -319,12 +372,18 @@ export class LogicInterface {
         
         let type = `(${rendered_params.join(" ")}) ${renderNode(decl.type.retType)}`
 
+        const rt: string = renderNode(decl.type.retType);
+        consts.add(`(declare-const IProveUnderdetermined${this.displaySafeType(decl.type.retType)} ${rt})`)
 
         let R: [string, string][] = []
+        R.push([`${ident} ${type}`, `(IProveResult (${ident}__0 ${params.join(" ")}))`])
+        R.push([
+            `IProveWellDefined_${ident} (${rendered_params.join(" ")}) Bool`,
+            `(IProveWellDefined (${ident}__0 ${params.join(" ")}))`])
         for (let [i, s] of sections.entries()) {
             console.log("A SECTION", i, s)
             R.push([
-                `${ident}${(i > 0) ? `__${i}` : ""} ${type}`,
+                `${ident}__${i} (${rendered_params.join(" ")}) (IProvePFResult ${renderNode(decl.type.retType)})`,
                 s
             ])
         }
@@ -420,6 +479,8 @@ export class LogicInterface {
         }
     }
 
+
+
     toString(strip_types: boolean = false): string {
         let res = "";
         let types = this.renderDatatypes(strip_types);
@@ -431,7 +492,7 @@ export class LogicInterface {
         // FUNCTIONS
         let decls: string[] = []
         let defns: string[] = []
-        let consts: string[] = []
+        let consts: Set<string> = new Set;
 
         for (let [k, _] of this.function_declarations) {
             let rendered = this.renderFunctionDeclaration(k, consts);
@@ -446,7 +507,7 @@ export class LogicInterface {
             }
         }
 
-        res += consts.map(x => `(declare-const ${x})\n`)
+        res += Array.from(consts).join("\n");
         let tDecl = decls.map(x => `(${x})`).join(" ")
         let tDefn = defns.map(x => `${x}`).join(" ")
         res += `\n\n(define-funs-rec\n    (${tDecl}) \n    (${tDefn})\n)\n\n`
@@ -505,7 +566,7 @@ export class LogicInterface {
 let SID: {n : number} = { n : 0 }
 const mk_bind = (s: string): PatternElem => ({ kind: "Binding", value: s })
 const mk_cond = (s: string): PatternElem => ({ kind: "Condition", value: s })
-function renderPattern(a: AST.Pattern, name: string): PatternData {
+export function renderPattern(a: AST.Pattern, name: string): PatternData {
     switch(a.kind) {
         case "SimpleParam":
             return [mk_bind(`(${a.ident} ${name})`)]
@@ -551,7 +612,7 @@ function renderPattern(a: AST.Pattern, name: string): PatternData {
     }
 }
 
-function renderNode(a: AST.ASTNode | undefined): string {
+export function renderNode(a: AST.ASTNode | undefined): string {
     if (!a) return "NULL";
 
     switch (a.kind) {

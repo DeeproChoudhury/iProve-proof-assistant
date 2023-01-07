@@ -1,6 +1,8 @@
+import { render } from "@testing-library/react";
 import * as AST from "../types/AST";
-import { IdentState } from "../types/LogicInterface";
+import { IdentState, PatternData } from "../types/LogicInterface";
 import { conjunct, construct_type, display, imply, mk_var, range_over, strict_rw, substitute_types } from "../util/trees";
+import { LI, renderNode, renderPattern } from "./LogicInterface";
 import evaluate from "./Parser";
 
 /**
@@ -102,4 +104,77 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
             range_over(full_motive, bindings.map((x) => [x.symbol, x.type as AST.Type]))
         );
     }
+}
+
+export function function_IP(decl: AST.FunctionDeclaration, defns: AST.FunctionDefinition[]):
+    (to_sub: AST.FunctionApplication, vname: string, motive: AST.Term) => AST.Term {
+        return (to_sub: AST.FunctionApplication, vname: string, motive: AST.Term): AST.Term => {
+            if (!defns.length) return motive;
+
+            // for each definition, extract the pattern condition/binding list
+            let pdatas: [PatternData, AST.Term | AST.Guard][] = [];
+            for (let a of defns) {
+                let concu: PatternData = [];
+                for (let [i,p] of a.params.entries()) {
+                    concu = concu.concat(renderPattern(p, `IProveParameter${i}`))
+                }
+                pdatas.push([concu, a.def]);
+            }
+
+            // for each definition, extract the conditions and respective outcomes
+            let conditions = []
+            for (let [i, [p, d]] of pdatas.entries()) {
+                let R = "true";
+                for (let D of p.reverse()) {
+                    if (D.kind == "Condition")
+                        R = `(and ${R} ${D.value})`
+                    else
+                        R = `(let (${D.value}) ${R})`
+                }
+
+                let localConditions
+                : {fst:string,rest:[AST.Term | undefined,AST.Term][]} 
+                = { fst: R, rest: [] }
+
+                if (d.kind == "Guard") {
+                    localConditions.rest.push([d.cond, d.res])
+                    let cd = d.next;
+                    while (cd) {
+                        localConditions.rest.push([cd.cond, cd.res])
+                        cd = cd.next;
+                    }
+                } else {
+                    localConditions.rest.push([undefined, d])
+                }
+                
+                conditions.push(localConditions)
+            }
+            // for each possible outcome, extract all its preconditions
+            // (exclusion -> pattern -> guard -> definedness)
+            let outcomes: [string, AST.Term][] = []
+            let cum_conditions: string = "true"
+            for (let {fst, rest} of conditions) {
+                for (let [c,v] of rest) {
+                    let st = (!c)
+                        ? `(and ${fst} ${cum_conditions})`
+                        : `(and ${renderNode(c)} (and ${fst} ${cum_conditions}))`
+                    st = `(and ${st} ${renderNode(LI.wellDef(v))})`
+                    outcomes.push([st, v])
+                    cum_conditions = (!c)
+                        ? cum_conditions
+                        : `(and ${cum_conditions} (not ${renderNode(c)}))`
+                }
+                cum_conditions = `(and ${cum_conditions} (not ${fst}))`
+            }
+
+            // iterate over the motive. We want to prove it for all outcomes,
+            // so we prove that, for each possible outcome:
+            //     - its preconditions being met
+            //     - AND for every recursive call in its outcome, the motive holds
+            //     - TOGETHER IMPLY the motive holds on the outcome
+            let cases: AST.Term[] = []
+            for (let [cond, outcome] of outcomes) {
+                let full_cond = `(and ${cond} )`
+            }
+        }
 }

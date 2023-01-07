@@ -27,7 +27,8 @@ export namespace Z3Solver {
             Z3EvalLib.set_param_value(cfg, "timeout", "150")
             const result = await Z3EvalLib.eval_smtlib2_string(
                 Z3EvalLib.mk_context(cfg),
-                str + "\n(check-sat)"); 
+                "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n"
+                + str + "\n(check-sat)"); 
             console.log(result) ;
             return result;
         }

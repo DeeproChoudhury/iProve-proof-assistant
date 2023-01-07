@@ -1,19 +1,19 @@
-(declare-const IProveUnderspecifiedInt Int)
+(declare-const IProveUnderspecified${t} ${t})
 
-(define-fun-rec ListExchange ((ls (List Int)) (cs (List Int))) (List Int)
+(define-fun-rec ListExchange ((ls (List ${t})) (cs (List ${t}))) (List ${t})
    (if ((_ is nil) ls)
       cs
       (ListExchange (tail ls) (insert (head ls) cs))
    )
 )
 
-(define-fun-rec ListReverse ((ls (List Int))) (List Int) (ListExchange ls nil))
-(define-fun-rec ListConcat ((ls (List Int)) (cs (List Int))) (List Int) 
+(define-fun-rec ListReverse ((ls (List ${t}))) (List ${t}) (ListExchange ls nil))
+(define-fun-rec ListConcat ((ls (List ${t})) (cs (List ${t}))) (List ${t}) 
    (ListExchange (ListReverse ls) cs))
 
-(define-fun-rec ListElem ((ls (List Int)) (i Int)) Int
+(define-fun-rec ListElem ((ls (List ${t})) (i ${t})) ${t}
    (if ((_ is nil) ls)
-      IProveUnderspecifiedInt
+      IProveUnderspecified${t}
       (if (= i 0)
          (head ls)
          (ListElem (tail ls) (- i 1))
@@ -21,7 +21,7 @@
    )
 )
 
-(define-fun-rec ListSlice ((ls (List Int)) (s Int) (e Int) (cs (List Int))) (List Int)
+(define-fun-rec ListSlice ((ls (List ${t})) (s ${t}) (e ${t}) (cs (List ${t}))) (List ${t})
    (if ((_ is nil) ls)
       (ListReverse cs)
       (if (= e 0)
