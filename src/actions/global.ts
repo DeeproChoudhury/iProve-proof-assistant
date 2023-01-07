@@ -1,10 +1,9 @@
-import { applyNodeChanges, Node } from 'reactflow';
 import { LIQ } from '../logic/LogicInterfaceQueue';
 import { ActionContext, actionsWithContext } from '../store/ActionContext';
 import { IProveDraft, StoreType } from '../store/store';
-import { IProveError } from '../types/ErrorLocation';
 import { NodeKind } from '../types/Node';
 import { StatementType } from '../types/Statement';
+import { mk_error } from '../util/errors';
 import { allParsed, edgesStatus, internalsStatus } from '../util/nodes';
 import { checkEdges, checkInternal, parseAll } from './anyNode';
 
@@ -106,14 +105,12 @@ export const verifyProofGlobal = (ctx: ActionContext<StoreType>) => {
     checkEdges(nodeCtx);
   }
   LIQ.queue(ctx.newAction(ctx => {
-    const internalsValid = ctx.draft.nodes.every(node => allParsed(node) && internalsStatus(node) === "valid");
-    const edgesValid = ctx.draft.nodes.every(node => allParsed(node) && edgesStatus(node) === "valid");
-    // if problem is with edges don't show anything as there are other errors being displayed
-    if (edgesValid && internalsValid) {
-      ctx.draft.proofStatus = "valid";
-    }
-    if (edgesValid && !internalsValid) {
-      ctx.draft.proofStatus = "invalid";
+    if (!ctx.draft.nodes.every(node => allParsed(node) && internalsStatus(node) === "valid")) {
+      ctx.setError(mk_error({ kind: "Proof", msg: "Not all nodes valid" }));
+    } else if (!ctx.draft.nodes.every(node => allParsed(node) && edgesStatus(node) === "valid")) {
+      ctx.setError(mk_error({ kind: "Proof", msg: "Not all edges valid" }));
+    } else {
+      ctx.setError(mk_error({ kind: "Proof", status: "success" }));
     }
   }));
 }
@@ -122,13 +119,8 @@ export const resetError = (ctx: ActionContext<StoreType>) => {
   ctx.draft.error = undefined;
 }
 
-export const resetProofStatus = (ctx: ActionContext<StoreType>) => {
-  ctx.draft.proofStatus = "unchecked";
-}
-
-
 const actions = {
-  addGivenNode, addProofNode, addGoalNode, addInductionNode, deleteNode, addImportedProof, verifyProofGlobal, resetError, resetProofStatus
+  addGivenNode, addProofNode, addGoalNode, addInductionNode, deleteNode, addImportedProof, verifyProofGlobal, resetError
 } as const;
 
 export const makeGlobalActions = (set: (cb: (draft: IProveDraft) => void) => void) => {

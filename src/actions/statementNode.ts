@@ -8,8 +8,6 @@ import { z3Reason } from "../util/reasons";
 import { isBlockEnd, isBlockStart, isTerm } from "../util/trees";
 import { checkReason, updateReasonStatus } from "./statementListWithReasons";
 
-export const checkInternal = (ctx: ActionContext<StatementNodeType>) => {}
-
 export const setWrappers = (ctx: ActionContext<StatementNodeType>) => {
   // sets the indentation level for each statement inside a node
   // this is run whenever the user leaves the input field of a statement and sees if 
@@ -60,7 +58,7 @@ export const recheckReasons = (ctx: ActionContext<StatementNodeType>) => {
 }
 
 const actions = {
-  checkInternal, setWrappers, autoAddReasons, recheckReasons
+  setWrappers, autoAddReasons, recheckReasons
 } as const;
 
 export const makeStatementNodeActions = (set: (cb: (draft: IProveDraft) => void) => void, lens: (draft: IProveDraft) => Draft<StatementNodeType>) => {

@@ -1,6 +1,7 @@
 import type { Draft } from "immer";
 import { SetStateAction } from "react";
 import { Node } from "reactflow";
+import { ActionContext } from "../store/ActionContext";
 import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeProps, AnyNodeType, InductionNodeData } from "../types/Node";
 import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
@@ -100,4 +101,24 @@ export const getOutputs = (node: AnyNodeProps): StatementType[] => {
     case "inductionNode":
       return node.data.motive;
   }
+}
+
+export const narrowNodeCtx = (ctx: ActionContext<AnyNodeType>) => {
+  const ctxStatementNode = ctx.narrowType((node): node is Draft<StatementNodeType>  => node.type !== "inductionNode")
+  if (ctxStatementNode) {
+    return {
+      kind: "statementNode",
+      ctx: ctxStatementNode
+    } as const;
+  }
+
+  const ctxInductionNode = ctx.narrowType((node): node is Draft<InductionNodeType>  => node.type === "inductionNode")
+  if (ctxInductionNode) {
+    return {
+      kind: "inductionNode",
+      ctx: ctxInductionNode
+    } as const;
+  }
+
+  throw new Error("impossible node type (unreachable)");
 }

@@ -8,30 +8,34 @@ import { unifies } from "../logic/unifier";
 import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type } from "../types/AST";
 import { unwrap_statements } from "../util/statements";
 import { isTerm, conjunct, imply, range_over, display } from "../util/trees";
-import { getInputs, getOutputs } from "../util/nodes";
+import { getInputs, getOutputs, narrowNodeCtx } from "../util/nodes";
 import { LIQ } from "../logic/LogicInterfaceQueue";
 import { invalidateInternals } from "./inductionNode";
-import { setWrappers } from "./statementNode";
+import { recheckReasons, setWrappers } from "./statementNode";
+import { mk_error } from "../util/errors";
 
 export const parseAll = (ctx: ActionContext<AnyNodeType>) => {
   ctx.setError(undefined);
+  const narrow = narrowNodeCtx(ctx);
 
-  const ctxStatementNode = ctx.narrowType((node): node is Draft<StatementNodeType>  => node.type !== "inductionNode")
-  if (ctxStatementNode) {
+  if (narrow.kind === "statementNode") {
     (["givens", "proofSteps", "goals"] as const)
-      .forEach(listField => parseAllStatements(ctxStatementNode.composeLens(node => node.data[listField])));
+      .forEach(listField => parseAllStatements(narrow.ctx.composeLens(node => node.data[listField])));
   }
 
-  const ctxInductionNode = ctx.narrowType((node): node is Draft<InductionNodeType>  => node.type === "inductionNode")
-  if (ctxInductionNode) {
+  if (narrow.kind === "inductionNode") {
     (["types", "motive", "inductiveCases", "baseCases", "identifier"] as const)
-      .forEach(listField => parseAllStatements(ctxInductionNode.composeLens(node => node.data[listField])));
+      .forEach(listField => parseAllStatements(narrow.ctx.composeLens(node => node.data[listField])));
   }
 }
 
 export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
-  const ctx = ctx_.narrowType((node): node is Draft<InductionNodeType>  => node.type === "inductionNode")
-  if (!ctx) return; // nothing to do for statement nodes
+  const narrow = narrowNodeCtx(ctx_);
+  if (narrow.kind === "statementNode") {
+    recheckReasons(narrow.ctx);
+    return;
+  }
+  const ctx = narrow.ctx;
 
   const node = ctx.draft;
 
@@ -69,10 +73,10 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   for (let c of cases) {
     console.log("HERE C", c)
     if (!isTerm(c)) {
-      ctx.setError({
+      ctx.setError(mk_error({
         kind: "Semantic",
         msg: "Inductive terms must be first-order formulae!"
-      });
+      }));
       node.data.internalsStatus = "invalid";
       return;
     }
@@ -82,10 +86,10 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   let cum_motives = conjunct(final_motives)
   console.log("CMOTIVE", cum_motives, final_motives)
   if (!cum_motives) {
-    ctx.setError({
+    ctx.setError(mk_error({
       kind: "Semantic",
       msg: "Inductive terms must be first-order formulae!"
-    });
+    }));
     node.data.internalsStatus = "invalid";
     return;
   }
@@ -152,7 +156,7 @@ export const invalidateOutgoingEdges = (ctx: ActionContext<AnyNodeType>) => {
 export const recheck = (ctx: ActionContext<AnyNodeType>, listField: ListField<AnyNodeType["data"]>, updated: number): void => {
   parseAll(ctx);
 
-  const ctxStatementNode = ctx.narrowType((node): node is Draft<StatementNodeType>  => node.type !== "inductionNode")
+  const ctxStatementNode = ctx.narrowType((node): node is Draft<StatementNodeType> => node.type !== "inductionNode")
   if (ctxStatementNode) {
     switch (ctxStatementNode.draft.type) {
       case "givenNode":
