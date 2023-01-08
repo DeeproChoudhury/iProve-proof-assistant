@@ -185,6 +185,16 @@ const TACTIC = rule<TokenKind, AST.Tactic>();
 const CORE = rule<TokenKind, AST.Line>();
 
 const TERM = rule<TokenKind, AST.Term>();
+
+const ReservedWord = (x: string): boolean => {
+   switch(x) {
+        case "List": case "Relation": case "Predicate": case "in": case "data":
+        case "type": case "Set":
+            return true
+        default: return x.includes("IProve")
+    }
+}
+
 interface UnaryOperator {
     kind: "Operator",
     appType: "Unary",
@@ -210,10 +220,10 @@ type TermOperator = InfixOperator | UnaryOperator | EndOfTerm;
 const OPERATOR = rule<TokenKind, TermOperator>();
 
 
-VARIABLE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
-    //console.log("VARIABLE SUCCEEDS", s.text)
+VARIABLE.setPattern(handle(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
+    if (ReservedWord(s.text)) throw new Error(`${s.text} is a reserved word`)
     return { kind: "Variable", ident: s.text }
-}));
+})));
 
 const PRIMITIVE_TYPE = rule<TokenKind, AST.PrimitiveType>();
 const PARAM_TYPE = rule<TokenKind, AST.ParamType>();
@@ -290,14 +300,15 @@ FN_TYPE.setPattern(
         )
     ));
 
-FN_DEC.setPattern(apply(
+FN_DEC.setPattern(handle(apply(
     seq(
         kright(opt_sc(str("fun")), tok(TokenKind.Symbol)),
         kright(str("::"), FN_TYPE)),
     (value: [Token<TokenKind.Symbol>, AST.FunctionType]): AST.FunctionDeclaration => {
+        if (ReservedWord(value[0].text)) throw new Error(`${value[0].text} is a reserved word`)
         return { kind: "FunctionDeclaration", symbol: value[0].text, type: value[1] }
     }
-));
+)));
 VAR_DEC.setPattern(apply(
     seq(
         kright(str("var"), VARIABLE),
@@ -335,7 +346,7 @@ PREFIX_APPLY.setPattern(handle(apply(
         kmid(str("("), empty_list_sc(TERM, str(",")), str(")"))
     ),    
     (value: [Token<TokenKind.InfixSymbol | TokenKind.Symbol>, AST.Type[] | undefined, AST.Term[]]): AST.PrefixApplication => {
-        if (value[0].text == "List") throw new Error("List is a reserved word")
+        if (ReservedWord(value[0].text)) throw new Error(`${value[0].text} is a reserved word`)
         return { 
             kind: "FunctionApplication",
             fn: value[0].text,
