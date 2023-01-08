@@ -20,13 +20,13 @@ export namespace Z3Solver {
     export class Z3Prover {
         constructor(context: string) { }
 
-        public async solve(str : string) {
+        public async solve(str : string, timeout: number = 1500) {
             console.log(str)
             const cfg: Z3_config = Z3EvalLib.mk_config();
             await Z3EvalLib.set_param_value(cfg, "proof", "true")
             const result = await Z3EvalLib.eval_smtlib2_string(
                 Z3EvalLib.mk_context(cfg),
-                "(set-option :timeout 1500)" + 
+                `(set-option :timeout ${timeout})\n` + 
                 "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n"
                 + str + "\n(check-sat)"); 
             console.log(result) ;

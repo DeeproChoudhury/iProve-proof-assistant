@@ -18,7 +18,9 @@ const Header = (props: HeaderPropsType) => {
   { value: 'implies', symbol: '->' },
   { value: 'for all x', symbol: 'FA x.' },
   { value: 'exists x', symbol: 'EX x.' },
-  { value: 'negation', symbol: '~' }]
+  { value: 'negation', symbol: '~' },
+  { value: 'x ∈ S', symbol: 'x in S' }]
+  
   const actions = useIProveStore(store => store.actions);
 
   return (

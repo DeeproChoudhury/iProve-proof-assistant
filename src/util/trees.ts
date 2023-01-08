@@ -5,10 +5,19 @@ import { StatefulTransformer } from "../types/LogicInterface";
 
 function d(a: AST.ASTNode): string {
     switch (a.kind) {
-        case "PrimitiveType": return a.ident;
-        case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
-        case "VariableBinding": return (a.bound)
-            ? `${d(a.symbol)} >= ${a.bound}`
+        case "PrimitiveType": return (a.ident == "Int") ? "ℤ" : a.ident;
+        case "FunctionType": {
+            switch(a.tag) {
+                case "Set":
+                case "Predicate":
+                    return `${a.tag}<${d(a.argTypes[0])}>`
+                default:
+                    return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
+            }
+        }
+        
+        case "VariableBinding": return (a.bound != undefined)
+            ? `${d(a.symbol)} ` + `≥ ${a.bound}`
             : d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");

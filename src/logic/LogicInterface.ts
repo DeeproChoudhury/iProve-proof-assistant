@@ -630,7 +630,7 @@ export function renderNode(a: AST.ASTNode | undefined): string {
     if (!a) return "NULL";
 
     switch (a.kind) {
-        case "PrimitiveType": return a.ident;
+        case "PrimitiveType": return (a.ident == "Prop") ? "Bool" : a.ident;
         case "FunctionType": return `(${a.argTypes.map(renderNode).join(" ")})  ${renderNode(a.retType)}`;
         case "VariableBinding": return `(${renderNode(a.symbol)} ${a.type ? renderNode(a.type) : "Int"})`;
         case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${renderNode(a.type)})`;
@@ -654,6 +654,10 @@ export function renderNode(a: AST.ASTNode | undefined): string {
                     return `(ListSlice ${a.params.map(renderNode).join(" ")} nil)`
                 case "++":
                     return `(ListConcat ${a.params.map(renderNode).join(" ")})`
+                case "in":
+                    if (!a.params[1] 
+                        || a.params[1].kind != "Variable") return "false"
+                    return `(${a.params[1].ident} ${renderNode(a.params[0])})`
                 default:
                     return (a.params.length)
                     ? `(${fnSMT(a.fn)} ${a.params.map(renderNode).join(" ")})`

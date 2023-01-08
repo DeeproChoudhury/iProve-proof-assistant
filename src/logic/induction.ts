@@ -85,9 +85,14 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
                 continue;
             }
 
-            if (BIT.kind == "ListType" || BIT.kind == "TupleType") { 
-                cum_precons.push(motive); continue;
+            if (BIT.kind == "ListType") {
+                continue;
             }
+
+            if (BIT.kind == "TupleType") { 
+                cum_precons.push(range_over_bindings(motive, [bindings[i]])); continue;
+            }
+
             let type_def = TMap.get(BIT.ident);
             if (!type_def) { 
                 cum_precons.push(motive); continue;

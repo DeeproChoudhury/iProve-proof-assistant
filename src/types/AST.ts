@@ -90,6 +90,7 @@ export type FunctionType = {
     kind: "FunctionType",
     argTypes: Type[],
     retType: Type
+    tag?: "Set" | "Predicate"
 }
 
 export type VariableBinding = {

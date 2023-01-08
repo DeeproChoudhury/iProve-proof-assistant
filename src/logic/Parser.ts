@@ -111,7 +111,9 @@ enum TokenKind {
     TypeKW,
     CurlyBrace,
     Times,
-    Colon
+    Colon,
+    Set,
+    Predicate
 }
 
 const lexer = buildLexer([
@@ -133,10 +135,12 @@ const lexer = buildLexer([
     [true, /^(skolem)/g, TokenKind.Skolem],
     [true, /^(begin)/g, TokenKind.Begin],
     [true, /^(end)/g, TokenKind.End],
+    [true, /^(Set)/g, TokenKind.Set],
+    [true, /^(Predicate)/g, TokenKind.Predicate],
     [true, /^(type|data)/g, TokenKind.TypeKW],
 
+    [true, /^((\+|-|=|>|<|\/|\.|\*|!|&|\||~)+|in)/g, TokenKind.InfixSymbol],
     [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
-    [true, /^(\+|-|=|>|<|\/|\.|\*|!|&|\||~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
 ]);
@@ -235,14 +239,32 @@ TYPE.setPattern(alt(
 ))
 
 
-FN_TYPE.setPattern(apply(
-    seq(
-        kmid(opt_sc(str("(")), list_sc(TYPE, str(",")), opt_sc(str(")"))),
-        kright(str("->"), TYPE)),
-    (value: [AST.Type[], AST.Type]): AST.FunctionType => {
-        return { kind: "FunctionType", argTypes: value[0], retType: value[1] }
-    }
-));
+FN_TYPE.setPattern(
+    alt(
+        apply(
+            seq(
+                alt(tok(TokenKind.Set), tok(TokenKind.Predicate)),
+                kmid(str("<"), TYPE, str(">"))
+            ),
+            (value: [Token<TokenKind.Set> | Token<TokenKind.Predicate>, AST.Type]): AST.FunctionType => {
+                
+                return { 
+                    kind: "FunctionType",
+                    argTypes: [value[1]],
+                    retType: PrimitiveType("Bool"),
+                    tag: (value[0].text == "Set") ? "Set" : "Predicate"
+                }
+            }
+        ),
+        apply(
+            seq(
+                kmid(opt_sc(str("(")), list_sc(TYPE, str(",")), opt_sc(str(")"))),
+                kright(str("->"), TYPE)),
+            (value: [AST.Type[], AST.Type]): AST.FunctionType => {
+                return { kind: "FunctionType", argTypes: value[0], retType: value[1] }
+            }
+        )
+    ));
 
 FN_DEC.setPattern(apply(
     seq(
@@ -361,6 +383,7 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
     "&": [6, true, true],
     "||": [6, true, true],
     "^": [6, true, true],
+    "in": [6, true, true],
 
     "->": [4, true, true],
     "<->": [4, true, true],
