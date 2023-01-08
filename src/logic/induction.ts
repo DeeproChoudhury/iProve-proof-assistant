@@ -3,7 +3,7 @@ import * as AST from "../types/AST";
 import { IdentState, PatternData } from "../types/LogicInterface";
 import { conjunct, construct_type, display, imply, mk_var, PrimitiveType, range_over, range_over_bindings, strict_rw, substitute_types } from "../util/trees";
 import { map_terms } from "./combinator";
-import { IPROVE_LIST, LI, renderNode, renderPattern } from "./LogicInterface";
+import { IPROVE_LIST, LI, renderNode } from "./LogicInterface";
 import evaluate from "./Parser";
 
 /**

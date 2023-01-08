@@ -37,9 +37,16 @@ function handle<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResul
 }
 
 function empty_list_sc<TKind, Elem, Delim>(P: Parser<TKind, Elem>, delim: Parser<TKind, Delim>): Parser<TKind, Elem[]> {
-    return alt(
-        list_sc(P, delim),
+    return if_else(
+        kleft(list_sc(P, delim), opt(delim)),
         apply(nil(), () => [])
+    )
+}
+
+function dangling_list_sc<TKind, Elem, Delim>(P: Parser<TKind, Elem>, delim: Parser<TKind, Delim>): Parser<TKind, Elem[]> {
+    return apply(
+        seq(kleft(P, delim), rep_sc(kleft(P, delim)), opt(P)),
+        ([v1, v2, v3]) => v3 == undefined ? [v1].concat(v2) : [v1].concat(v2).concat([v3])
     )
 }
 
@@ -73,8 +80,8 @@ function if_else<TKind, TResult1, TResult2>(A: Parser<TKind, TResult1>, B: Parse
         return {
             parse(token: Token<TKind> | undefined): ParserOutput<TKind, TResult1 | TResult2> {
                 let RA = A.parse(token)
-                if (!RA.successful) return B.parse(token)
-                return A.parse(token)
+                if (RA.successful) return A.parse(token)
+                return B.parse(token)
             }
         }
     }
@@ -306,16 +313,17 @@ VAR_BIND.setPattern(alt(
     ),
 ));
 
-PREFIX_APPLY.setPattern(apply(
+PREFIX_APPLY.setPattern(handle(apply(
     seq(
         alt(
             kmid(str("("), tok(TokenKind.InfixSymbol), str(")")),
             tok(TokenKind.Symbol)
         ),
         opt(kmid(str("<"), list_sc(TYPE, str(",")), str(">"))),
-        kmid(str("("), list_sc(TERM, str(",")), str(")"))
+        kmid(str("("), empty_list_sc(TERM, str(",")), str(")"))
     ),    
     (value: [Token<TokenKind.InfixSymbol | TokenKind.Symbol>, AST.Type[] | undefined, AST.Term[]]): AST.PrefixApplication => {
+        if (value[0].text == "List") throw new Error("List is a reserved word")
         return { 
             kind: "FunctionApplication",
             fn: value[0].text,
@@ -324,7 +332,7 @@ PREFIX_APPLY.setPattern(apply(
             appType: (value[0].kind === TokenKind.Symbol) ? "PrefixFunc" : "PrefixOp"
          }
     }
-));
+)));
 
 PAREN_TERM.setPattern(apply(
     alt(
@@ -338,11 +346,10 @@ PAREN_TERM.setPattern(apply(
 
 ATOMIC_TERM.setPattern(apply(
     seq(
-        if_else(PREFIX_APPLY,
-            alt(
-            VARIABLE,
-            ARRAY_LITERAL,
-            PAREN_TERM)),
+        if_else(
+            if_else(PREFIX_APPLY, ARRAY_LITERAL),
+            if_else(VARIABLE, PAREN_TERM)
+        ),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
             kmid(str("["), seq(apply(nil(), (_) => { return false; }), TERM, kright(str(".."), opt_sc(TERM))), str(")")),
@@ -369,9 +376,23 @@ ATOMIC_TERM.setPattern(apply(
         return R;
     }
 ));
+
+
 ARRAY_LITERAL.setPattern(apply(
-    kmid(str("{"), empty_list_sc(TERM, str(",")), str("}")),
-    (v): AST.ArrayLiteral => ({ kind: "ArrayLiteral", elems: v })
+    alt(
+        seq(nil(), kmid(str("{"), kleft(list_sc(TERM, str(",")), opt(str(","))), str("}"))),
+        seq(nil(), kmid(str("["), dangling_list_sc(TERM, str(",")), str("]"))),
+        if_else(
+           seq( kmid(seq(str("List"), str("<")), TYPE, seq(str(">"), str("("))),
+                kleft(empty_list_sc(TERM, str(",")), str(")"))
+                ),
+            seq(nil(), kmid(
+                seq(str("List"), opt(str("<>")), str("(")),
+                kleft(list_sc(TERM, str(",")), opt(str(","))),
+                str(")")))
+        )
+    ),
+    (v: [AST.Type | undefined, AST.Term[]]): AST.ArrayLiteral => ({ kind: "ArrayLiteral", elems: v[1], type: v[0] })
 ));
 
 // PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC 
@@ -720,6 +741,7 @@ PROOF_LINE.setPattern(handle(alt(
  * 
  */
 export function evaluate(line: string): AST.ASTNode | ParseError {
+    console.log(PROOF_LINE.parse(lexer.parse(line)))
     let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
     // console.log("FINAL", A)
     if (!A.successful) return A.error;

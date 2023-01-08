@@ -426,6 +426,7 @@ export class LogicInterface {
         if (!T) return undefined;
         switch(T.kind) {
             case "ArrayLiteral":
+                if (T.type) return { kind: "ListType", param: T.type }
                 let A = (T.elems.length > 0) ? this.deriveType(T.elems[0], V, F) : undefined
                 return A ? {
                     kind: "ListType",
@@ -458,6 +459,8 @@ export class LogicInterface {
 
         switch(T.kind) {
             case "ArrayLiteral":
+                if (!T.type && T.elems.length)
+                    T.type = this.deriveType(T.elems[0], V, F)
                 for (let e of T.elems) this.extractListOps(e, R, V, F)
                 break;
             case "FunctionApplication":
@@ -736,8 +739,8 @@ export function renderNode(a: AST.ASTNode | undefined): string {
         }
         
         case "ArrayLiteral": {
-            //let R = `(as nil (IProveList ${LI.deriveType(a.elems[0])}))`;
-            let R = "nil"
+            let R = `(as nil (IProveList ${renderNode(a.type)}))`;
+            //let R = "nil"
             for (let e of a.elems.reverse())
                 R = `(IProveInsert ${renderNode(e)} ${R})`
             return R

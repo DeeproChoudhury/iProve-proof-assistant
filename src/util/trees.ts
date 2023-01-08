@@ -69,7 +69,10 @@ function d(a: AST.ASTNode): string {
         case "ListType": return `[${d(a.param)}]`
         case "TupleType": return `(${a.params.map(d).join(", ")})`
 
-        case "ArrayLiteral": return `{ ${a.elems.map(d).join(", ")} }`
+        case "ArrayLiteral": 
+            return (a.type)
+            ? `List<${d(a.type)}>(${a.elems.map(d).join(", ")})`
+            : `{ ${a.elems.map(d).join(", ")} }`
     }
 }
 export const display: (line: AST.ASTNode) => string = d

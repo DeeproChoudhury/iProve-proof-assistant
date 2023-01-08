@@ -135,7 +135,8 @@ export type Variable = {
 
 export type ArrayLiteral = {
     kind: "ArrayLiteral",
-    elems: Term[]
+    elems: Term[],
+    type?: Type
 }
 
 export type PrefixApplication = {
