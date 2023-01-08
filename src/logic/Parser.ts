@@ -1,4 +1,4 @@
-import { Parser, ParserOutput, Token, ParseError, err, opt } from 'typescript-parsec';
+import { Parser, ParserOutput, Token, ParseError, err, opt, rep } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb, lrec_sc } from 'typescript-parsec';
 import * as AST from "../types/AST"
@@ -34,6 +34,13 @@ function handle<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResul
             }
         }
     }
+}
+
+function empty_list_sc<TKind, Elem, Delim>(P: Parser<TKind, Elem>, delim: Parser<TKind, Delim>): Parser<TKind, Elem[]> {
+    return alt(
+        list_sc(P, delim),
+        apply(nil(), () => [])
+    )
 }
 
 /**
@@ -363,7 +370,7 @@ ATOMIC_TERM.setPattern(apply(
     }
 ));
 ARRAY_LITERAL.setPattern(apply(
-    kmid(str("{"), list_sc(TERM, str(",")), str("}")),
+    kmid(str("{"), empty_list_sc(TERM, str(",")), str("}")),
     (v): AST.ArrayLiteral => ({ kind: "ArrayLiteral", elems: v })
 ));
 

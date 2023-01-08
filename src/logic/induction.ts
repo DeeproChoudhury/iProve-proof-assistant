@@ -3,7 +3,7 @@ import * as AST from "../types/AST";
 import { IdentState, PatternData } from "../types/LogicInterface";
 import { conjunct, construct_type, display, imply, mk_var, PrimitiveType, range_over, range_over_bindings, strict_rw, substitute_types } from "../util/trees";
 import { map_terms } from "./combinator";
-import { LI, renderNode, renderPattern } from "./LogicInterface";
+import { IPROVE_LIST, LI, renderNode, renderPattern } from "./LogicInterface";
 import evaluate from "./Parser";
 
 /**
@@ -44,16 +44,17 @@ export function rec_on(type_def: AST.TypeDef):
  */
 export function mutual_rec_on(type_defs: AST.TypeDef[]):
  (bindings: AST.VariableBinding[], motives: AST.Term[]) => AST.Term {
+    type_defs.push(IPROVE_LIST)
     let TMap = new Map(type_defs.map((x) => [x.ident, x]))
     return (bindings: AST.VariableBinding[], motives: AST.Term[]): AST.Term => {
         console.log("HERE WE GO", motives, type_defs)
         // :/
         for (let x of bindings) { if (!x.type) return { kind: "Variable", ident: "ERRORVAR"}; }
-        let fts = bindings.map((x) => display(x.type as AST.Type))
+        let fts = bindings.map((x) => LI.displaySafeType(x.type as AST.Type))
 
         let cum_precons: AST.Term[] = []
         for (let [i, motive] of motives.entries()) {
-            const BIT = bindings[i].type
+            let BIT = bindings[i].type
             const ident = bindings[i].symbol;
 
             if (!BIT) { 
@@ -86,7 +87,11 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
             }
 
             if (BIT.kind == "ListType") {
-                continue;
+                BIT = {
+                    kind: "ParamType",
+                    ident: "IProveList",
+                    params: [BIT.param]
+                }
             }
 
             if (BIT.kind == "TupleType") { 
@@ -118,7 +123,7 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
                     .flatMap(pt => {
                         let R = []
                         for (let [j, b] of fts.entries()) {
-                            if (b == display(pt[1])) {
+                            if (b == LI.displaySafeType(pt[1])) {
                                 R.push(strict_rw(motives[j], bindings[j].symbol, pt[0]))
                             }
                         } 

@@ -1,4 +1,5 @@
 import { defineStyle } from "@chakra-ui/react";
+import { ThemeProvider } from "@emotion/react";
 import { StringChain } from "lodash";
 import { type } from "os";
 import * as AST from "../types/AST";
@@ -19,14 +20,28 @@ type ProofError = {
     msg: string
 }
 
+export const IPROVE_LIST: AST.TypeDef = {
+    kind: "TypeDef",
+    ident: "IProveList",
+    params: ["T"],
+    cases: [
+        { kind: "TypeConstructor", params: [], ident: "nil", selectors: [] },
+        { kind: "TypeConstructor", params: [PrimitiveType("T"), {
+            kind: "ParamType",
+            ident: "IProveList",
+            params: [PrimitiveType("T")]
+        }], ident: "IProveInsert", selectors: ["head", "tail"] }
+    ]
+}
+
 const ListSlice = (t: string) => `
-(define-fun-rec ListSlice ((ls (List ${t})) (s Int) (e Int) (cs (List ${t}))) (List ${t})
+(define-fun-rec ListSlice ((ls (IProveList ${t})) (s Int) (e Int) (cs (IProveList ${t}))) (IProveList ${t})
    (if ((_ is nil) ls)
       (ListReverse cs)
       (if (= e 0)
          (ListReverse cs)
          (if (= s 0)
-            (ListSlice (tail ls) 0 (- e 1) (insert (head ls) cs))
+            (ListSlice (tail ls) 0 (- e 1) (IProveInsert (head ls) cs))
             (ListSlice (tail ls) (- s 1) (- e 1) cs)
          )
       )
@@ -34,7 +49,7 @@ const ListSlice = (t: string) => `
 )`;
 
 const ListElem = (t: string) => `
-(define-fun-rec ListElem ((ls (List ${t})) (i Int)) ${t}
+(define-fun-rec ListElem ((ls (IProveList ${t})) (i Int)) ${t}
    (if ((_ is nil) ls)
       IProveUnderspecified${t}
       (if (= i 0)
@@ -45,17 +60,17 @@ const ListElem = (t: string) => `
 )`;
 
 const ListReverse = (t: string) => `
-(define-fun-rec ListReverse ((ls (List ${t}))) (List ${t}) (ListExchange ls nil))`;
+(define-fun-rec ListReverse ((ls (IProveList ${t}))) (IProveList ${t}) (ListExchange ls (as nil (IProveList ${t}))))`;
 
 const ListConcat = (t: string) => `
-(define-fun-rec ListConcat ((ls (List ${t})) (cs (List ${t}))) (List ${t}) 
+(define-fun-rec ListConcat ((ls (IProveList ${t})) (cs (IProveList ${t}))) (IProveList ${t}) 
    (ListExchange (ListReverse ls) cs))`;
 
 const ListExchange = (t: string) => `
-(define-fun-rec ListExchange ((ls (List ${t})) (cs (List ${t}))) (List ${t})
+(define-fun-rec ListExchange ((ls (IProveList ${t})) (cs (IProveList ${t}))) (IProveList ${t})
    (if ((_ is nil) ls)
       cs
-      (ListExchange (tail ls) (insert (head ls) cs))
+      (ListExchange (tail ls) (IProveInsert (head ls) cs))
    )
 )`;
 
@@ -64,8 +79,9 @@ const ListUnderspecified = (safe: string, unsafe: string) =>
 
 export type ListOp = "Slice" | "Underspecified" | "Exchange" | "Reverse" | "Concat" | "Elem"
 export function renderListOperation(op: ListOp, type: AST.Type): string {
-    if (type.kind != "ListType") return "";
-    let ty = renderNode(type.param)
+    if (type.kind != "ListType" && !(type.kind == "ParamType" && type.ident == "List")) return "";
+    let tp = (type.kind == "ListType") ? type.param : type.params[0]
+    let ty = renderNode(tp)
     switch (op) {
         case "Concat":
             return ListConcat(ty)
@@ -78,14 +94,14 @@ export function renderListOperation(op: ListOp, type: AST.Type): string {
         case "Slice":
             return ListSlice(ty)
         case "Underspecified":
-            return ListUnderspecified(LI.displaySafeType(type.param), ty)
+            return ListUnderspecified(LI.displaySafeType(tp), ty)
     }
 }
 
 
 export class LogicInterface {
     // persist after reset
-    types: AST.TypeDef[] = [];
+    types: AST.TypeDef[] = [IPROVE_LIST];
     rendered_types: string[] = [];
     declarations: AST.Line[] = [];
     function_declarations: Map<string, AST.FunctionDeclaration> = new Map();
@@ -167,7 +183,7 @@ export class LogicInterface {
     }
 
     setTypes(A: AST.TypeDef[]): void {
-        this.types = A;
+        this.types = [IPROVE_LIST].concat(A);
         for (let T of A)
             this.defined_types.set(T.ident, T)
         this.rendered_types = A.map(renderNode)
@@ -203,8 +219,9 @@ export class LogicInterface {
     displaySafeType(T: AST.Type): string {
         switch(T.kind) {
             case "ListType":
-                return `${this.displaySafeType(T.param)}_List`;
+                return `IProveList_${this.displaySafeType(T.param)}`;
             case "ParamType":
+                let ti = T.ident == "List" ? "IProveList" : T.ident
                 return `${T.ident}_${T.params.map(this.displaySafeType).join("_")}`;
             case "PrimitiveType":
                 return T.ident
@@ -402,6 +419,9 @@ export class LogicInterface {
         return`(declare-datatypes (${arities.join(" ")}) (${decls.join(" ")}))`
     }
 
+    MathOperators = new Set(["+", "-", "/", "*", "%"])
+    BooleanOperators = new Set(["||", "&", "~", "->", "<->", "in", "=", "=="])
+    ListOperators = new Set(["ArraySelect", "ArraySlice", "++"])
     deriveType(T: AST.Term, V: Map<string, AST.Type | undefined>, F: Map<string, AST.FunctionType>): AST.Type | undefined {
         if (!T) return undefined;
         switch(T.kind) {
@@ -412,10 +432,20 @@ export class LogicInterface {
                     param: A
                  } : undefined
             case "FunctionApplication":
+                if (this.MathOperators.has(T.fn) || this.ListOperators.has(T.fn))
+                    return this.deriveType(T.params[0], V, F)
+                else if (this.BooleanOperators.has(T.fn))
+                    return PrimitiveType("Bool")
+                else if (T.fn == ":") {
+                    if (!T.params[1]) return undefined;
+                    return this.deriveType(T.params[1], V, F)
+                }
                 return F.get(T.fn)?.retType
             case "ParenTerm":
                 return this.deriveType(T.term, V, F)
             case "Variable":
+                if (/^-?\d+$/.test(T.ident)) return PrimitiveType("Int");
+                if (T.ident == "true" || T.ident == "false") return PrimitiveType("Bool");
                 return V.get(T.ident)
             case "QuantifierApplication":
             case "EquationTerm":
@@ -655,7 +685,7 @@ export function renderNode(a: AST.ASTNode | undefined): string {
                 case "++":
                     return `(ListConcat ${a.params.map(renderNode).join(" ")})`
                 case ":":
-                    return `(insert ${a.params.map(renderNode).join(" ")})`
+                    return `(IProveInsert ${a.params.map(renderNode).join(" ")})`
                 case "in":
                     if (!a.params[1] 
                         || a.params[1].kind != "Variable") return "false"
@@ -696,9 +726,9 @@ export function renderNode(a: AST.ASTNode | undefined): string {
         }
 
         case "ParamType":
-            return `(${a.ident} ${a.params.map(renderNode).join(" ")})`
+            return `(${a.ident == "List" ? "IProveList" : a.ident} ${a.params.map(renderNode).join(" ")})`
         case "ListType":
-            return `(List ${renderNode(a.param)})`
+            return `(IProveList ${renderNode(a.param)})`
         case "TupleType": {
             let N = a.params.length;
             LI.createTuple(N);
@@ -706,9 +736,9 @@ export function renderNode(a: AST.ASTNode | undefined): string {
         }
         
         case "ArrayLiteral": {
-            let R = "nil";
+            let R = `nil`;
             for (let e of a.elems.reverse())
-                R = `(insert ${renderNode(e)} ${R})`
+                R = `(IProveInsert ${renderNode(e)} ${R})`
             return R
         }
 
