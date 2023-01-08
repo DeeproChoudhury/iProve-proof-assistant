@@ -119,15 +119,17 @@ export const checkReason = (ctx: ActionContext<NodeAndList>, index: number) => {
     return;
   }
 
-  updateReasonStatus(ctx, index, "checking");
-
   if (!statement.parsed) {
     ctx.setError(mk_error({
       kind: "Semantic",
       msg: "Your objective has not been parsed! Exit the modal and try again"
     }));
     updateReasonStatus(ctx, index, "invalid");
+    return;
   }
+
+  updateReasonStatus(ctx, index, "checking");
+
   LIQ.queueEntails(unwrap_statements(depStatements), statementToLine(statement) as Line, ctx.newAction((ctx, verdict) => {
     switch (verdict.kind) {
       case "Valid":
