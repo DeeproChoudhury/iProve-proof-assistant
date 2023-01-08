@@ -703,7 +703,7 @@ export function renderNode(a: AST.ASTNode | undefined): string {
             let precons: AST.FunctionApplication[] = a.vars.filter((v) => !(!v.bound)).map((v) => ({
                 kind: "FunctionApplication",
                 appType: "InfixOp",
-                fn: ">=",
+                fn: v.boundType ?? ">=",
                 params: [v.symbol, mk_var(`${v.bound}`)]
             }))
             let final_term = precons.length

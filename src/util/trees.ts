@@ -17,7 +17,7 @@ function d(a: AST.ASTNode): string {
         }
         
         case "VariableBinding": return (a.bound != undefined)
-            ? `${d(a.symbol)} ` + `≥ ${a.bound}`
+            ? `${d(a.symbol)} ` + `${fnDisplay(a.boundType ?? "")} ${a.bound}`
             : d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");

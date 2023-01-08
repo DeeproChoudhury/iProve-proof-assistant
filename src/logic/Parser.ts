@@ -195,7 +195,8 @@ interface InfixOperator {
     appType: "Binary",
     precedence: number,
     left_assoc: boolean,
-    apply: (x: AST.Term, y: AST.Term) => AST.Term,
+    has_unary: boolean,
+    apply: (x: AST.Term, y: AST.Term | undefined) => AST.Term,
 }
 type EndOfTerm = {
     kind: "Operator",
@@ -305,10 +306,12 @@ VAR_BIND.setPattern(alt(
         }
     ),
     apply(
-        seq(VARIABLE, kright(str(">="), VARIABLE)),
-        (value: [AST.Variable, AST.Variable]): AST.VariableBinding => {
-            let i = parseInt(value[1].ident);
-            return { kind: "VariableBinding", symbol: value[0], type: PrimitiveType("Int"), bound: i }
+        seq(VARIABLE, seq(alt(str(">="), str("<="), str("<"), str(">")), VARIABLE)),
+        (value: [AST.Variable, [Token<TokenKind>, AST.Variable]]): AST.VariableBinding => {
+            let i = parseInt(value[1][1].ident);
+            let bt_ = value[1][0].text
+            let bt: ">=" | "<=" | "<" | ">" = (bt_ == ">=" || bt_ == "<=" || bt_ == "<") ? bt_ : ">"
+            return { kind: "VariableBinding", symbol: value[0], type: PrimitiveType("Int"), bound: i, boundType: bt }
         }
     ),
 ));
@@ -395,29 +398,29 @@ ARRAY_LITERAL.setPattern(apply(
     (v: [AST.Type | undefined, AST.Term[]]): AST.ArrayLiteral => ({ kind: "ArrayLiteral", elems: v[1], type: v[0] })
 ));
 
-// PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC 
-const precedence_table: {[name: string]: [number, boolean, boolean]} = {
-    "~": [10, false, false],
-    "!": [10, false, false],
+// PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC     HAS_UNARY_BACKUP
+const precedence_table: {[name: string]: [number, boolean, boolean, boolean]} = {
+    "~": [10, false, false, true],
+    "!": [10, false, false, true],
 
-    "*": [8, true, true],
-    "/": [8, true, true],
+    "*": [8, true, true, false],
+    "/": [8, true, true, false],
 
-    "+": [7, true, true],
-    "-": [7, true, true],
-    "++": [7, true, true],
-    ":": [7, true, true],
+    "+": [7, true, true, true],
+    "-": [7, true, true, true],
+    "++": [7, true, true, false],
+    ":": [7, true, true, false],
 
-    "=": [6, true, true],
-    "in": [6, true, true],
+    "=": [6, true, true, false],
+    "in": [6, true, true, false],
 
-    "&": [5, true, true],
-    "||": [5, true, true],
-    "^": [5, true, true],
+    "&": [5, true, true, false],
+    "||": [5, true, true, false],
+    "^": [5, true, true, false],
     
 
-    "->": [4, true, true],
-    "<->": [4, true, true],
+    "->": [4, true, true, false],
+    "<->": [4, true, true, false],
 }
 
 TERM.setPattern(
@@ -448,8 +451,24 @@ TERM.setPattern(
             let op_stack: TermOperator[] = [];
 
             let prev_atom = false;
+            let pt: TermOperator | AST.Term | undefined = undefined;
             for (let token of queue) {
                 //console.log(token, out_stack, op_stack);
+                if (token.kind == "Operator" && token.appType == "Binary" && token.has_unary) {
+                    if (!pt || pt.kind == "Operator") {
+                        let cached_fn = token.apply
+                        token = { 
+                            kind: "Operator",
+                            appType: "Unary",
+                            left_assoc: token.left_assoc,
+                            precedence: 10,
+                            apply: (t: AST.Term): AST.Term => 
+                                cached_fn(t, undefined)
+                        }
+                    }
+                }
+                pt = token;
+
                 switch (token.kind) {
                     case "Operator": {
                         prev_atom = false;
@@ -471,9 +490,8 @@ TERM.setPattern(
                                 } case "Binary": {
                                     let y = out_stack.pop();
                                     let x = out_stack.pop();
-                                    if (!x || !y) 
+                                    if (!y || !x)
                                         throw new Error("Expected 2 arguments, got 1 or none")
-                                        
                                     out_stack.push(stack_top.apply(x, y));
                                     break;
                                 } case "End": { }
@@ -516,9 +534,20 @@ OPERATOR.setPattern(alt(
             ? { 
                 kind: "Operator",
                 appType: "Binary",
-                left_assoc: (precedence_table[value.text]) ? precedence_table[value.text][2] : true,
                 precedence: (precedence_table[value.text]) ? precedence_table[value.text][0] : 8,
-                apply: (x: AST.Term, y: AST.Term): AST.Term => {
+                left_assoc: (precedence_table[value.text]) ? precedence_table[value.text][2] : true,
+                has_unary: (precedence_table[value.text]) ? precedence_table[value.text][3] : false,
+                apply: (x: AST.Term, y: AST.Term | undefined): AST.Term => {
+                    if (!y) {
+                        if (!precedence_table[value.text][3])
+                            throw new Error("Expected 2 arguments, got 1")
+                            return {
+                                kind: "FunctionApplication",
+                                appType: "UnaryOp",
+                                fn: value.text,
+                                params: [x]
+                            };
+                    }
                     return {
                         kind: "FunctionApplication",
                         appType: (value.kind === TokenKind.InfixSymbol || value.kind === TokenKind.Colon) ? "InfixOp" : "InfixFunc",

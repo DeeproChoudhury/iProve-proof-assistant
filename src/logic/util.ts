@@ -16,6 +16,8 @@ export function fnDisplay(fn: string): string {
         case "->": return "→";
         case "<->": return "↔";
         case "in": return "∈";
+        case ">=": return "≥";
+        case "<=": return "≤";
         default: return fn;
     }
 }

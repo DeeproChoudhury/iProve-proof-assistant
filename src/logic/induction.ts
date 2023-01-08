@@ -62,19 +62,30 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
             } 
             if (BIT.kind == "PrimitiveType" && BIT.ident == "Int") {
                 const bound = bindings[i].bound;
-                console.log("HBB", bound)
-                if (bound == undefined) {
+                const boundType = bindings[i].boundType;
+                const strict = boundType == "<" || boundType == ">"
+                const op = (boundType == ">" || boundType == ">=") ? "+" : "-"
+
+                if (bound == undefined || boundType == undefined) {
                     cum_precons.push(range_over_bindings(motive, [bindings[i]])); continue;
                 }
-                console.log("HB", bound)
-                cum_precons.push(strict_rw(motive, ident, mk_var(`${bound}`)))
+                cum_precons.push(strict_rw(motive, ident, 
+                    strict
+                    ? {
+                        kind: "FunctionApplication",
+                        appType: "InfixOp",
+                        fn: op,
+                        params: [mk_var(`${bound}`), mk_var("1")]
+                    }
+                    : mk_var(`${bound}`)
+                    ))
 
                 let ivar = mk_var(`InductiveParameter${0}`)
                 let precon = strict_rw(motive, ident, ivar)
                 let subbed = strict_rw(motive, ident, {
                     kind: "FunctionApplication",
                     appType: "InfixOp",
-                    fn: "+",
+                    fn: op,
                     params: [ivar, mk_var("1")]
                 });
                 let final_case: AST.Term = imply(precon, subbed)
@@ -82,7 +93,8 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
                     kind: "VariableBinding",
                     symbol: ivar,
                     type: BIT,
-                    bound: bound
+                    bound: bound,
+                    boundType: boundType
                 }]))
                 continue;
             }

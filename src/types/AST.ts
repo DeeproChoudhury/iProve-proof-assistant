@@ -97,7 +97,8 @@ export type VariableBinding = {
     kind: "VariableBinding",
     symbol: Variable,
     type?: Type,
-    bound?: number
+    bound?: number,
+    boundType?: ">=" | "<=" | ">" | "<"
 }
 export type BlockStart = VariableDeclaration | Assumption | BeginScope;
 export type Line = Declaration | Term | Tactic | FunctionDefinition | TypeDef
