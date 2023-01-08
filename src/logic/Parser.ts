@@ -127,7 +127,8 @@ enum TokenKind {
     Times,
     Colon,
     Set,
-    Predicate
+    Predicate,
+    Relation
 }
 
 const lexer = buildLexer([
@@ -151,6 +152,7 @@ const lexer = buildLexer([
     [true, /^(end)/g, TokenKind.End],
     [true, /^(Set)/g, TokenKind.Set],
     [true, /^(Predicate)/g, TokenKind.Predicate],
+    [true, /^(Relation)/g, TokenKind.Predicate],
     [true, /^(type|data)/g, TokenKind.TypeKW],
 
     [true, /^((\+|-|=|>|<|\/|\.|\*|!|&|\||~)+|in)/g, TokenKind.InfixSymbol],
@@ -258,12 +260,19 @@ FN_TYPE.setPattern(
     alt(
         apply(
             seq(
-                alt(tok(TokenKind.Set), tok(TokenKind.Predicate)),
+                alt(tok(TokenKind.Set), tok(TokenKind.Predicate), tok(TokenKind.Relation)),
                 kmid(str("<"), TYPE, str(">"))
             ),
-            (value: [Token<TokenKind.Set> | Token<TokenKind.Predicate>, AST.Type]): AST.FunctionType => {
+            (value: [Token<TokenKind.Set> | Token<TokenKind.Predicate> | Token<TokenKind.Relation>, AST.Type]): AST.FunctionType => {
                 
-                return { 
+                return (value[0].text == "Relation")
+                ? { 
+                    kind: "FunctionType",
+                    argTypes: [value[1], value[1]],
+                    retType: PrimitiveType("Bool"),
+                    tag: "Relation"
+                }
+                : { 
                     kind: "FunctionType",
                     argTypes: [value[1]],
                     retType: PrimitiveType("Bool"),
@@ -645,7 +654,7 @@ const TUPLE_PATTERN = rule<TokenKind, AST.TuplePattern>();
 // below
 const EMPTY_LIST = rule<TokenKind, AST.EmptyList>();
 EMPTY_LIST.setPattern(apply(
-    str("[]"),
+    alt(seq(str("{"), str("}")), str("[]")),
     (_): AST.EmptyList => 
         ({ kind: "EmptyList" })
 ));

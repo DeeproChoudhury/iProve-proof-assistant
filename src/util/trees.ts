@@ -10,6 +10,7 @@ function d(a: AST.ASTNode): string {
             switch(a.tag) {
                 case "Set":
                 case "Predicate":
+                case "Relation":
                     return `${a.tag}<${d(a.argTypes[0])}>`
                 default:
                     return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
@@ -55,7 +56,7 @@ function d(a: AST.ASTNode): string {
         case "Guard": return `\n  | ${d(a.cond)} := ${d(a.res)}`
         case "SimpleParam": return `${a.ident}`
         case "ConsParam": return `(${d(a.A)}:${d(a.B)})`
-        case "EmptyList": return "[]"
+        case "EmptyList": return "{}"
         case "ConstructedType": 
             return `(${a.c} ${a.params.map(d).join(" ")})` 
         case "TuplePattern":
