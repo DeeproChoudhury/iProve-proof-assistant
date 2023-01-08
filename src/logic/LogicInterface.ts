@@ -654,6 +654,8 @@ export function renderNode(a: AST.ASTNode | undefined): string {
                     return `(ListSlice ${a.params.map(renderNode).join(" ")} nil)`
                 case "++":
                     return `(ListConcat ${a.params.map(renderNode).join(" ")})`
+                case ":":
+                    return `(insert ${a.params.map(renderNode).join(" ")})`
                 case "in":
                     if (!a.params[1] 
                         || a.params[1].kind != "Variable") return "false"

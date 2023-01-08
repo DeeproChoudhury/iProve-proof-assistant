@@ -378,12 +378,15 @@ const precedence_table: {[name: string]: [number, boolean, boolean]} = {
     "+": [7, true, true],
     "-": [7, true, true],
     "++": [7, true, true],
-    "=": [7, true, true],
+    ":": [7, true, true],
 
-    "&": [6, true, true],
-    "||": [6, true, true],
-    "^": [6, true, true],
+    "=": [6, true, true],
     "in": [6, true, true],
+
+    "&": [5, true, true],
+    "||": [5, true, true],
+    "^": [5, true, true],
+    
 
     "->": [4, true, true],
     "<->": [4, true, true],
@@ -477,9 +480,10 @@ TERM.setPattern(
 OPERATOR.setPattern(alt(
     apply(
         alt(
+            tok(TokenKind.Colon),
             tok(TokenKind.InfixSymbol),
             kmid(str("`"), tok(TokenKind.Symbol), str("`"))
-        ), (value: Token<TokenKind.DirEqToken | TokenKind.InfixSymbol | TokenKind.Symbol>): UnaryOperator | InfixOperator => {
+        ), (value: Token<TokenKind.Colon | TokenKind.InfixSymbol | TokenKind.Symbol>): UnaryOperator | InfixOperator => {
             return ((!precedence_table[value.text]) || precedence_table[value.text][1]) 
             ? { 
                 kind: "Operator",
@@ -489,7 +493,7 @@ OPERATOR.setPattern(alt(
                 apply: (x: AST.Term, y: AST.Term): AST.Term => {
                     return {
                         kind: "FunctionApplication",
-                        appType: (value.kind === TokenKind.InfixSymbol) ? "InfixOp" : "InfixFunc",
+                        appType: (value.kind === TokenKind.InfixSymbol || value.kind === TokenKind.Colon) ? "InfixOp" : "InfixFunc",
                         fn: value.text,
                         params: [x, y]
                     };
