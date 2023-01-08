@@ -95,7 +95,8 @@ export type FunctionType = {
 export type VariableBinding = {
     kind: "VariableBinding",
     symbol: Variable,
-    type?: Type
+    type?: Type,
+    bound?: number
 }
 export type BlockStart = VariableDeclaration | Assumption | BeginScope;
 export type Line = Declaration | Term | Tactic | FunctionDefinition | TypeDef

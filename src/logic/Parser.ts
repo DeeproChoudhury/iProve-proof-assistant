@@ -3,7 +3,7 @@ import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-pars
 import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb, lrec_sc } from 'typescript-parsec';
 import * as AST from "../types/AST"
 import { UnifyScope } from '../types/LogicInterface';
-import { display, getSelector } from '../util/trees';
+import { display, getSelector, PrimitiveType } from '../util/trees';
 import { unifies } from './unifier';
 Error.stackTraceLimit = Infinity;
 
@@ -133,7 +133,7 @@ const lexer = buildLexer([
     [true, /^(skolem)/g, TokenKind.Skolem],
     [true, /^(begin)/g, TokenKind.Begin],
     [true, /^(end)/g, TokenKind.End],
-    [true, /^(type)/g, TokenKind.TypeKW],
+    [true, /^(type|data)/g, TokenKind.TypeKW],
 
     [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
     [true, /^(\+|-|=|>|<|\/|\.|\*|!|&|\||~)+/g, TokenKind.InfixSymbol],
@@ -261,11 +261,20 @@ VAR_DEC.setPattern(apply(
     }
 ));
 
-VAR_BIND.setPattern(apply(
-    seq(VARIABLE, kright(str(":"), TYPE)),
-    (value: [AST.Variable, AST.Type | undefined]): AST.VariableBinding => {
-        return { kind: "VariableBinding", symbol: value[0], type: value[1] }
-    }
+VAR_BIND.setPattern(alt(
+    apply(
+        seq(VARIABLE, kright(str(":"), TYPE)),
+        (value: [AST.Variable, AST.Type | undefined]): AST.VariableBinding => {
+            return { kind: "VariableBinding", symbol: value[0], type: value[1] }
+        }
+    ),
+    apply(
+        seq(VARIABLE, kright(str(">="), VARIABLE)),
+        (value: [AST.Variable, AST.Variable]): AST.VariableBinding => {
+            let i = parseInt(value[1].ident);
+            return { kind: "VariableBinding", symbol: value[0], type: PrimitiveType("Int"), bound: i }
+        }
+    ),
 ));
 
 PREFIX_APPLY.setPattern(apply(
@@ -640,7 +649,7 @@ const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
 TYPE_DEF.setPattern(apply(
     seq(
         kmid(tok(TokenKind.TypeKW), 
-        seq(VARIABLE, rep_sc(VARIABLE)), tok(TokenKind.DirEqToken)),
+        seq(VARIABLE, rep_sc(VARIABLE)), str("=")),
         list_sc(TYPE_CONSTRUCTOR, str("|"))
     ),
     (value): AST.TypeDef =>

@@ -23,10 +23,10 @@ export namespace Z3Solver {
         public async solve(str : string) {
             console.log(str)
             const cfg: Z3_config = Z3EvalLib.mk_config();
-            Z3EvalLib.set_param_value(cfg, "proof", "true")
-            Z3EvalLib.set_param_value(cfg, "timeout", "150")
+            await Z3EvalLib.set_param_value(cfg, "proof", "true")
             const result = await Z3EvalLib.eval_smtlib2_string(
                 Z3EvalLib.mk_context(cfg),
+                "(set-option :timeout 1500)" + 
                 "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n"
                 + str + "\n(check-sat)"); 
             console.log(result) ;

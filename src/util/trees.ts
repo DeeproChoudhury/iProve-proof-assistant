@@ -7,7 +7,9 @@ function d(a: AST.ASTNode): string {
     switch (a.kind) {
         case "PrimitiveType": return a.ident;
         case "FunctionType": return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
-        case "VariableBinding": return d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
+        case "VariableBinding": return (a.bound)
+            ? `${d(a.symbol)} >= ${a.bound}`
+            : d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
         case "SortDeclaration": return `data ${d(a.symbol)}`
@@ -50,7 +52,8 @@ function d(a: AST.ASTNode): string {
         case "TuplePattern":
             return `(${a.params.map(d).join(", ")})` 
         
-        case "TypeDef": return `type ${a.ident} ::= ${a.cases.map(d).join(" | ")}`
+        case "TypeDef":
+            return `data ${a.ident}${a.params.length ? " " + a.params.join(" ") : ""} = ${a.cases.map(d).join(" | ")}`
         case "TypeConstructor": return `${a.ident} ${a.params.map(d).join(" ")}` 
 
         case "ParamType": return `${a.ident}<${a.params.map(d).join(",")}>`
@@ -163,6 +166,17 @@ export function range_over(t: AST.Term, vars: [AST.Variable, AST.Type][]): AST.T
             symbol: v[0],
             type: v[1]
         })),
+        quantifier: "A"
+    }
+    : t
+}
+
+export function range_over_bindings(t: AST.Term, vars: AST.VariableBinding[]): AST.Term {
+    return vars.length ?
+    {
+        kind: "QuantifierApplication",
+        term: parenthesize(t),
+        vars: vars,
         quantifier: "A"
     }
     : t

@@ -6,7 +6,7 @@ import { parseAll as parseAllStatements } from "./statementList";
 import { mutual_rec_on } from "../logic/induction";
 import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type, ASTNode } from "../types/AST";
 import { unwrap_statements } from "../util/statements";
-import { isTerm, conjunct, imply, range_over, display, iff } from "../util/trees";
+import { isTerm, conjunct, imply, range_over, display, iff, range_over_bindings } from "../util/trees";
 import { getInputs, getOutputs } from "../util/nodes";
 import { LIQ } from "../logic/LogicInterfaceQueue";
 import { invalidateInternals } from "./inductionNode";
@@ -42,8 +42,14 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   let tdefs: TypeDef[] = (types as TypeDef[])
 
   let motives_: Line[] = unwrap_statements(node.data.motive)
-  if (motives_.some(x => x.kind != "QuantifierApplication" || !x.vars.length))
+  if (motives_.some(x => x.kind != "QuantifierApplication" || !x.vars.length || x.quantifier == "E")) {
+    ctx.setError({
+      kind: "Semantic",
+      msg: "Induction motive must begin by ranging over inductively defined type"
+    });
+    node.data.internalsStatus = "invalid";
     return;
+  }
   let motives: QuantifierApplication[] = motives_ as QuantifierApplication[]
   let vbinds: VariableBinding[] = motives.map(m => m.vars[0])
   let identifiers: Variable[] = vbinds.map(v => v.symbol)
@@ -93,8 +99,8 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   let tidentifiers = identifiers.map(
     (v, i): [Variable, Type] => [v, tidents[i] as Type])
   let IP: Term = (precond)
-    ? imply(precond, range_over(cum_motives, tidentifiers))
-    : range_over(cum_motives, tidentifiers)
+    ? imply(precond, range_over_bindings(cum_motives, vbinds))
+    : range_over_bindings(cum_motives, vbinds)
 
   let gt_IP: Term = mutual_rec_on(tdefs)(motives.map((m) => m.vars[0]), final_motives)
   

@@ -1,7 +1,8 @@
 import { render } from "@testing-library/react";
 import * as AST from "../types/AST";
 import { IdentState, PatternData } from "../types/LogicInterface";
-import { conjunct, construct_type, display, imply, mk_var, range_over, strict_rw, substitute_types } from "../util/trees";
+import { conjunct, construct_type, display, imply, mk_var, PrimitiveType, range_over, range_over_bindings, strict_rw, substitute_types } from "../util/trees";
+import { map_terms } from "./combinator";
 import { LI, renderNode, renderPattern } from "./LogicInterface";
 import evaluate from "./Parser";
 
@@ -52,9 +53,39 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
 
         let cum_precons: AST.Term[] = []
         for (let [i, motive] of motives.entries()) {
-            let BIT = bindings[i].type
+            const BIT = bindings[i].type
+            const ident = bindings[i].symbol;
 
-            if (!BIT || BIT.kind == "ListType" || BIT.kind == "TupleType") { 
+            if (!BIT) { 
+                cum_precons.push(range_over_bindings(motive, [bindings[i]])); continue;
+            } 
+
+            if (BIT.kind == "PrimitiveType" && BIT.ident == "Int") {
+                const bound = bindings[i].bound;
+                if (!bound) {
+                    cum_precons.push(range_over_bindings(motive, [bindings[i]])); continue;
+                }
+                cum_precons.push(strict_rw(motive, ident, mk_var(`${bound}`)))
+
+                let ivar = mk_var(`InductiveParameter${0}`)
+                let precon = strict_rw(motive, ident, ivar)
+                let subbed = strict_rw(motive, ident, {
+                    kind: "FunctionApplication",
+                    appType: "InfixOp",
+                    fn: "+",
+                    params: [ivar, mk_var("1")]
+                });
+                let final_case: AST.Term = imply(precon, subbed)
+                cum_precons.push(range_over_bindings(final_case, [{
+                    kind: "VariableBinding",
+                    symbol: ivar,
+                    type: BIT,
+                    bound: bound
+                }]))
+                continue;
+            }
+
+            if (BIT.kind == "ListType" || BIT.kind == "TupleType") { 
                 cum_precons.push(motive); continue;
             }
             let type_def = TMap.get(BIT.ident);
@@ -65,8 +96,7 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
             if (BIT.kind == "ParamType")
                 type_def = substitute_types(type_def, BIT.params);
             console.log("CD", BIT.kind, type_def)
-
-            let ident = bindings[i].symbol;
+            
             let cases: AST.Term[] = type_def.cases.map(con => {
                 let vars: [AST.Variable, AST.Type][] = con.params.map(
                     (v, j) => { console.log(v.kind); return [mk_var(`InductiveParameter${j}`), v] }
@@ -101,9 +131,22 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
 
         return imply(
             conjunct(cum_precons),
-            range_over(full_motive, bindings.map((x) => [x.symbol, x.type as AST.Type]))
+            range_over_bindings(full_motive, bindings)
         );
     }
+}
+
+function extract_call(id: string)
+    : (T: AST.Term, state: AST.FunctionApplication[]) => [AST.Term, AST.FunctionApplication[]] {
+        return (T: AST.Term, state: AST.FunctionApplication[]): [AST.Term, AST.FunctionApplication[]] => {
+            if (T.kind == "FunctionApplication" && T.fn == id)
+                state.push(T)
+            return [T, state]
+        }
+}
+export function extract_calls(id: string)
+    : (T: AST.Term, state: AST.FunctionApplication[]) => [AST.Term, AST.FunctionApplication[]] {
+        return map_terms(extract_call(id), [])
 }
 
 export function function_IP(decl: AST.FunctionDeclaration, defns: AST.FunctionDefinition[]):
@@ -116,7 +159,7 @@ export function function_IP(decl: AST.FunctionDeclaration, defns: AST.FunctionDe
             for (let a of defns) {
                 let concu: PatternData = [];
                 for (let [i,p] of a.params.entries()) {
-                    concu = concu.concat(renderPattern(p, `IProveParameter${i}`))
+                    //concu = concu.concat(renderPattern(p, `IProveParameter${i}`,))
                 }
                 pdatas.push([concu, a.def]);
             }
@@ -173,8 +216,15 @@ export function function_IP(decl: AST.FunctionDeclaration, defns: AST.FunctionDe
             //     - AND for every recursive call in its outcome, the motive holds
             //     - TOGETHER IMPLY the motive holds on the outcome
             let cases: AST.Term[] = []
+            let extract_recursive = extract_calls(decl.symbol)
             for (let [cond, outcome] of outcomes) {
+                let rec_calls: AST.FunctionApplication[] = extract_recursive(outcome, [])[1];
                 let full_cond = `(and ${cond} )`
             }
+
+
+            return mk_var("NOTIMPLEMENTEDVAR")
         }
+
+        
 }

@@ -93,6 +93,7 @@ export class LogicInterface {
     global_fn_defs: Map<string, AST.FunctionDefinition[]> = new Map();
     partial_funs: Set<string> = new Set();
     partial_undets: Set<string> = new Set();
+    defined_types: Map<string, AST.TypeDef> = new Map();
 
     // change on reset
     givens: AST.Line[] = [];
@@ -167,6 +168,8 @@ export class LogicInterface {
 
     setTypes(A: AST.TypeDef[]): void {
         this.types = A;
+        for (let T of A)
+            this.defined_types.set(T.ident, T)
         this.rendered_types = A.map(renderNode)
     }
 
@@ -192,6 +195,8 @@ export class LogicInterface {
                     this.error(`Cannot redeclare function: ${t.symbol}`)
             } else if (t.kind == "FunctionDefinition")
                 this.pushFnDef(t, this.global_fn_defs)
+            else if (t.kind == "TypeDef")
+            this.defined_types.set(t.ident, t)
         })
     }
 
@@ -342,7 +347,7 @@ export class LogicInterface {
             let idx: number = 0;
             let concu: PatternData = [];
             for (let [i,p] of a.params.entries()) {
-                concu = concu.concat(renderPattern(p, `IProveParameter${i}`))
+                concu = concu.concat(renderPattern(p, `IProveParameter${i}`, decl.type.argTypes[i]))
             }
             pdatas.push([concu, a.def]);
         }
@@ -398,6 +403,7 @@ export class LogicInterface {
     }
 
     deriveType(T: AST.Term, V: Map<string, AST.Type | undefined>, F: Map<string, AST.FunctionType>): AST.Type | undefined {
+        if (!T) return undefined;
         switch(T.kind) {
             case "ArrayLiteral":
                 let A = (T.elems.length > 0) ? this.deriveType(T.elems[0], V, F) : undefined
@@ -566,9 +572,17 @@ export class LogicInterface {
 let SID: {n : number} = { n : 0 }
 const mk_bind = (s: string): PatternElem => ({ kind: "Binding", value: s })
 const mk_cond = (s: string): PatternElem => ({ kind: "Condition", value: s })
-export function renderPattern(a: AST.Pattern, name: string): PatternData {
+export function renderPattern(a: AST.Pattern, name: string, t: AST.Type): PatternData {
     switch(a.kind) {
         case "SimpleParam":
+            if (t.kind == "PrimitiveType") {
+                let tdef = LI.defined_types.get(t.ident)
+                if (!tdef) return [mk_bind(`(${a.ident} ${name})`)]
+                for (let C of tdef.cases) {
+                    if (C.params.length == 0 && C.ident == a.ident)
+                     return [mk_cond(`(is-${a.ident} ${name})`)]
+                }
+            } 
             return [mk_bind(`(${a.ident} ${name})`)]
         case "EmptyList":
             return [mk_cond(`(is-nil ${name})`)] 
@@ -580,8 +594,8 @@ export function renderPattern(a: AST.Pattern, name: string): PatternData {
                 mk_bind(`(${aID} (head ${name}))`),
                 mk_bind(`(${bID} (tail ${name}))`)
             ]
-            R = R.concat(renderPattern(a.A, aID))
-                 .concat(renderPattern(a.B, bID))
+            R = R.concat(renderPattern(a.A, aID, t))
+                 .concat(renderPattern(a.B, bID, t))
 
             return R
         }
@@ -591,7 +605,7 @@ export function renderPattern(a: AST.Pattern, name: string): PatternData {
 
             for (let [i,v] of a.params.entries()) {
                 let npid = `IProveParameter${SID.n++}`;
-                let NPD = renderPattern(v, npid)
+                let NPD = renderPattern(v, npid, t)
                 R.push(mk_bind(`(${npid} (${getSelector(i)} ${name}))`))
                 R = R.concat(NPD)
             }
@@ -603,7 +617,7 @@ export function renderPattern(a: AST.Pattern, name: string): PatternData {
 
             for (let [i,v] of a.params.entries()) {
                 let npid = `IProveParameter${SID.n++}`;
-                let NPD = renderPattern(v, npid)
+                let NPD = renderPattern(v, npid, t)
                 R.push(mk_bind(`(${npid} (${getSelector(i)} ${name}))`))
                 R = R.concat(NPD)
             }
@@ -646,7 +660,20 @@ export function renderNode(a: AST.ASTNode | undefined): string {
                     : fnSMT(a.fn)
             }
         }
-        case "QuantifierApplication": return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(renderNode).join(" ")}) ${renderNode(a.term)})`;
+        case "QuantifierApplication": {
+            let precons: AST.FunctionApplication[] = a.vars.filter((v) => !(!v.bound)).map((v) => ({
+                kind: "FunctionApplication",
+                appType: "InfixOp",
+                fn: ">=",
+                params: [v.symbol, mk_var(`${v.bound}`)]
+            }))
+            let final_term = precons.length
+                ? (a.quantifier === "E" 
+                    ? conjunct([a.term].concat(precons))
+                    : imply(conjunct(precons), a.term))
+                : a.term
+            return `(${a.quantifier === "E" ? "exists" : "forall"} (${a.vars.map(renderNode).join(" ")}) ${renderNode(final_term)})`
+        };
         case "EquationTerm": return `${renderNode(a.lhs)} ::= ${renderNode(a.rhs)}`;
         case "ParenTerm": return renderNode(a.term);
     
