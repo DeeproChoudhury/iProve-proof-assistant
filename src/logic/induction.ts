@@ -60,12 +60,13 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
             if (!BIT) { 
                 cum_precons.push(range_over_bindings(motive, [bindings[i]])); continue;
             } 
-
             if (BIT.kind == "PrimitiveType" && BIT.ident == "Int") {
                 const bound = bindings[i].bound;
-                if (!bound) {
+                console.log("HBB", bound)
+                if (bound == undefined) {
                     cum_precons.push(range_over_bindings(motive, [bindings[i]])); continue;
                 }
+                console.log("HB", bound)
                 cum_precons.push(strict_rw(motive, ident, mk_var(`${bound}`)))
 
                 let ivar = mk_var(`InductiveParameter${0}`)

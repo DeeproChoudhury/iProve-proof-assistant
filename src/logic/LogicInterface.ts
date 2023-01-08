@@ -736,7 +736,8 @@ export function renderNode(a: AST.ASTNode | undefined): string {
         }
         
         case "ArrayLiteral": {
-            let R = `nil`;
+            //let R = `(as nil (IProveList ${LI.deriveType(a.elems[0])}))`;
+            let R = "nil"
             for (let e of a.elems.reverse())
                 R = `(IProveInsert ${renderNode(e)} ${R})`
             return R

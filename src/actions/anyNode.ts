@@ -50,6 +50,16 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
     node.data.internalsStatus = "invalid";
     return;
   }
+  if (motives_.some(x => x.kind == "QuantifierApplication" && x.vars[0].type?.kind == "PrimitiveType" && x.vars[0].bound == undefined && x.vars[0].type?.ident == "Int")) {
+    ctx.setError({
+      kind: "Semantic",
+      msg: "Unbounded integers are not inductive types"
+    });
+    node.data.internalsStatus = "invalid";
+    return;
+  }
+
+  
   let motives: QuantifierApplication[] = motives_ as QuantifierApplication[]
   let vbinds: VariableBinding[] = motives.map(m => m.vars[0])
   let identifiers: Variable[] = vbinds.map(v => v.symbol)
