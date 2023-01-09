@@ -3,13 +3,10 @@ import React, { useRef, useState, useEffect } from "react"
 import Declarations from "./Declarations"
 import TypeDeclarations from "./TypeDeclarations"
 import './Sidebar.css';
+import { useIProveStore } from "../store/store";
 
-type SidebarPropsType = {
-  visible: boolean
-}
-
-const Sidebar = (props: SidebarPropsType) => {
-  const { visible } = props;
+const Sidebar = () => {
+  const visible = useIProveStore(store => store.uiShown.sidebar);
   const sidebarRef = useRef<HTMLInputElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(268);

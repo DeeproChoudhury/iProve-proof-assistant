@@ -1,7 +1,8 @@
 import { AttachmentIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import { Box, Button, Input, Stack, Textarea } from '@chakra-ui/react';
 import { useRef, useState } from 'react';
-import { useIProveStore } from '../store/store';
+import { useIProveStore } from '../../store/store';
+import { makeModal } from './makeModal';
 
 /**
  * Modal contents for importing proofs in JSON format
@@ -9,7 +10,7 @@ import { useIProveStore } from '../store/store';
  * @returns box for modal contents
  */
 
-const ModalImport = () => {
+const ModalImportInner = () => {
 
 	const addImportedProof = useIProveStore(store => store.actions.global.addImportedProof);
 
@@ -78,5 +79,7 @@ const ModalImport = () => {
 		</Box>
 	)
 }
+
+const ModalImport = makeModal("import", "Import Proof", ModalImportInner);
 
 export default ModalImport;

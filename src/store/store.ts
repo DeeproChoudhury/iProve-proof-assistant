@@ -13,6 +13,8 @@ import { makeStatementNodeActions } from "../actions/statementNode";
 import { makeFlowActions } from "../actions/flow";
 import { makeGlobalActions } from "../actions/global";
 
+export type UIComponentName = "sidebar" | "import" | "export" | "addReasons";
+
 type State = {
   nodes: AnyNodeType[];
   edges: Edge[];
@@ -20,6 +22,7 @@ type State = {
   error: IProveError | undefined;
   declarations: StatementType[];
   typeDeclarations: StatementType[];
+  uiShown: Record<UIComponentName, boolean>;
 }
 
 type Actions = {
@@ -75,6 +78,12 @@ export const useIProveStore = create(
       error: undefined,
       declarations: [],
       typeDeclarations: [],
+      uiShown: {
+        sidebar: true,
+        import: false,
+        export: false,
+        addReasons: false,
+      },
 
       actions: {
         global: makeGlobalActions(set),
