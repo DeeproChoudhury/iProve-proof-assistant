@@ -26,21 +26,24 @@ export function renderError(E: IProveError): string {
   
 export function mk_error({
 kind = undefined,
+status = "error",
 msg = undefined,
 subtype = undefined,
 statement = undefined,
 column = undefined
 }:{
 kind?: "Syntax" | "Semantic" | "Proof",
+status?: "error" | "success",
 msg?: string,
 subtype?: string,
 statement?: StatementType,
 column?: number
 }): IProveError {
 return {
-    kind: kind,
-    msg: msg,
-    subtype: subtype,
+    kind,
+    status,
+    msg,
+    subtype,
     pos: (statement)
     ? { statement: statement, column: column}
     : undefined

@@ -2,6 +2,7 @@ import { StatementType } from "./Statement"
 
 export type IProveError = {
   kind: "Syntax" | "Semantic" | "Proof" | undefined,
+  status: "success" | "error",
   msg?: string,
   subtype?: string,
   pos?: ErrorLocation

@@ -20,6 +20,7 @@ import { renderError } from '../util/errors';
 import { useIProveStore } from '../store/store';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Alerts from './Alerts';
 
 const nodeTypes = {
   proofNode: ProofNode,
@@ -32,8 +33,6 @@ const edgeTypes = { implication: ImplicationEdge, checked: CheckedEdge, invalid:
 function Flow() {
   const nodes = useIProveStore(store => store.nodes);
   const edges = useIProveStore(store => store.edges);
-  const error = useIProveStore(store => store.error);
-  const proofStatus = useIProveStore(store => store.proofStatus);
   const actions = useIProveStore(store => store.actions);
 
 
@@ -96,62 +95,7 @@ function Flow() {
         showImportModal={() => {setImportModalShow(true)}}/>
       {/* END : Header Buttons */}
 
-      {/* START : Proof valid alert */}
-      <div className="alert-container">
-        {proofStatus === "invalid" && <Alert status='success' className="alert">
-          <AlertIcon />
-          <AlertTitle>Success!</AlertTitle>
-          <AlertDescription>
-            Proof is valid.
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={actions.global.resetProofStatus}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-      {/* END : Proof valid alert */}
-
-      {/* START : Proof invalid alert */}
-      <div className="alert-container">
-        {proofStatus === "invalid" && <Alert status='error' className="alert">
-          <AlertIcon />
-          <AlertTitle>Error!</AlertTitle>
-          <AlertDescription>
-            Proof is invalid.
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={actions.global.resetProofStatus}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-      {/* END : Proof invalid alert */}
-
-      {/* START : Error alert */}
-      <div className="alert-container">
-        {error && <Alert status='error' className="alert">
-          <AlertIcon />
-          <AlertTitle>{error.kind ?? ""} Error!</AlertTitle>
-          <AlertDescription>
-            {renderError(error)}
-          </AlertDescription>
-          <IconButton
-            variant='outline'
-            aria-label='Add given'
-            size='xs'
-            onClick={actions.global.resetError}
-            icon={<CloseIcon />}
-          />
-        </Alert>}
-      </div>
-      {/* END : Error alert */}
+      <Alerts />
 
       {/* START : Flow Graph */}
       <div className="flowContainer">
