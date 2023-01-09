@@ -1,5 +1,6 @@
 import type { Draft } from "immer";
 import { ActionContext } from "../store/ActionContext";
+import { ExportedProof } from "../types/exported";
 import { StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeType, StatementNodeListField, AnyNodeProps } from "../types/Node";
 import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
@@ -118,4 +119,19 @@ export const narrowNodeCtx = (ctx: ActionContext<AnyNodeType>) => {
   }
 
   throw new Error("impossible node type (unreachable)");
+}
+
+export const stripPropertiesForExport = (proof: ExportedProof): ExportedProof => {
+  return {
+    nodes: proof.nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: node.data,
+    })) as any,
+    edges: proof.edges,
+    declarations: proof.declarations,
+    types: proof.types,
+    nextNodeId: proof.nextNodeId ?? Math.max(...proof.nodes.map(node => parseInt(node.id))) + 1,
+  };
 }

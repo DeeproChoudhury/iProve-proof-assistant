@@ -5,7 +5,7 @@ import { ExportedProof } from '../types/exported';
 import { NodeKind } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { mk_error } from '../util/errors';
-import { allParsed, edgesStatus, internalsStatus } from '../util/nodes';
+import { allParsed, edgesStatus, internalsStatus, stripPropertiesForExport } from '../util/nodes';
 import { checkEdges, checkInternal, parseAll } from './anyNode';
 
 const blankStatement: StatementType = { value: "", wrappers: [] };
@@ -58,7 +58,7 @@ export const deleteNode = ({ draft }: ActionContext<StoreType>, nodeId: string) 
 
 export const importProofFromString = ({ draft }: ActionContext<StoreType>, json: string) => {
   // Create Given, Proof, Goal Nodes from input data
-  const imported: ExportedProof = JSON.parse(json);
+  const imported: ExportedProof = stripPropertiesForExport(JSON.parse(json));
   draft.nodes = imported.nodes;
   draft.edges = imported.edges;
   draft.declarations = imported.declarations;

@@ -1,6 +1,7 @@
 import { CopyIcon, DownloadIcon } from '@chakra-ui/icons';
 import { Box, Button, Stack, Textarea, useToast } from '@chakra-ui/react';
 import { useIProveStore } from '../store/store';
+import { stripPropertiesForExport } from '../util/nodes';
 
 /**
  * Modal contents for Exporting proofs in JSON format
@@ -14,13 +15,13 @@ const ModalExport = () => {
   const typeDeclarations = useIProveStore(store => store.typeDeclarations);
   const nextNodeId = useIProveStore(store => store.nextNodeId);
 
-  const data = JSON.stringify({
+  const data = JSON.stringify(stripPropertiesForExport({
     nodes,
     declarations,
     types: typeDeclarations,
     edges,
     nextNodeId
-  })
+  } as any));
 
   /**
    * Download proof as json file
