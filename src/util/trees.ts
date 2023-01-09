@@ -297,10 +297,11 @@ export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
  } throw "unsupported BlockStart"; // why isn't this unreachable
  }
  
- export function getSelector(n: number): string {
+ export function getSelector(n: number, c: string | undefined): string {
+    let suffix = c ? `_${c}` : ""
     switch (n) {
-        case 0: return "fst";
-        case 1: return "snd";
-        default: return `elem${n}`;
+        case 0: return `fst${suffix}`;
+        case 1: return `snd${suffix}`;
+        default: return `elem${n}${suffix}`;
     }
 }

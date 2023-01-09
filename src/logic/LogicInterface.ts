@@ -280,7 +280,7 @@ export class LogicInterface {
         let params: string[] = [];
         for (let i = 1; i <= n; i++) {
             params.push(`PT${i}`)
-            elems.push(`(${getSelector(i - 1)} PT${i})`)
+            elems.push(`(${getSelector(i - 1, undefined)} PT${i})`)
         }
 
         this.rendered_tuples.set(n,
@@ -639,7 +639,7 @@ export function renderPattern(a: AST.Pattern, name: string, t: AST.Type): Patter
             for (let [i,v] of a.params.entries()) {
                 let npid = `IProveParameter${SID.n++}`;
                 let NPD = renderPattern(v, npid, t)
-                R.push(mk_bind(`(${npid} (${getSelector(i)} ${name}))`))
+                R.push(mk_bind(`(${npid} (${getSelector(i, a.c)} ${name}))`))
                 R = R.concat(NPD)
             }
             return R
@@ -651,7 +651,7 @@ export function renderPattern(a: AST.Pattern, name: string, t: AST.Type): Patter
             for (let [i,v] of a.params.entries()) {
                 let npid = `IProveParameter${SID.n++}`;
                 let NPD = renderPattern(v, npid, t)
-                R.push(mk_bind(`(${npid} (${getSelector(i)} ${name}))`))
+                R.push(mk_bind(`(${npid} (${getSelector(i, undefined)} ${name}))`))
                 R = R.concat(NPD)
             }
             return R

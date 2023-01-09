@@ -743,10 +743,8 @@ TYPE_CONSTRUCTOR.setPattern(apply(
         rep_sc(TYPE)
     ),
     (value: [AST.Variable, AST.Type[]]): AST.TypeConstructor =>
-        { let sels = []; for (let i = 0; i < value[1].length; i++) { sels.push(getSelector(i)); }
-        console.log("PARSEDV", value);
-        return { kind: "TypeConstructor", ident: value[0].ident, params: value[1],
-            selectors: sels }}
+        { return { kind: "TypeConstructor", ident: value[0].ident, params: value[1],
+            selectors: [] }}
 ))
 
 const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
@@ -756,8 +754,11 @@ TYPE_DEF.setPattern(apply(
         seq(VARIABLE, rep_sc(VARIABLE)), str("=")),
         list_sc(TYPE_CONSTRUCTOR, str("|"))
     ),
-    (value): AST.TypeDef =>
-        ({ kind: "TypeDef", ident: value[0][0].ident, params: value[0][1].map(x => x.ident), cases: value[1] })
+    (value): AST.TypeDef => {
+        console.log("WE ARE IN THE TYPEDEF PARSER")
+        return { kind: "TypeDef", ident: value[0][0].ident, params: value[0][1].map(x => x.ident),
+            cases: value[1].map((C) => {console.log(C.selectors, C.ident, C.params.map((_, j) => getSelector(j, C.ident))); C.selectors = C.params.map((_, j) => getSelector(j, C.ident)); console.log(C.selectors); return C}) }
+    }
 ))
 
 const LANG = rule<TokenKind, AST.Line>();
