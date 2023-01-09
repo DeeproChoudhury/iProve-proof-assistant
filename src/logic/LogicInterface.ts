@@ -4,7 +4,7 @@ import { StringChain } from "lodash";
 import { type } from "os";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
-import { conjunct, getSelector, imply, isDeclaration, isTerm, mk_var, PrimitiveType, underdetermine } from "../util/trees";
+import { conjunct, disjunct, getSelector, imply, isDeclaration, isTerm, mk_var, PrimitiveType, underdetermine } from "../util/trees";
 import Z3Solver from "./Solver";
 import { gen_decls } from "./unifier";
 import { fnSMT } from "./util";
@@ -302,7 +302,8 @@ export class LogicInterface {
         return `(if ${renderNode(G.cond)} (IProveMkResult ${renderNode(LI.wellDef(G.res))} ${renderNode(G.res)}) ${t_alt})`;
     }
 
-    wellDef(T: AST.Term): AST.Term {
+    wellDef(T: AST.Term | undefined): AST.Term {
+        if (!T) return mk_var("false")
         switch(T.kind) {
             case "ArrayLiteral":
                 return conjunct(T.elems.map(LI.wellDef)) as AST.Term;
@@ -316,7 +317,23 @@ export class LogicInterface {
                     params: T.params,
                     fn: `IProveWellDefined_${T.fn}`
                 }
-                let R = conjunct(T.params.map(LI.wellDef)) as AST.Term;
+
+                // Short-circuit semantics
+                let R: AST.Term = (T.fn == "||" || T.fn == "->")
+                    ? {
+                        kind: "FunctionApplication",
+                        appType: "InfixOp",
+                        fn: "&",
+                        params: [LI.wellDef(T.params[0]), {
+                            kind: "FunctionApplication",
+                            appType: "InfixOp",
+                            fn: T.fn,
+                            params: [T.params[0], LI.wellDef(T.params[1])]
+                        }]
+                    }
+                    : conjunct(T.params.map(LI.wellDef)) as AST.Term
+
+
                 return is_partial ? conjunct([R, definedPredicate]) as AST.Term : R;
             case "ParenTerm":
                 return LI.wellDef(T.term);
