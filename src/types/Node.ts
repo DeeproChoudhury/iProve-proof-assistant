@@ -1,57 +1,25 @@
-import { Node } from "reactflow";
+import { Node, NodeProps } from "reactflow";
 import { CheckStatus } from "./Reason";
 import { StatementType } from "./Statement";
 
 export type NodeKind = "proofNode" | "givenNode" | "goalNode" | "inductionNode";
+export type StatementNodeListField = "givens" | "proofSteps" | "goals";
+export type InductionNodeListField = "types" | "inductiveCases" | "baseCases" | "motive" | "identifier";
+
+export type ListField<T extends NodeKind = NodeKind> = 
+  T extends "inductionNode" ? InductionNodeListField
+  : StatementNodeListField;
 
 type SharedNodeData = {
   label: string;
   edgesStatus: CheckStatus;
 }
 
-type SharedNodeCallbacks = {
-  delete: () => void;
-  parseAll: () => void;
-  checkInternal: () => void;
-  checkEdges: () => void;
-  invalidateEdges: () => void;
-  invalidateOutgoingEdges: () => void;
-}
+export type StatementNodeData = SharedNodeData & Record<ListField<"proofNode">, StatementType[]>;
 
-export type StatementNodeData = SharedNodeData & {
-  givens: StatementType[];
-  proofSteps: StatementType[];
-  goals: StatementType[];
-  // thisNode: SharedNodeCallbacks & {
-  //   givens: StatementListCallbacks;
-  //   proofSteps: StatementListCallbacks;
-  //   goals: StatementListCallbacks;
-  //   setWrappers: () => void;
-  //   autoAddReasons: () => void;
-  //   recheckReasons: () => void;
-  // };
-};
-
-export type InductionNodeData = SharedNodeData & {
-  internalsStatus: CheckStatus;
-  types: StatementType[];
-  motive: StatementType[];
-  inductiveCases: StatementType[];
-  baseCases: StatementType[];
-  identifier: StatementType[];
-  // typeDeclarationsRef: MutableRefObject<StatementType[]>;
-  // thisNode: SharedNodeCallbacks & {
-  //   types: StatementListCallbacks;
-  //   motive: StatementListCallbacks;
-  //   baseCases: StatementListCallbacks;
-  //   inductiveCases: StatementListCallbacks;
-  //   invalidateInternals: () => void;
-  // }
-}; 
-
-export type ListField<T extends StatementNodeData | InductionNodeData> = T extends StatementNodeData ? ("givens" | "proofSteps" | "goals") : T extends InductionNodeData ? ("types" | "inductiveCases" | "baseCases" | "motive" | "identifier") : never
-
-export type AnyNodeData = StatementNodeData | InductionNodeData;
+export type InductionNodeData = SharedNodeData
+  & { internalsStatus: CheckStatus; } 
+  & Record<ListField<"inductionNode">, StatementType[]>; 
 
 export type ProofNodeType = Node<StatementNodeData> & { type: "proofNode" };
 export type GivenNodeType = Node<StatementNodeData> & { type: "givenNode" };
@@ -60,8 +28,4 @@ export type StatementNodeType = ProofNodeType | GivenNodeType | GoalNodeType;
 export type InductionNodeType = Node<InductionNodeData> & { type: "inductionNode" };
 export type AnyNodeType = StatementNodeType | InductionNodeType;
 
-export type ProofNodeProps = { type: "proofNode", data: StatementNodeData };
-export type GivenNodeProps = { type: "givenNode", data: StatementNodeData };
-export type GoalNodeProps = { type: "goalNode", data: StatementNodeData };
-export type InductionNodeProps = { type: "inductionNode", data: InductionNodeData };
-export type AnyNodeProps = ProofNodeProps | GivenNodeProps | GoalNodeProps | InductionNodeProps;
+export type AnyNodeProps = { type: "inductionNode", data: InductionNodeData } | {type: "givenNode" | "proofNode" | "goalNode", data: StatementNodeData};

@@ -3,7 +3,7 @@ import type { Draft } from "immer";
 import create from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { IProveError } from "../types/ErrorLocation";
-import { AnyNodeType, InductionNodeType, ListField, StatementNodeType } from "../types/Node";
+import { AnyNodeType, InductionNodeListField, InductionNodeType, ListField, StatementNodeListField, StatementNodeType } from "../types/Node";
 import { StatementType } from "../types/Statement";
 import { makeAnyNodeActions } from "../actions/anyNode";
 import { makeStatementListActions } from "../actions/statementList";
@@ -16,10 +16,11 @@ import { makeGlobalActions } from "../actions/global";
 type State = {
   nodes: AnyNodeType[];
   edges: Edge[];
-  nextNodeId: number;
-  error: IProveError | undefined;
   declarations: StatementType[];
   typeDeclarations: StatementType[];
+  nextNodeId: number;
+
+  error: IProveError | undefined;
 }
 
 type Actions = {
@@ -31,11 +32,11 @@ type Actions = {
     forNode: (nodeId: string) => ReturnType<typeof makeAnyNodeActions>,
     forStatementNode: (nodeId: string) =>
       ReturnType<typeof makeAnyNodeActions>
-      & Record<ListField<StatementNodeType["data"]>, ReturnType<typeof makeStatementListWithReasonsActions>>
+      & Record<StatementNodeListField, ReturnType<typeof makeStatementListWithReasonsActions>>
       & ReturnType<typeof makeStatementNodeActions>
     forInductionNode: (nodeId: string) =>
       ReturnType<typeof makeAnyNodeActions>
-      & Record<ListField<InductionNodeType["data"]>, ReturnType<typeof makeStatementListActions>>
+      & Record<InductionNodeListField, ReturnType<typeof makeStatementListActions>>
       & ReturnType<typeof makeInductionNodeActions>
   }
 }
@@ -62,9 +63,9 @@ const getInductionNodeOrThrow = (store: StoreType, nodeId: string): InductionNod
   return node;
 }
 
-const listFieldToStmtNodeStmtListActions = (set: (cb: (draft: IProveDraft) => void) => void, nodeId: string, listField: ListField<StatementNodeType["data"]>) => makeStatementListWithReasonsActions(set, draft => ({ node: getStatementNodeOrThrow(draft, nodeId), listField }));
+const listFieldToStmtNodeStmtListActions = (set: (cb: (draft: IProveDraft) => void) => void, nodeId: string, listField: StatementNodeListField) => makeStatementListWithReasonsActions(set, draft => ({ node: getStatementNodeOrThrow(draft, nodeId), listField }));
 
-const listFieldToInductionNodeStmtListActions = (set: (cb: (draft: IProveDraft) => void) => void, nodeId: string, listField: ListField<InductionNodeType["data"]>) => makeStatementListActions(set, draft => getInductionNodeOrThrow(draft, nodeId).data[listField]);
+const listFieldToInductionNodeStmtListActions = (set: (cb: (draft: IProveDraft) => void) => void, nodeId: string, listField: InductionNodeListField) => makeStatementListActions(set, draft => getInductionNodeOrThrow(draft, nodeId).data[listField]);
 
 export const useIProveStore = create(
   immer<State & Actions>((set) => {

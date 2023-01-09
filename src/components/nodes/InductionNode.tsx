@@ -1,4 +1,4 @@
-import { InductionNodeData, ListField } from "../../types/Node";
+import { InductionNodeData, InductionNodeListField, ListField } from "../../types/Node";
 import { AddIcon } from '@chakra-ui/icons';
 import {
 	Box, Button, Divider, IconButton, Select, Text
@@ -23,7 +23,7 @@ function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): Re
 	}, [id]);
 	const statusStyle = nodeData.internalsStatus !== 'unchecked' ? nodeData.internalsStatus + "-induction" : '';
 	const componentStyle = "induction-node " + statusStyle;
-	const onChange = useCallback((evt: any, k: ListField<InductionNodeData>, updated: number) => {
+	const onChange = useCallback((evt: any, k: InductionNodeListField, updated: number) => {
 		actions[k].update(updated, evt.target.value);
 	}, [actions]);
 

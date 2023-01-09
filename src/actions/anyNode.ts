@@ -1,7 +1,7 @@
 import { current, Draft } from "immer";
 import { ActionContext, actionsWithContext } from '../store/ActionContext';
 import { IProveDraft } from '../store/store';
-import { AnyNodeType, InductionNodeType, ListField, StatementNodeType } from '../types/Node';
+import { AnyNodeType, InductionNodeListField, InductionNodeType, ListField, NodeKind, StatementNodeType } from '../types/Node';
 import { parseAll as parseAllStatements } from "./statementList";
 import { mutual_rec_on } from "../logic/induction";
 import { unifies } from "../logic/unifier";
@@ -166,7 +166,7 @@ export const invalidateOutgoingEdges = (ctx: ActionContext<AnyNodeType>) => {
   }
 };
 
-export const recheck = (ctx: ActionContext<AnyNodeType>, listField: ListField<AnyNodeType["data"]>, updated: number): void => {
+export const recheck = (ctx: ActionContext<AnyNodeType>, listField: ListField, updated: number): void => {
   parseAll(ctx);
 
   const ctxStatementNode = ctx.narrowType((node): node is Draft<StatementNodeType> => node.type !== "inductionNode")
@@ -190,7 +190,7 @@ export const recheck = (ctx: ActionContext<AnyNodeType>, listField: ListField<An
   const ctxInductionNode = ctx.narrowType((node): node is Draft<InductionNodeType>  => node.type === "inductionNode")
   if (ctxInductionNode) {
     invalidateInternals(ctxInductionNode);
-    switch (listField as ListField<InductionNodeType["data"]>) {
+    switch (listField as InductionNodeListField) {
       case "baseCases":
       case "inductiveCases":
         invalidateEdges(ctxInductionNode);

@@ -10,7 +10,7 @@ export const getNodeOrThrow = (draft: IProveDraft, nodeId: string): Draft<AnyNod
   return node;
 };
 
-export const isListFieldOf = <T extends AnyNodeType>(node: T, listField: string): listField is ListField<T["data"]> => {
+export const isListFieldOf = <T extends AnyNodeType>(node: T, listField: string): listField is ListField<T["type"]> => {
 
   if (node.type === "inductionNode") {
     if (listField === "types"

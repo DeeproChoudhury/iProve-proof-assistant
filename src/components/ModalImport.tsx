@@ -18,14 +18,7 @@ const ModalImport = () => {
 	/**
 	 * Parse well formed JSON input into node and add to background 
 	 */
-	const parseJSONAddNode = () => {
-		const importedProof = JSON.parse(textAreaValue);
-
-		// add nodes to graph
-		addImportedProof(
-			importedProof
-		)
-	}
+	const parseJSONAddNode = () => addImportedProof(textAreaValue);
 
 	// file contents when uploaded
 	// const [file, setFile] = useState("");

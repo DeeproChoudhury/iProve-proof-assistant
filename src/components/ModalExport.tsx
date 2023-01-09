@@ -12,12 +12,14 @@ const ModalExport = () => {
   const edges = useIProveStore(store => store.edges);
   const declarations = useIProveStore(store => store.declarations);
   const typeDeclarations = useIProveStore(store => store.typeDeclarations);
+  const nextNodeId = useIProveStore(store => store.nextNodeId);
 
   const data = JSON.stringify({
     nodes,
     declarations,
     types: typeDeclarations,
-    edges
+    edges,
+    nextNodeId
   })
 
   /**

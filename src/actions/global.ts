@@ -1,6 +1,7 @@
 import { LIQ } from '../logic/LogicInterfaceQueue';
 import { ActionContext, actionsWithContext } from '../store/ActionContext';
 import { IProveDraft, StoreType } from '../store/store';
+import { ExportedProof } from '../types/exported';
 import { NodeKind } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { mk_error } from '../util/errors';
@@ -55,46 +56,14 @@ export const deleteNode = ({ draft }: ActionContext<StoreType>, nodeId: string) 
   draft.nodes = draft.nodes.filter(node => node.id !== nodeId);
 };
 
-export const addImportedProof = ({ draft }: ActionContext<StoreType>, json: any) => {
+export const importProofFromString = ({ draft }: ActionContext<StoreType>, json: string) => {
   // Create Given, Proof, Goal Nodes from input data
-  draft.nodes = json.nodes.map((node: any) => {
-    const id = node.id;
-    draft.nextNodeId++;
-
-    if (node.type === "inductionNode") {
-      return {
-        id: `${id}`,
-        data: {
-          label: node.data.label,
-          internalsStatus: "unchecked",
-          edgesStatus: node.data.edgesStatus,
-          types: node.data.types,
-
-          inductiveCases: node.data.inductiveCases,
-          baseCases: node.data.baseCases,
-          motive: node.data.motive,
-          identifier: node.data.identifier,
-
-        },
-        position: node.position,
-        type: node.type,
-      }
-    } else {
-      const n = node;
-      n.data.edgesStatus = node.data.edgesStatus;
-      return n;
-    }
-  });
-  
-  draft.edges = json.edges.map((edge: any) => {
-    const e = edge;
-    e.type = edge.type;
-    return e;
-  })
-
-  draft.declarations = json.declarations;
-  draft.typeDeclarations = json.types;
-
+  const imported: ExportedProof = JSON.parse(json);
+  draft.nodes = imported.nodes;
+  draft.edges = imported.edges;
+  draft.declarations = imported.declarations;
+  draft.typeDeclarations = imported.types;
+  draft.nextNodeId = imported.nextNodeId;
 }
 
 export const verifyProofGlobal = (ctx: ActionContext<StoreType>) => {
@@ -120,7 +89,7 @@ export const resetError = (ctx: ActionContext<StoreType>) => {
 }
 
 const actions = {
-  addGivenNode, addProofNode, addGoalNode, addInductionNode, deleteNode, addImportedProof, verifyProofGlobal, resetError
+  addGivenNode, addProofNode, addGoalNode, addInductionNode, deleteNode, addImportedProof: importProofFromString, verifyProofGlobal, resetError
 } as const;
 
 export const makeGlobalActions = (set: (cb: (draft: IProveDraft) => void) => void) => {

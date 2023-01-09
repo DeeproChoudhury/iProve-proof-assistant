@@ -1,14 +1,11 @@
 import type { Draft } from "immer";
-import { SetStateAction } from "react";
-import { Node } from "reactflow";
 import { ActionContext } from "../store/ActionContext";
-import { ListField, StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeProps, AnyNodeType, InductionNodeData } from "../types/Node";
+import { StatementNodeType, InductionNodeType, StatementNodeData, AnyNodeType, StatementNodeListField, AnyNodeProps } from "../types/Node";
 import { CheckStatus } from "../types/Reason";
 import { StatementType } from "../types/Statement";
-import { applyAction, Setter } from "./setters";
 import { isTerm } from "./trees";
 
-export function localIndexToAbsolute(data: StatementNodeData, k: ListField<StatementNodeData>, index: number): number {
+export function localIndexToAbsolute(data: StatementNodeData, k: StatementNodeListField, index: number): number {
   switch (k) {
     case "givens": return index;
     case "proofSteps": return data.givens.length + index;
@@ -16,7 +13,7 @@ export function localIndexToAbsolute(data: StatementNodeData, k: ListField<State
   }
 }
 
-export function absoluteIndexToLocal(data: StatementNodeData, index: number): [ListField<StatementNodeData>, number] {
+export function absoluteIndexToLocal(data: StatementNodeData, index: number): [StatementNodeListField, number] {
   if (index < data.givens.length) return ["givens", index];
   else if (index < data.givens.length + data.proofSteps.length) return ["proofSteps", index - data.givens.length];
   else return ["goals", index - data.givens.length - data.proofSteps.length];
@@ -79,7 +76,7 @@ export const isStatementNode = (node: AnyNodeType): node is StatementNodeType =>
   return node.type !== "inductionNode";
 }
 
-export const getInputs = (node: AnyNodeProps): StatementType[] => {
+export const getInputs = (node: AnyNodeType): StatementType[] => {
   switch (node.type) {
     case "givenNode":
       return [];
@@ -91,7 +88,7 @@ export const getInputs = (node: AnyNodeProps): StatementType[] => {
   }
 }
 
-export const getOutputs = (node: AnyNodeProps): StatementType[] => {
+export const getOutputs = (node: AnyNodeType): StatementType[] => {
   switch (node.type) {
     case "givenNode":
     case "proofNode":

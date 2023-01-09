@@ -3,7 +3,7 @@ import { LIQ } from "../logic/LogicInterfaceQueue";
 import { ActionContext, actionsWithContext } from "../store/ActionContext";
 import { IProveDraft } from "../store/store";
 import { Line } from "../types/AST";
-import { ListField, StatementNodeData, StatementNodeType } from "../types/Node";
+import { ListField, StatementNodeData, StatementNodeListField, StatementNodeType } from "../types/Node";
 import { CheckStatus, Reason } from "../types/Reason";
 import { mk_error, parse_error } from "../util/errors";
 import { absoluteIndexToLocal, localIndexToAbsolute } from "../util/nodes";
@@ -12,7 +12,7 @@ import * as StatementListActions from "./statementList";
 
 type NodeAndList = {
   node: StatementNodeType;
-  listField: ListField<StatementNodeData>
+  listField: StatementNodeListField
 }
 
 const getStatementList = (ctx: ActionContext<NodeAndList>) => {
@@ -25,7 +25,7 @@ const toStatementListCtx = (ctx: ActionContext<NodeAndList>) => {
 
 const shiftReasonsForNode = (
   node: Draft<StatementNodeType>,
-  k: ListField<StatementNodeData>,
+  k: StatementNodeListField,
   index: number | undefined,
   offset: -1 | 1
 ) => {
@@ -46,7 +46,7 @@ const shiftReasonsForNode = (
 
 const invalidateReasonForNode = (
   node: Draft<StatementNodeType>,
-  k: ListField<StatementNodeData>,
+  k: StatementNodeListField,
   index: number
 ) => {
   const changed = localIndexToAbsolute(node.data, k, index);
