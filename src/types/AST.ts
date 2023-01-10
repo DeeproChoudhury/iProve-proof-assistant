@@ -198,5 +198,8 @@ export type ParenTerm = {
     isSquare: boolean
 }
 
-
-
+export type DeclarationLine = Declaration | FunctionDefinition;
+export type TypeDeclarationLine = TypeDef;
+export type GivenLine = Term;
+export type ProofStepLine = Tactic | Term;
+export type GoalLine = Term;

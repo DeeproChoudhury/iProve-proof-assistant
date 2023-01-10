@@ -111,23 +111,25 @@ export const checkReason = (ctx: ActionContext<NodeAndList>, index: number) => {
     return ctx.draft.node.data[listField][relIndex];
   });
   if (depStatements.some(s => !s.parsed)) {
-    ctx.setError({
+    ctx.setError(mk_error({
       kind: "Semantic",
       msg: "Some givens have not been parsed! Exit the modal and try again"
-    });
+    }));
+    updateReasonStatus(ctx, index, "invalid");
+    return;
+  }
+
+  if (!statement.parsed) {
+    ctx.setError(mk_error({
+      kind: "Semantic",
+      msg: "Your objective has not been parsed! Exit the modal and try again"
+    }));
     updateReasonStatus(ctx, index, "invalid");
     return;
   }
 
   updateReasonStatus(ctx, index, "checking");
 
-  if (!statement.parsed) {
-    ctx.setError({
-      kind: "Semantic",
-      msg: "Your objective has not been parsed! Exit the modal and try again"
-    });
-    updateReasonStatus(ctx, index, "invalid");
-  }
   LIQ.queueEntails(unwrap_statements(depStatements), statementToLine(statement) as Line, ctx.newAction((ctx, verdict) => {
     switch (verdict.kind) {
       case "Valid":
@@ -145,7 +147,7 @@ export const checkReason = (ctx: ActionContext<NodeAndList>, index: number) => {
         updateReasonStatus(ctx, index, "invalid");
         break;
       case "False":
-        ctx.setError({ kind: "Proof" });
+        ctx.setError(mk_error({ kind: "Proof" }));
         updateReasonStatus(ctx, index, "invalid");
     }
   }));

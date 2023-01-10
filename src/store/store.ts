@@ -12,14 +12,12 @@ import { makeInductionNodeActions } from "../actions/inductionNode";
 import { makeStatementNodeActions } from "../actions/statementNode";
 import { makeFlowActions } from "../actions/flow";
 import { makeGlobalActions } from "../actions/global";
-import { CheckStatus } from "../types/Reason";
 
 type State = {
   nodes: AnyNodeType[];
   edges: Edge[];
   nextNodeId: number;
   error: IProveError | undefined;
-  proofStatus: CheckStatus;
   declarations: StatementType[];
   typeDeclarations: StatementType[];
 }
@@ -75,8 +73,6 @@ export const useIProveStore = create(
       edges: [],
       nextNodeId: 0,
       error: undefined,
-      // badly named, this actually controls whether the status outcome popup is displayed
-      proofStatus: "unchecked",
       declarations: [],
       typeDeclarations: [],
 
