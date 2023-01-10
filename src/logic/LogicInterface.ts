@@ -233,6 +233,8 @@ export class LogicInterface {
             case "ListType":
                 return `IProveList_${this.displaySafeType(T.param)}`;
             case "ParamType":
+                if (T.ident == "Pair")
+                    return `__${T.params.map(this.displaySafeType).join("_")}__`;
                 let ti = T.ident == "List" ? "IProveList" : T.ident
                 return `${T.ident}_${T.params.map(this.displaySafeType).join("_")}`;
             case "PrimitiveType":
@@ -746,6 +748,7 @@ export function renderNode(a: AST.ASTNode | undefined): string {
                         elems: a.params
                     })
                 case "Tuple":
+                case "Pair":
                     LI.createTuple(a.params.length)
                     return `(mk-tuple ${a.params.map(renderNode).join(" ")})`
                 case "ArraySelect":
@@ -796,6 +799,12 @@ export function renderNode(a: AST.ASTNode | undefined): string {
         }
 
         case "ParamType":
+            if (a.ident == "Pair") {
+                let N = a.params.length;
+                LI.createTuple(N);
+                return `(IProveTuple${N} ${a.params.map(renderNode).join(" ")})`;
+            }
+
             return `(${a.ident == "List" ? "IProveList" : a.ident} ${a.params.map(renderNode).join(" ")})`
         case "ListType":
             return `(IProveList ${renderNode(a.param)})`
