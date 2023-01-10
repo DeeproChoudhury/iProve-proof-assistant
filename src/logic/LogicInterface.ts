@@ -733,7 +733,7 @@ export function renderNode(a: AST.ASTNode | undefined): string {
         case "Variable": return (a.ident == "otherwise") ? "true" : 
             (a.type
                 ? `(as ${a.ident} ${renderNode(a.type)})`
-                : a.ident);
+                : (a.ident.startsWith(".") ? "0" + a.ident : a.ident));
         case "FunctionApplication": {
             switch (a.fn) {
                 case "List":

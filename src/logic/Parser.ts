@@ -1,9 +1,10 @@
+import { LITERAL_TYPES } from '@babel/types';
 import { Parser, ParserOutput, Token, ParseError, err, opt, rep } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb, lrec_sc } from 'typescript-parsec';
 import * as AST from "../types/AST"
 import { UnifyScope } from '../types/LogicInterface';
-import { display, getSelector, PrimitiveType } from '../util/trees';
+import { display, getSelector, mk_var, PrimitiveType } from '../util/trees';
 import { unifies } from './unifier';
 Error.stackTraceLimit = Infinity;
 
@@ -147,7 +148,7 @@ const lexer = buildLexer([
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(\}|\{)/g, TokenKind.CurlyBrace],
     [true, /^(\)|\()/g, TokenKind.Paren],
-    [true, /^(<|>)/g, TokenKind.Angles],
+    
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
     [true, /^(assume)/g, TokenKind.Assume],
@@ -159,8 +160,9 @@ const lexer = buildLexer([
     [true, /^(Relation)/g, TokenKind.Predicate],
     [true, /^(Operation)/g, TokenKind.Operation],
     [true, /^(type|data)/g, TokenKind.TypeKW],
+    [true, /^(((\d+)(\.\d+)?)|((\d+)?(\.\d+)))/g, TokenKind.NumberLiteral],
 
-    [true, /^((\+|-|=|>|<|\/|\.|\*|!|&|\||~|\%)+|in)/g, TokenKind.InfixSymbol],
+    [true, /^((\+|-|=|>|<|\/|\*|!|&|\||~|\%)+|in)/g, TokenKind.InfixSymbol],
     [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
@@ -189,7 +191,7 @@ const END_SCOPE = rule<TokenKind, AST.EndScope>();
 const TACTIC = rule<TokenKind, AST.Tactic>();
 const CORE = rule<TokenKind, AST.Line>();
 const TYPED_LITERAL = rule<TokenKind, AST.Variable>();
-
+const UNTYPED_LITERAL = rule<TokenKind, AST.Variable>();
 
 const TERM = rule<TokenKind, AST.Term>();
 
@@ -284,6 +286,13 @@ TYPE.setPattern(alt(
     LIST_TYPE,
     TUPLE_TYPE
 ))
+
+UNTYPED_LITERAL.setPattern(
+    apply(
+        if_else(tok(TokenKind.NumberLiteral), tok(TokenKind.Symbol)),
+        (v) => mk_var(v.text)
+    )
+)
 
 
 FN_TYPE.setPattern(
@@ -400,8 +409,8 @@ PAREN_TERM.setPattern(apply(
 ATOMIC_TERM.setPattern(apply(
     seq(
         if_else(
-            if_else(PREFIX_APPLY, ARRAY_LITERAL),
-            if_else(if_else(TYPED_LITERAL,VARIABLE, true), PAREN_TERM)
+            alt(TYPED_LITERAL, PREFIX_APPLY),
+            if_else(if_else(ARRAY_LITERAL, UNTYPED_LITERAL), PAREN_TERM)
         ),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
