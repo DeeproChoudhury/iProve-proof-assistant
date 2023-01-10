@@ -125,6 +125,7 @@ enum TokenKind {
     Paren,
     Guard,
     TypeKW,
+    DataKW,
     CurlyBrace,
     Times,
     Colon,
@@ -152,14 +153,15 @@ const lexer = buildLexer([
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
     [true, /^(assume)/g, TokenKind.Assume],
-    [true, /^(skolem)/g, TokenKind.Skolem],
+    [true, /^(use)/g, TokenKind.Skolem],
     [true, /^(begin)/g, TokenKind.Begin],
     [true, /^(end)/g, TokenKind.End],
     [true, /^(Set)/g, TokenKind.Set],
     [true, /^(Predicate)/g, TokenKind.Predicate],
     [true, /^(Relation)/g, TokenKind.Predicate],
     [true, /^(Operation)/g, TokenKind.Operation],
-    [true, /^(type|data)/g, TokenKind.TypeKW],
+    [true, /^(type)/g, TokenKind.TypeKW],
+    [true, /^(data)/g, TokenKind.DataKW],
     [true, /^(((\d+)(\.\d+)?)|((\d+)?(\.\d+)))/g, TokenKind.NumberLiteral],
 
     [true, /^((\+|-|=|>|<|\/|\*|!|&|\||~|\%)+|in)/g, TokenKind.InfixSymbol],
@@ -673,10 +675,14 @@ ASSUMPTION.setPattern(apply(
     (value: AST.Term): AST.Assumption => ({ kind: "Assumption", arg: value })
 ))
 
-SKOLEM.setPattern(apply(
-    kright(str("skolem"), VARIABLE),
-    (value: AST.Variable): AST.Skolemize => ({ kind: "Skolemize", arg: value.ident })
-))
+SKOLEM.setPattern(handle(apply(
+    kright(str("use"), TERM),
+    (value: AST.Term): AST.Skolemize => {
+        if (value.kind != "QuantifierApplication" || value.quantifier != "E")
+            throw new Error("`use` must be followed by an existential quantifier")
+        return { kind: "Skolemize", arg: value }
+    }
+)))
 
 BEGIN_SCOPE.setPattern(apply(
     str("begin"),
@@ -789,7 +795,7 @@ TYPE_CONSTRUCTOR.setPattern(apply(
 const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
 TYPE_DEF.setPattern(apply(
     seq(
-        kmid(tok(TokenKind.TypeKW), 
+        kmid(tok(TokenKind.DataKW), 
         seq(VARIABLE, rep_sc(VARIABLE)), str("=")),
         list_sc(TYPE_CONSTRUCTOR, str("|"))
     ),
@@ -800,10 +806,20 @@ TYPE_DEF.setPattern(apply(
     }
 ))
 
+const TYPE_DEC = rule<TokenKind, AST.SortDeclaration>();
+TYPE_DEC.setPattern(apply(
+    seq(kright(tok(TokenKind.TypeKW), VARIABLE), opt(tok(TokenKind.NumberLiteral))),
+    (value): AST.SortDeclaration => {
+        return { kind: "SortDeclaration", symbol: value[0], arity: parseInt(value[1]?.text ?? "0") }
+    }
+))
+
+
 const LANG = rule<TokenKind, AST.Line>();
 LANG.setPattern(alt(
     FN_DEC,
     VAR_DEC,
+    TYPE_DEC,
     TYPE_DEF
 ))
 

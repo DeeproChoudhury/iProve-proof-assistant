@@ -1,3 +1,4 @@
+import { AccordionStylesProvider } from "@chakra-ui/accordion/dist/accordion-context";
 import { map_terms, stateless_map_terms } from "../logic/combinator";
 import { fnDisplay } from "../logic/util";
 import * as AST from "../types/AST"
@@ -25,7 +26,7 @@ function d(a: AST.ASTNode): string {
         case "FunctionDeclaration": return `${a.partial ? "partial " : ""}${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": 
             return `${a.vis} ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
-        case "SortDeclaration": return `data ${d(a.symbol)}`
+        case "SortDeclaration": return `type ${d(a.symbol)}${a.arity ? " " + a.arity.toString() : ""}`
         case "Variable": 
             return (a.type)
                 ? `${a.ident}<${d(a.type)}>`
@@ -55,7 +56,7 @@ function d(a: AST.ASTNode): string {
         case "BeginScope": return "begin";
         case "EndScope": return "end";
         case "Assumption": return `assume ${d(a.arg)}`;
-        case "Skolemize": return `skolem ${a.arg}`;
+        case "Skolemize": return `use ${d(a.arg)}`;
 
         case "FunctionDefinition":
             return `${a.ident} ${a.params.map(d).join(" ")} ::= ${d(a.def)}` 
@@ -282,7 +283,7 @@ export const conjunct = (ts: AST.Line[]): AST.Term => ts.some(isFalse) ? mk_var(
     : combineTerms(ts.filter((t) => !isTrue(t)), "&") ?? mk_var("true")
 
 export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
-    return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";
+    return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption" || line.kind === "Skolemize";
  }
  
  export const isBlockEnd = (line: AST.Line): line is AST.EndScope => {
@@ -309,7 +310,23 @@ export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
        fn: "=>",
        params: [w.arg, term]
      });
-   } else if (w.kind === "BeginScope") {
+   } else if (w.kind === "Skolemize") {
+    return term => ({
+      kind: "QuantifierApplication",
+      quantifier: "A",
+      vars: [{
+        kind: "VariableBinding",
+        symbol: w.arg.vars[0].symbol,
+        type: w.arg.vars[0].type
+      }],
+      term: {
+        kind: "FunctionApplication",
+        appType: "InfixOp",
+        fn: "=>",
+        params: [w.arg.term, term]
+      }
+    });
+  } else if (w.kind === "BeginScope") {
      return term => term
  } throw "unsupported BlockStart"; // why isn't this unreachable
  }

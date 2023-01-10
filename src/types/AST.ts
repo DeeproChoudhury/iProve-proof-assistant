@@ -21,7 +21,7 @@ export type Assumption = {
 }
 export type Skolemize = {
     kind: "Skolemize",
-    arg: string
+    arg: QuantifierApplication
 }
 export type BeginScope = {
     kind: "BeginScope"
@@ -100,7 +100,7 @@ export type VariableBinding = {
     bound?: number,
     boundType?: ">=" | "<=" | ">" | "<"
 }
-export type BlockStart = VariableDeclaration | Assumption | BeginScope;
+export type BlockStart = VariableDeclaration | Assumption | BeginScope | Skolemize;
 export type Line = Declaration | Term | Tactic | FunctionDefinition | TypeDef
 
 export type Declaration = FunctionDeclaration | VariableDeclaration | SortDeclaration

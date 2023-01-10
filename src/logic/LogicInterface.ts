@@ -251,6 +251,7 @@ export class LogicInterface {
             case "FunctionDefinition":
                 this.error("Cannot define functions outside of Declarations")
                 return false
+            case "SortDeclaration":
             case "TypeDef":
                 this.error("Cannot declare types outside of Declarations")
                 return false
@@ -623,6 +624,8 @@ export class LogicInterface {
                     if (v.vis != "pure") res += `${renderNode(v)}\n`;
                     break;
                 case "TypeDef":
+                    types += `${renderNode(v)}\n`; break;
+                case "SortDeclaration":
                     types += `${renderNode(v)}\n`; break;
                 default:
                     if (isTerm(v)) this.extractListOps(v, list_ops, V, F);
