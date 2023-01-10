@@ -1,13 +1,14 @@
 import { CopyIcon, DownloadIcon } from '@chakra-ui/icons';
 import { Box, Button, Stack, Textarea, useToast } from '@chakra-ui/react';
-import { useIProveStore } from '../store/store';
+import { useIProveStore } from '../../store/store';
+import { makeModal } from './makeModal';
 
 /**
  * Modal contents for Exporting proofs in JSON format
  * 
  * @returns box for modal contents
  */
-const ModalExport = () => {
+const ModalExportInner = () => {
   const nodes = useIProveStore(store => store.nodes);
   const edges = useIProveStore(store => store.edges);
   const declarations = useIProveStore(store => store.declarations);
@@ -70,5 +71,7 @@ const ModalExport = () => {
     </Box>
   )
 }
+
+const ModalExport = makeModal("export", "Export Proof", ModalExportInner);
 
 export default ModalExport;

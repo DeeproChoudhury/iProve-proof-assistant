@@ -2,15 +2,7 @@ import { Stack, Button, Popover, PopoverTrigger, PopoverContent, PopoverArrow, P
 import { useIProveStore } from "../store/store"
 import { SymbolButton } from "./SymbolButton"
 
-type HeaderPropsType = {
-  sidebarVisible: boolean,
-  setSidebarVisible: (value: boolean) => void,
-  showExportModal: () => void,
-  showImportModal: () => void,
-}
-
-const Header = (props: HeaderPropsType) => {
-  const { sidebarVisible, setSidebarVisible, showExportModal, showImportModal } = props;
+const Header = () => {
   /* Table used to display 'help' information to user */
   const operatorsToSymbols = [{ value: 'and', symbol: '&' },
   { value: 'or', symbol: '||' },
@@ -22,6 +14,7 @@ const Header = (props: HeaderPropsType) => {
   { value: 'x ∈ S', symbol: 'x in S' }]
   
   const actions = useIProveStore(store => store.actions);
+  const uiShown = useIProveStore(store => store.uiShown);
 
   return (
 
@@ -37,15 +30,15 @@ const Header = (props: HeaderPropsType) => {
         <Button className="headButton" variant="outline" colorScheme='purple' onClick={actions.global.addGoalNode}>Add Goal</Button>
         <Button className="headButton" variant="outline" colorScheme='purple' onClick={actions.global.addProofNode}>Add Proof Node</Button>
         <Button className="headButton" variant="outline" colorScheme='purple' onClick={actions.global.addInductionNode}>Add Induction Node</Button>
-        <Button className="headButton" variant="outline" colorScheme='purple' onClick={showImportModal}>Import Proofs</Button>
-        <Button className="headButton" variant="outline" colorScheme='purple' onClick={showExportModal}>
+        <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.showUI("import")}>Import Proofs</Button>
+        <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.showUI("export")}>
           Export proof
         </Button>
-        <Button className="headButton" variant="outline" colorScheme='purple' onClick={actions.global.verifyProofGlobal}>
+        <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.showUI("addReasons")}>
           Verify Entire Proof
         </Button>
-        <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => { setSidebarVisible(!sidebarVisible) }}>
-          {sidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+        <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.toggleUI("sidebar")}>
+          {uiShown.sidebar ? "Hide Sidebar" : "Show Sidebar"}
         </Button>
         
 

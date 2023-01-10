@@ -1,11 +1,14 @@
 import { LIQ } from '../logic/LogicInterfaceQueue';
 import { ActionContext, actionsWithContext } from '../store/ActionContext';
-import { IProveDraft, StoreType } from '../store/store';
+import { IProveDraft, StoreType, UIComponentName } from '../store/store';
+import { Line } from '../types/AST';
 import { NodeKind } from '../types/Node';
 import { StatementType } from '../types/Statement';
 import { mk_error } from '../util/errors';
-import { allParsed, edgesStatus, internalsStatus } from '../util/nodes';
+import { allParsed, edgesStatus, internalsStatus, narrowNodeCtx } from '../util/nodes';
+import { isTerm } from '../util/trees';
 import { checkEdges, checkInternal, parseAll } from './anyNode';
+import { autoAddReasons } from './statementNode';
 
 const blankStatement: StatementType = { value: "", wrappers: [] };
 
@@ -97,10 +100,37 @@ export const addImportedProof = ({ draft }: ActionContext<StoreType>, json: any)
 
 }
 
+export const showUI = (ctx: ActionContext<StoreType>, name: UIComponentName) => {
+  ctx.draft.uiShown[name] = true;
+}
+
+export const hideUI = (ctx: ActionContext<StoreType>, name: UIComponentName) => {
+  ctx.draft.uiShown[name] = false;
+}
+
+export const toggleUI = (ctx: ActionContext<StoreType>, name: UIComponentName) => {
+  ctx.draft.uiShown[name] = !ctx.draft.uiShown[name];
+}
+
+export const startVerifyProofGlobal = (ctx: ActionContext<StoreType>) => {
+  const anyMissingReasons = ctx.draft.nodes.some(node => {
+    if (node.type !== "proofNode") return false;
+    return [...node.data.proofSteps, ...node.data.goals]
+      .filter(statement => statement.parsed && isTerm(statement.parsed))
+      .some(statement => !statement.reason || statement.reason.status !== "valid" );
+  });
+  if (anyMissingReasons) showUI(ctx, "addReasons");
+  else verifyProofGlobal(ctx);
+}
+
 export const verifyProofGlobal = (ctx: ActionContext<StoreType>) => {
   for (let i = 0; i < ctx.draft.nodes.length; i++) {
     const nodeCtx = ctx.composeLens(draft => draft.nodes[i])
     parseAll(nodeCtx)
+    const narrow = narrowNodeCtx(nodeCtx);
+    if (narrow.kind === "statementNode") {
+      autoAddReasons(narrow.ctx);
+    }
     checkInternal(nodeCtx);
     checkEdges(nodeCtx);
   }
@@ -120,7 +150,7 @@ export const resetError = (ctx: ActionContext<StoreType>) => {
 }
 
 const actions = {
-  addGivenNode, addProofNode, addGoalNode, addInductionNode, deleteNode, addImportedProof, verifyProofGlobal, resetError
+  addGivenNode, addProofNode, addGoalNode, addInductionNode, deleteNode, addImportedProof, showUI, hideUI, toggleUI, verifyProofGlobal, resetError
 } as const;
 
 export const makeGlobalActions = (set: (cb: (draft: IProveDraft) => void) => void) => {
