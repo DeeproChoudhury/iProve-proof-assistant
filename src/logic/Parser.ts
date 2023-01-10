@@ -128,7 +128,8 @@ enum TokenKind {
     Colon,
     Set,
     Predicate,
-    Relation
+    Relation,
+    Operation
 }
 
 const lexer = buildLexer([
@@ -153,9 +154,10 @@ const lexer = buildLexer([
     [true, /^(Set)/g, TokenKind.Set],
     [true, /^(Predicate)/g, TokenKind.Predicate],
     [true, /^(Relation)/g, TokenKind.Predicate],
+    [true, /^(Operation)/g, TokenKind.Operation],
     [true, /^(type|data)/g, TokenKind.TypeKW],
 
-    [true, /^((\+|-|=|>|<|\/|\.|\*|!|&|\||~)+|in)/g, TokenKind.InfixSymbol],
+    [true, /^((\+|-|=|>|<|\/|\.|\*|!|&|\||~|\%)+|in)/g, TokenKind.InfixSymbol],
     [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
@@ -268,28 +270,36 @@ TYPE.setPattern(alt(
 
 FN_TYPE.setPattern(
     alt(
-        apply(
+        handle(apply(
             seq(
-                alt(tok(TokenKind.Set), tok(TokenKind.Predicate), tok(TokenKind.Relation)),
-                kmid(str("<"), TYPE, str(">"))
+                alt(tok(TokenKind.Set), tok(TokenKind.Predicate), tok(TokenKind.Relation), tok(TokenKind.Operation)),
+                kmid(str("<"), list_sc(TYPE, str(",")), str(">"))
             ),
-            (value: [Token<TokenKind.Set> | Token<TokenKind.Predicate> | Token<TokenKind.Relation>, AST.Type]): AST.FunctionType => {
-                
+            (value: [Token<TokenKind.Set> | Token<TokenKind.Predicate> | Token<TokenKind.Relation> | Token<TokenKind.Operation>, AST.Type[]]): AST.FunctionType => {
+                if (value[0].text != "Predicate" && value[1].length > 1)
+                    throw new Error(`${value[0].text} can only take one parameter!`)
                 return (value[0].text == "Relation")
                 ? { 
                     kind: "FunctionType",
-                    argTypes: [value[1], value[1]],
+                    argTypes: [value[1][0], value[1][0]],
                     retType: PrimitiveType("Bool"),
                     tag: "Relation"
                 }
-                : { 
-                    kind: "FunctionType",
-                    argTypes: [value[1]],
-                    retType: PrimitiveType("Bool"),
-                    tag: (value[0].text == "Set") ? "Set" : "Predicate"
-                }
+                : (value[0].text == "Operation" 
+                    ? { 
+                        kind: "FunctionType",
+                        argTypes: [value[1][0], value[1][0]],
+                        retType: value[1][0],
+                        tag: "Operation"
+                    }
+                    : { 
+                        kind: "FunctionType",
+                        argTypes: value[1],
+                        retType: PrimitiveType("Bool"),
+                        tag: (value[0].text == "Set") ? "Set" : "Predicate"
+                    })
             }
-        ),
+        )),
         apply(
             seq(
                 kmid(opt_sc(str("(")), list_sc(TYPE, str(",")), opt_sc(str(")"))),

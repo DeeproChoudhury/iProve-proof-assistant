@@ -9,9 +9,11 @@ function d(a: AST.ASTNode): string {
         case "FunctionType": {
             switch(a.tag) {
                 case "Set":
-                case "Predicate":
                 case "Relation":
+                case "Operation":
                     return `${a.tag}<${d(a.argTypes[0])}>`
+                case "Predicate":
+                    return `${a.tag}<${a.argTypes.map(d).join(", ")}>`
                 default:
                     return `(${a.argTypes.map(d).join(", ")}) -> ${d(a.retType)}`;
             }

@@ -13,7 +13,9 @@ export function fnDisplay(fn: string): string {
         case "&": return "∧";
         case "||": return "∨";
         case "^": return "⊕";
-        case "->": return "→";
+        case "->":
+        case "=>":
+            return "→";
         case "<->": return "↔";
         case "in": return "∈";
         case ">=": return "≥";
@@ -30,6 +32,7 @@ export function fnSMT(fn: string): string {
         case "^": return "xor";
         case "->": return "implies";
         case "<->": return "=";
+        case "%": return "mod";
         default: return fn;
     }
 }
