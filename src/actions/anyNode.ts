@@ -7,7 +7,7 @@ import { mutual_rec_on } from "../logic/induction";
 import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type, ASTNode } from "../types/AST";
 import { unwrap_statements } from "../util/statements";
 
-import { isTerm, conjunct, imply, range_over_bindings, display } from "../util/trees";
+import { isTerm, conjunct, imply, range_over_bindings, display, iff } from "../util/trees";
 import { getInputs, getOutputs, narrowNodeCtx } from "../util/nodes";
 
 import { LIQ } from "../logic/LogicInterfaceQueue";
@@ -51,7 +51,8 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   if (motives_.some(x => x.kind != "QuantifierApplication" || !x.vars.length || x.quantifier == "E")) {
     ctx.setError({
       kind: "Semantic",
-      msg: "Induction motive must begin by ranging over inductively defined type"
+      msg: "Induction motive must begin by ranging over inductively defined type",
+      status: "error"
     });
     node.data.internalsStatus = "invalid";
     return;
@@ -59,7 +60,8 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   if (motives_.some(x => x.kind == "QuantifierApplication" && x.vars[0].type?.kind == "PrimitiveType" && x.vars[0].bound == undefined && x.vars[0].type?.ident == "Int")) {
     ctx.setError({
       kind: "Semantic",
-      msg: "Unbounded integers are not inductive types"
+      msg: "Unbounded integers are not inductive types",
+      status: "error"
     });
     node.data.internalsStatus = "invalid";
     return;
