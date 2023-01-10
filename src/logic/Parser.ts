@@ -309,14 +309,16 @@ FN_DEC.setPattern(handle(apply(
         return { kind: "FunctionDeclaration", symbol: value[0][1].text, type: value[1], partial: !(!value[0][0]) }
     }
 )));
-VAR_DEC.setPattern(apply(
+VAR_DEC.setPattern(handle(apply(
     seq(
-        kright(str("var"), VARIABLE),
+        seq(alt(str("const"), str("var"), str("pure")), VARIABLE),
         opt_sc(kright(str(":"), TYPE))),
-    (value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration => {
-        return { kind: "VariableDeclaration", symbol: value[0], type: value[1] }
+    (value: [[Token<TokenKind>, AST.Variable], AST.Type | undefined]): AST.VariableDeclaration => {
+        let pure = value[0][0].text == "pure";
+        if (pure && !value[1]) throw new Error("Pure variables must be explicitly typed")
+        return { kind: "VariableDeclaration", symbol: value[0][1], type: value[1], vis: (value[0][0].text as "const"|"var"|"pure") }
     }
-));
+)));
 
 VAR_BIND.setPattern(alt(
     apply(

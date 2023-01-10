@@ -21,7 +21,8 @@ function d(a: AST.ASTNode): string {
             ? `${d(a.symbol)} ` + `${fnDisplay(a.boundType ?? "")} ${a.bound}`
             : d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.partial ? "partial " : ""}${a.symbol} :: ${d(a.type)}`;
-        case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
+        case "VariableDeclaration": 
+            return `${a.vis} ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
         case "SortDeclaration": return `data ${d(a.symbol)}`
         case "Variable": return a.ident;
         case "FunctionApplication": {
@@ -198,6 +199,9 @@ export function range_over_bindings(t: AST.Term, vars: AST.VariableBinding[]): A
 export function isTrue(T : AST.Line): boolean { 
     return T.kind == "Variable" && T.ident == "true"
 }
+export function isFalse(T : AST.Line): boolean { 
+    return T.kind == "Variable" && T.ident == "false"
+}
 
 export function PrimitiveType(s: string): AST.PrimitiveType {
     return { kind: "PrimitiveType", ident: s }
@@ -267,8 +271,10 @@ export function combineTerms(ts_: AST.Line[], conjunct: string = "||"): AST.Term
         params: [A, tail]
     }
 }
-export const disjunct = combineTerms
-export const conjunct = (ts: AST.Line[]): AST.Term => combineTerms(ts.filter((t) => !isTrue(t)), "&") ?? mk_var("true")
+export const disjunct = (ts: AST.Line[]): AST.Term => ts.some(isTrue) ? mk_var("true")
+    : combineTerms(ts.filter((t) => !isFalse(t))) ?? mk_var("false")
+export const conjunct = (ts: AST.Line[]): AST.Term => ts.some(isFalse) ? mk_var("false")
+    : combineTerms(ts.filter((t) => !isTrue(t)), "&") ?? mk_var("true")
 
 export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
     return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";

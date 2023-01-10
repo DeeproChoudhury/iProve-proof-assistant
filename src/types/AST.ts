@@ -115,7 +115,8 @@ export type FunctionDeclaration = {
 export type VariableDeclaration = {
     kind: "VariableDeclaration",
     symbol: Variable,
-    type?: Type
+    type?: Type,
+    vis: "const" | "pure" | "var"
 }
 
 export type SortDeclaration = {

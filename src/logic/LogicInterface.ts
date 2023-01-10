@@ -1,10 +1,12 @@
 import { defineStyle } from "@chakra-ui/react";
 import { ThemeProvider } from "@emotion/react";
+import { AsyncLocalStorage } from "async_hooks";
 import { StringChain } from "lodash";
 import { type } from "os";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
-import { conjunct, disjunct, getSelector, imply, isDeclaration, isTerm, mk_var, PrimitiveType, underdetermine } from "../util/trees";
+import { conjunct, disjunct, getSelector, imply, isDeclaration, isTerm, isTrue, mk_var, PrimitiveType, range_over_bindings, underdetermine } from "../util/trees";
+import { map_terms } from "./combinator";
 import solve from "./Solver";
 import Z3Solver from "./Solver";
 import { gen_decls } from "./unifier";
@@ -111,6 +113,7 @@ export class LogicInterface {
     partial_funs: Set<string> = new Set();
     partial_undets: Set<string> = new Set();
     defined_types: Map<string, AST.TypeDef> = new Map();
+    pures: Map<string, AST.Type> = new Map();
 
     // change on reset
     givens: AST.Line[] = [];
@@ -216,6 +219,10 @@ export class LogicInterface {
                 if (t.partial) this.partial_funs.add(t.symbol);
             } else if (t.kind == "FunctionDefinition")
                 this.pushFnDef(t, this.global_fn_defs)
+            else if (t.kind == "VariableDeclaration") {
+                if (t.vis == "pure") this.pures.set(t.symbol.ident, t.type as AST.Type)
+            }
+            
             else if (t.kind == "TypeDef")
             this.defined_types.set(t.ident, t)
         })
@@ -327,40 +334,59 @@ export class LogicInterface {
                 }
 
                 // Short-circuit semantics
-                let R: AST.Term = (T.fn == "||" || T.fn == "->" || T.fn == "=>")
-                    ? {
-                        kind: "FunctionApplication",
-                        appType: "InfixOp",
-                        fn: "&",
-                        params: [LI.wellDef(T.params[0]), {
-                            kind: "FunctionApplication",
-                            appType: "InfixOp",
-                            fn: T.fn,
-                            params: [T.params[0], LI.wellDef(T.params[1])]
-                        }]
-                    }
-                    : conjunct(T.params.map(LI.wellDef)) as AST.Term
+                let R: AST.Term = 
+                (T.fn == "||")
+                    ? conjunct([
+                        LI.wellDef(T.params[0]),
+                        disjunct([T.params[0], LI.wellDef(T.params[1])])])
+                    : (
+                        (T.fn == "->" || T.fn == "=>")
+                        ? imply(
+                            conjunct([LI.wellDef(T.params[0]), T.params[0]]),
+                            LI.wellDef(T.params[1]))
+                        : conjunct(T.params.map(LI.wellDef)) as AST.Term
+                    )
 
 
                 return is_partial ? conjunct([R, definedPredicate]) as AST.Term : R;
             case "ParenTerm":
                 return LI.wellDef(T.term);
             case "QuantifierApplication":
-                return {
-                    kind: "QuantifierApplication",
-                    quantifier: T.quantifier,
-                    vars: T.vars,
-                    var_nesting: T.var_nesting,
-                    term: LI.wellDef(T.term)
-                }
+                let nested = LI.wellDef(T.term);
+                return isTrue(nested)
+                    ? mk_var("true")
+                    : {
+                        kind: "QuantifierApplication",
+                        quantifier: T.quantifier,
+                        vars: T.vars,
+                        var_nesting: T.var_nesting,
+                        term: LI.wellDef(T.term)
+                    }
             case "Variable":
                 return mk_var("true");
         }
         //*/
     }
 
-    
-    
+    gatherPure(T: AST.Term, pures: Map<AST.Variable, AST.Type>): [AST.Term,Map<AST.Variable, AST.Type>] {
+        if (T.kind == "Variable" && LI.pures.has(T.ident))
+            pures.set(T, LI.pures.get(T.ident) as AST.Type)
+        return [T, pures]
+    }
+
+    processPures(T: AST.Line): AST.Line {
+        if (!isTerm(T)) return T
+        let pures: Map<AST.Variable, AST.Type> = map_terms(LI.gatherPure, new Map)(T)[1]
+        let vbs: AST.VariableBinding[] = []
+        for (let [k,v] of pures) {
+            vbs.push({
+                kind: "VariableBinding",
+                symbol: k,
+                type: v
+            })
+        }
+        return range_over_bindings(T, vbs)
+    }
 
     renderFunctionDeclaration(ident: string, consts: Set<string>, noDefn: boolean = false): [string, string | undefined][] | undefined {
         let A = this.global_fn_defs.get(ident);
@@ -372,7 +398,14 @@ export class LogicInterface {
             this.error(`Function ${ident} must be declared before it is defined`)
             return;
         } 
-        if (!defs.length || noDefn) return [[`${decl.symbol} ${renderNode(decl.type)}`, undefined]];
+        if (!defs.length || noDefn) {
+            let R: [string, string | undefined][] = [[`${decl.symbol} ${renderNode(decl.type)}`, undefined]];
+            if (decl.partial) {
+                let rt: AST.FunctionType = Object.assign({ ... decl.type }, { retType: PrimitiveType("Bool") });
+                R.push([`IProveWellDefined_${decl.symbol} ${renderNode(rt)}`, undefined])
+            }
+            return R;
+        }
 
         let params: string[] = []
         let nparams = decl.type.argTypes.length;
@@ -587,12 +620,13 @@ export class LogicInterface {
                 case "FunctionDeclaration":
                     break;
                 case "VariableDeclaration":
-                    res += `${renderNode(v)}\n`; break;
+                    if (v.vis != "pure") res += `${renderNode(v)}\n`;
+                    break;
                 case "TypeDef":
                     types += `${renderNode(v)}\n`; break;
                 default:
                     if (isTerm(v)) this.extractListOps(v, list_ops, V, F);
-                    res += `(assert ${renderNode(v)})`
+                    res += `(assert ${renderNode(LI.processPures(v))})`
             }
         }
 
@@ -604,14 +638,15 @@ export class LogicInterface {
                     res += renderNode(v); break;
                 default:
                     if (isTerm(v)) this.extractListOps(v, list_ops, V, F);
-                    res += `(assert ${renderNode(v)})`
+                    res += `(assert ${renderNode(LI.processPures(v))})`
             }
             res += "\n"
         }
 
         // GOAL
         this.extractListOps(this.goal, list_ops, V, F);
-        res += `(assert (not ${renderNode(this.goal)}))\n`
+        if (this.goal)
+            res += `(assert (not ${renderNode(LI.processPures(this.goal))}))\n`
 
         // TUPLES
         for (let [_,v] of this.rendered_tuples)
