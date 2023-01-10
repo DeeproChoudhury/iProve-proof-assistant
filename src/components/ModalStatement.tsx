@@ -29,6 +29,7 @@ const ModalStatement = (props: ModalStatementPropsType) => {
               statement.parsed.kind === "EndScope" || 
               statement.parsed.kind === "BeginScope" || 
               statement.parsed.kind === "Assumption" ||
+              statement.parsed.kind === "Skolemize" ||
               statement.parsed.kind === "VariableDeclaration"
               }>Reason</Radio>
             <Radio borderColor="gray" value='2' isDisabled={
@@ -36,6 +37,7 @@ const ModalStatement = (props: ModalStatementPropsType) => {
               statement.parsed.kind === "EndScope"  || 
               statement.parsed.kind === "BeginScope" ||             
               statement.parsed.kind === "Assumption" ||
+              statement.parsed.kind === "Skolemize" ||
               statement.parsed.kind === "VariableDeclaration"
               }>Conclusion</Radio>
           </div>

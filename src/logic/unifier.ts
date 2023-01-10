@@ -1,6 +1,8 @@
 import * as AST from "../types/AST"
 import { AlphaAssignment, Unification, UnifyFail, UnifyScope } from "../types/LogicInterface"
-import { display } from "../util/trees"
+import { display, iff, isDeclaration, mk_var, ParamType, PrimitiveType } from "../util/trees"
+import { LogicInterface } from "./LogicInterface"
+import { LIQ } from "./LogicInterfaceQueue"
 import evaluate from "./Parser"
 import { basic_preprocess, CommOperators, replace_vars, unify_preprocess } from "./simplifiers"
 import { bitmap_mex, get_from_scope, pop_scope, push_scope, set_bit, set_in_scope } from "./util"
@@ -29,6 +31,33 @@ function gen_unify_poss(
         }
         pop_scope(scope)
     }
+}
+
+export function gen_decls(T: AST.TypeDef): [AST.SortDeclaration[], AST.FunctionDeclaration[]] {
+    console.log("HERE IS GEN_DECLS")
+    let R1: AST.SortDeclaration[] = [{
+         kind: "SortDeclaration", symbol: mk_var(T.ident), arity: T.params.length }
+        ];
+    for (let param of T.params) R1.push(
+        { kind: "SortDeclaration", symbol: mk_var(param), arity: 0 }
+    );
+    let R2: AST.FunctionDeclaration[] = [];
+    for (let cons of T.cases) {
+        R2.push({
+            kind: "FunctionDeclaration",
+            symbol: cons.ident,
+            type: {
+                kind: "FunctionType",
+                retType: T.params.length > 0
+                    ? ParamType(T.ident, T.params.map(PrimitiveType))
+                    : PrimitiveType(T.ident),
+                argTypes: cons.params,
+            },
+            partial: false
+        });
+    }
+    console.log(R1, R2)
+    return [R1, R2];
 }
 
 /**

@@ -18,7 +18,9 @@ const Header = (props: HeaderPropsType) => {
   { value: 'implies', symbol: '->' },
   { value: 'for all x', symbol: 'FA x.' },
   { value: 'exists x', symbol: 'EX x.' },
-  { value: 'negation', symbol: '~' }]
+  { value: 'negation', symbol: '~' },
+  { value: 'x ∈ S', symbol: 'x in S' }]
+  
   const actions = useIProveStore(store => store.actions);
 
   return (
@@ -45,12 +47,13 @@ const Header = (props: HeaderPropsType) => {
         <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => { setSidebarVisible(!sidebarVisible) }}>
           {sidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
         </Button>
+        
 
 
         {/* START: display table mapping symbol to iprove syntax */}
         <Popover>
           <PopoverTrigger>
-            <Button className="headButton" variant="outline" colorScheme='purple'>Symbols</Button>
+            <Button className="headButton" variant="outline" colorScheme='whatsapp'>Symbols</Button>
           </PopoverTrigger>
           <PopoverContent style={{ width: "400px" }}>
             <PopoverArrow />
@@ -78,6 +81,12 @@ const Header = (props: HeaderPropsType) => {
           </PopoverContent>
         </Popover>
         {/* END: display table mapping symbol to iProve syntax */}
+
+        <Button className="headButton" variant="outline" colorScheme='whatsapp' onClick={
+            () => { window!.open("guidebook.html", '_blank')!.focus() }
+          }>
+          View Guide
+        </Button>
 
 
       </Stack>

@@ -63,6 +63,19 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
                     params: A.params,
                     def: new_A
                 }, new_st]
+            } 
+            case "Skolemize": {
+                let [new_A, new_st] = RT(A.arg.term, st, false)
+                return [{
+                    kind: "Skolemize",
+                    arg: {
+                        kind: "QuantifierApplication",
+                        quantifier: A.arg.quantifier,
+                        term: new_A,
+                        vars: A.arg.vars,
+                        var_nesting: A.arg.var_nesting
+                    }
+                }, new_st]
             }
 
             // NEITHER TERMS NOR CAN CONTAIN THEM
@@ -71,6 +84,7 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
             case "VariableBinding":
             case "FunctionDeclaration":
             case "VariableDeclaration":
+            case "SortDeclaration":
             case "TypeDef":
             case "TypeConstructor":
             case "ParamType":
@@ -78,7 +92,6 @@ export function map_terms<T>(f: StatefulTransformer<AST.Term, T>, init: T, lazy:
             case "TupleType":
             case "BeginScope":
             case "EndScope":
-            case "Skolemize":
             case "SimpleParam":
             case "ConsParam":
             case "ConstructedType":

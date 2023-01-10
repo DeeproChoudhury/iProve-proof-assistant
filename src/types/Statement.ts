@@ -1,4 +1,4 @@
-import { Assumption, BeginScope, Line, VariableDeclaration } from "./AST";
+import { Assumption, BeginScope, Line, Skolemize, VariableDeclaration } from "./AST";
 import { Reason } from "./Reason";
 
 export type StatementType = {
@@ -6,6 +6,6 @@ export type StatementType = {
   syntaxCorrect?: boolean;
   parsed?: Line;
   reason?: Reason;
-  wrappers: (VariableDeclaration | Assumption | BeginScope)[];
+  wrappers: (VariableDeclaration | Assumption | BeginScope | Skolemize)[];
 };
 

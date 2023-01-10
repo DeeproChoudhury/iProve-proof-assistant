@@ -4,11 +4,12 @@ import { IProveDraft } from '../store/store';
 import { AnyNodeType, InductionNodeType, ListField, StatementNodeType } from '../types/Node';
 import { parseAll as parseAllStatements } from "./statementList";
 import { mutual_rec_on } from "../logic/induction";
-import { unifies } from "../logic/unifier";
-import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type } from "../types/AST";
+import { Line, TypeDef, QuantifierApplication, VariableBinding, Variable, Term, Type, ASTNode } from "../types/AST";
 import { unwrap_statements } from "../util/statements";
-import { isTerm, conjunct, imply, range_over, display } from "../util/trees";
+
+import { isTerm, conjunct, imply, range_over_bindings, display, iff } from "../util/trees";
 import { getInputs, getOutputs, narrowNodeCtx } from "../util/nodes";
+
 import { LIQ } from "../logic/LogicInterfaceQueue";
 import { invalidateInternals } from "./inductionNode";
 import { recheckReasons, setWrappers } from "./statementNode";
@@ -47,8 +48,26 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   let tdefs: TypeDef[] = (types as TypeDef[])
 
   let motives_: Line[] = unwrap_statements(node.data.motive)
-  if (motives_.some(x => x.kind != "QuantifierApplication" || !x.vars.length))
+  if (motives_.some(x => x.kind != "QuantifierApplication" || !x.vars.length || x.quantifier == "E")) {
+    ctx.setError({
+      kind: "Semantic",
+      msg: "Induction motive must begin by ranging over inductively defined type",
+      status: "error"
+    });
+    node.data.internalsStatus = "invalid";
     return;
+  }
+  if (motives_.some(x => x.kind == "QuantifierApplication" && x.vars[0].type?.kind == "PrimitiveType" && x.vars[0].bound == undefined && x.vars[0].type?.ident == "Int")) {
+    ctx.setError({
+      kind: "Semantic",
+      msg: "Unbounded integers are not inductive types",
+      status: "error"
+    });
+    node.data.internalsStatus = "invalid";
+    return;
+  }
+
+  
   let motives: QuantifierApplication[] = motives_ as QuantifierApplication[]
   let vbinds: VariableBinding[] = motives.map(m => m.vars[0])
   let identifiers: Variable[] = vbinds.map(v => v.symbol)
@@ -94,25 +113,28 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
     return;
   }
 
+
   let tidentifiers = identifiers.map(
     (v, i): [Variable, Type] => [v, tidents[i] as Type])
   let IP: Term = (precond)
-    ? imply(precond, range_over(cum_motives, tidentifiers))
-    : range_over(cum_motives, tidentifiers)
+    ? imply(precond, range_over_bindings(cum_motives, vbinds))
+    : range_over_bindings(cum_motives, vbinds)
 
-  let gt_IP: Term = mutual_rec_on(tidents, tdefs)(identifiers.map(x=>x.ident), final_motives)
+  let gt_IP: Term = mutual_rec_on(tdefs)(motives.map((m) => m.vars[0]), final_motives)
   
   console.log("GT", display(gt_IP))
   console.log("USER", display(IP))
-  let verdict = unifies(IP, gt_IP)
-  if (!verdict) {
-    ctx.setError(undefined)
-    node.data.internalsStatus = "invalid";
-    return;
-  }
 
-  console.log("VERDICT", display(verdict.term))
-  node.data.internalsStatus = "valid";
+  LIQ.queueEntails([], iff(IP, gt_IP), ctx.newAction((ctx, verdict) => {
+    let success = (verdict.kind === "Valid")
+
+    if (success) {
+      ctx.draft.data.internalsStatus = "valid";
+    } else {
+      ctx.setError(undefined)
+      ctx.draft.data.internalsStatus = "invalid";
+    }
+  }), true, true);
 }
 
 export const checkEdges = (ctx: ActionContext<AnyNodeType>) => {

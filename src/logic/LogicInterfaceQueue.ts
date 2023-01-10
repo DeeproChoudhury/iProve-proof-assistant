@@ -16,12 +16,12 @@ export class LogicInterfaceQueue {
     this.#current = this.#current.then(fn)
   }
 
-  queueEntails(reasons: AST.Line[], goal: AST.Line, cb: (outcome: ProofOutcome) => void) {
+  queueEntails(reasons: AST.Line[], goal: AST.Line, cb: (outcome: ProofOutcome) => void, strip_types: boolean = false, noDefn: boolean = false) {
     this.li.setDeclarations(useIProveStore.getState().declarations.map(s => s.parsed).filter((s): s is AST.Line => !!s));
     this.li.setTypes(useIProveStore.getState().typeDeclarations.map(s => s.parsed).filter((s): s is AST.TypeDef => !!s && s.kind === "TypeDef"));
     reasons = deepCurrent(reasons);
     goal = deepCurrent(goal);
-    this.queue(() => this.li.entails(deepCurrent(reasons), deepCurrent(goal)).then(cb));
+    this.queue(() => this.li.entails(deepCurrent(reasons), deepCurrent(goal), strip_types, true, noDefn).then(cb));
   }
 }
 

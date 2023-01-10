@@ -1,9 +1,10 @@
-import { Parser, ParserOutput, Token, ParseError, err, opt } from 'typescript-parsec';
+import { LITERAL_TYPES } from '@babel/types';
+import { Parser, ParserOutput, Token, ParseError, err, opt, rep } from 'typescript-parsec';
 import { buildLexer, expectEOF, expectSingleResult, rule } from 'typescript-parsec';
 import { alt, apply, kmid, opt_sc, seq, str, tok, kright, kleft, list_sc, rep_sc, nil, amb, lrec_sc } from 'typescript-parsec';
 import * as AST from "../types/AST"
 import { UnifyScope } from '../types/LogicInterface';
-import { display, getSelector } from '../util/trees';
+import { display, getSelector, mk_var, PrimitiveType } from '../util/trees';
 import { unifies } from './unifier';
 Error.stackTraceLimit = Infinity;
 
@@ -36,6 +37,20 @@ function handle<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResul
     }
 }
 
+function empty_list_sc<TKind, Elem, Delim>(P: Parser<TKind, Elem>, delim: Parser<TKind, Delim>): Parser<TKind, Elem[]> {
+    return if_else(
+        kleft(list_sc(P, delim), opt(delim)),
+        apply(nil(), () => [])
+    )
+}
+
+function dangling_list_sc<TKind, Elem, Delim>(P: Parser<TKind, Elem>, delim: Parser<TKind, Delim>): Parser<TKind, Elem[]> {
+    return apply(
+        seq(kleft(P, delim), rep_sc(kleft(P, delim)), opt(P)),
+        ([v1, v2, v3]) => v3 == undefined ? [v1].concat(v2) : [v1].concat(v2).concat([v3])
+    )
+}
+
 /**
  * A parser combinator which, given a ambiguous parser `P`, will return a
  * deterministic parser which takes the first match of `P`
@@ -61,13 +76,14 @@ function prec<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResult>
  * @returns The parser corresponding to `A else B`
  * 
  */
-function if_else<TKind, TResult1, TResult2>(A: Parser<TKind, TResult1>, B: Parser<TKind, TResult2>)
+function if_else<TKind, TResult1, TResult2>(A: Parser<TKind, TResult1>, B: Parser<TKind, TResult2>, isTL: boolean = false)
     : Parser<TKind, TResult1 | TResult2> {
         return {
             parse(token: Token<TKind> | undefined): ParserOutput<TKind, TResult1 | TResult2> {
                 let RA = A.parse(token)
-                if (!RA.successful) return B.parse(token)
-                return A.parse(token)
+                if (isTL) console.log("IFELSE", RA, A, B)
+                if (RA.successful) return A.parse(token)
+                return B.parse(token)
             }
         }
     }
@@ -109,9 +125,15 @@ enum TokenKind {
     Paren,
     Guard,
     TypeKW,
+    DataKW,
     CurlyBrace,
     Times,
-    Colon
+    Colon,
+    Set,
+    Predicate,
+    Relation,
+    Operation,
+    Angles
 }
 
 const lexer = buildLexer([
@@ -127,16 +149,23 @@ const lexer = buildLexer([
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(\}|\{)/g, TokenKind.CurlyBrace],
     [true, /^(\)|\()/g, TokenKind.Paren],
+    
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
     [true, /^(assume)/g, TokenKind.Assume],
-    [true, /^(skolem)/g, TokenKind.Skolem],
+    [true, /^(use)/g, TokenKind.Skolem],
     [true, /^(begin)/g, TokenKind.Begin],
     [true, /^(end)/g, TokenKind.End],
+    [true, /^(Set)/g, TokenKind.Set],
+    [true, /^(Predicate)/g, TokenKind.Predicate],
+    [true, /^(Relation)/g, TokenKind.Predicate],
+    [true, /^(Operation)/g, TokenKind.Operation],
     [true, /^(type)/g, TokenKind.TypeKW],
+    [true, /^(data)/g, TokenKind.DataKW],
+    [true, /^(((\d+)(\.\d+)?)|((\d+)?(\.\d+)))/g, TokenKind.NumberLiteral],
 
+    [true, /^((\+|-|=|>|<|\/|\*|!|&|\||~|\%)+|in)/g, TokenKind.InfixSymbol],
     [true, /^(\w|\d|\_)+/g, TokenKind.Symbol],
-    [true, /^(\+|-|=|>|<|\/|\.|\*|!|&|\||~)+/g, TokenKind.InfixSymbol],
     [true, /^\S/g, TokenKind.Misc],
     [false, /^\s+/g, TokenKind.Space]
 ]);
@@ -163,8 +192,20 @@ const BEGIN_SCOPE = rule<TokenKind, AST.BeginScope>();
 const END_SCOPE = rule<TokenKind, AST.EndScope>();
 const TACTIC = rule<TokenKind, AST.Tactic>();
 const CORE = rule<TokenKind, AST.Line>();
+const TYPED_LITERAL = rule<TokenKind, AST.Variable>();
+const UNTYPED_LITERAL = rule<TokenKind, AST.Variable>();
 
 const TERM = rule<TokenKind, AST.Term>();
+
+const ReservedWord = (x: string): boolean => {
+   switch(x) {
+        case "List": case "Relation": case "Predicate": case "in": case "data":
+        case "type": case "Set": case "Operation":
+            return true
+        default: return x.includes("IProve")
+    }
+}
+
 interface UnaryOperator {
     kind: "Operator",
     appType: "Unary",
@@ -177,7 +218,8 @@ interface InfixOperator {
     appType: "Binary",
     precedence: number,
     left_assoc: boolean,
-    apply: (x: AST.Term, y: AST.Term) => AST.Term,
+    has_unary: boolean,
+    apply: (x: AST.Term, y: AST.Term | undefined) => AST.Term,
 }
 type EndOfTerm = {
     kind: "Operator",
@@ -189,10 +231,10 @@ type TermOperator = InfixOperator | UnaryOperator | EndOfTerm;
 const OPERATOR = rule<TokenKind, TermOperator>();
 
 
-VARIABLE.setPattern(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
-    //console.log("VARIABLE SUCCEEDS", s.text)
+VARIABLE.setPattern(handle(apply(tok(TokenKind.Symbol), (s: Token<TokenKind.Symbol>): AST.Variable => {
+    if (ReservedWord(s.text)) throw new Error(`${s.text} is a reserved word`)
     return { kind: "Variable", ident: s.text }
-}));
+})));
 
 const PRIMITIVE_TYPE = rule<TokenKind, AST.PrimitiveType>();
 const PARAM_TYPE = rule<TokenKind, AST.ParamType>();
@@ -227,6 +269,19 @@ TUPLE_TYPE.setPattern(apply(
         ({ kind: "TupleType", params: value })
 ));
 
+TYPED_LITERAL.setPattern(apply(
+    seq(tok(TokenKind.Symbol), kmid(str("<"), TYPE, str(">"))),
+    (v) => ({
+        kind: "Variable",
+        ident: v[0].text,
+        type: (v[0].text == "Nothing") ? {
+            kind: "ParamType",
+            params: [v[1]],
+            ident: "Maybe"
+        } : v[1]
+    })
+))
+
 TYPE.setPattern(alt(
     PRIMITIVE_TYPE,
     PARAM_TYPE,
@@ -234,50 +289,105 @@ TYPE.setPattern(alt(
     TUPLE_TYPE
 ))
 
+UNTYPED_LITERAL.setPattern(
+    apply(
+        if_else(tok(TokenKind.NumberLiteral), tok(TokenKind.Symbol)),
+        (v) => mk_var(v.text)
+    )
+)
 
-FN_TYPE.setPattern(apply(
-    seq(
-        kmid(opt_sc(str("(")), list_sc(TYPE, str(",")), opt_sc(str(")"))),
-        kright(str("->"), TYPE)),
-    (value: [AST.Type[], AST.Type]): AST.FunctionType => {
-        return { kind: "FunctionType", argTypes: value[0], retType: value[1] }
-    }
-));
 
-FN_DEC.setPattern(apply(
+FN_TYPE.setPattern(
+    alt(
+        handle(apply(
+            seq(
+                alt(tok(TokenKind.Set), tok(TokenKind.Predicate), tok(TokenKind.Relation), tok(TokenKind.Operation)),
+                kmid(str("<"), list_sc(TYPE, str(",")), str(">"))
+            ),
+            (value: [Token<TokenKind.Set> | Token<TokenKind.Predicate> | Token<TokenKind.Relation> | Token<TokenKind.Operation>, AST.Type[]]): AST.FunctionType => {
+                if (value[0].text != "Predicate" && value[1].length > 1)
+                    throw new Error(`${value[0].text} can only take one parameter!`)
+                return (value[0].text == "Relation")
+                ? { 
+                    kind: "FunctionType",
+                    argTypes: [value[1][0], value[1][0]],
+                    retType: PrimitiveType("Bool"),
+                    tag: "Relation"
+                }
+                : (value[0].text == "Operation" 
+                    ? { 
+                        kind: "FunctionType",
+                        argTypes: [value[1][0], value[1][0]],
+                        retType: value[1][0],
+                        tag: "Operation"
+                    }
+                    : { 
+                        kind: "FunctionType",
+                        argTypes: value[1],
+                        retType: PrimitiveType("Bool"),
+                        tag: (value[0].text == "Set") ? "Set" : "Predicate"
+                    })
+            }
+        )),
+        apply(
+            seq(
+                kmid(opt_sc(str("(")), list_sc(TYPE, str(",")), opt_sc(str(")"))),
+                kright(str("->"), TYPE)),
+            (value: [AST.Type[], AST.Type]): AST.FunctionType => {
+                return { kind: "FunctionType", argTypes: value[0], retType: value[1] }
+            }
+        )
+    ));
+
+FN_DEC.setPattern(handle(apply(
     seq(
-        kright(opt_sc(str("fun")), tok(TokenKind.Symbol)),
+        seq(opt_sc(str("partial")), tok(TokenKind.Symbol)),
         kright(str("::"), FN_TYPE)),
-    (value: [Token<TokenKind.Symbol>, AST.FunctionType]): AST.FunctionDeclaration => {
-        return { kind: "FunctionDeclaration", symbol: value[0].text, type: value[1] }
+    (value: [[Token<TokenKind> | undefined, Token<TokenKind.Symbol>], AST.FunctionType]): AST.FunctionDeclaration => {
+        if (ReservedWord(value[0][1].text)) throw new Error(`${value[0][1].text} is a reserved word`)
+        return { kind: "FunctionDeclaration", symbol: value[0][1].text, type: value[1], partial: !(!value[0][0]) }
     }
-));
-VAR_DEC.setPattern(apply(
+)));
+VAR_DEC.setPattern(handle(apply(
     seq(
-        kright(str("var"), VARIABLE),
+        seq(alt(str("const"), str("var"), str("pure")), VARIABLE),
         opt_sc(kright(str(":"), TYPE))),
-    (value: [AST.Variable, AST.Type | undefined]): AST.VariableDeclaration => {
-        return { kind: "VariableDeclaration", symbol: value[0], type: value[1] }
+    (value: [[Token<TokenKind>, AST.Variable], AST.Type | undefined]): AST.VariableDeclaration => {
+        let pure = value[0][0].text == "pure";
+        if (pure && !value[1]) throw new Error("Pure variables must be explicitly typed")
+        return { kind: "VariableDeclaration", symbol: value[0][1], type: value[1], vis: (value[0][0].text as "const"|"var"|"pure") }
     }
+)));
+
+VAR_BIND.setPattern(alt(
+    apply(
+        seq(VARIABLE, kright(str(":"), TYPE)),
+        (value: [AST.Variable, AST.Type | undefined]): AST.VariableBinding => {
+            return { kind: "VariableBinding", symbol: value[0], type: value[1] }
+        }
+    ),
+    apply(
+        seq(VARIABLE, seq(alt(str(">="), str("<="), str("<"), str(">")), VARIABLE)),
+        (value: [AST.Variable, [Token<TokenKind>, AST.Variable]]): AST.VariableBinding => {
+            let i = parseInt(value[1][1].ident);
+            let bt_ = value[1][0].text
+            let bt: ">=" | "<=" | "<" | ">" = (bt_ == ">=" || bt_ == "<=" || bt_ == "<") ? bt_ : ">"
+            return { kind: "VariableBinding", symbol: value[0], type: PrimitiveType("Int"), bound: i, boundType: bt }
+        }
+    ),
 ));
 
-VAR_BIND.setPattern(apply(
-    seq(VARIABLE, kright(str(":"), TYPE)),
-    (value: [AST.Variable, AST.Type | undefined]): AST.VariableBinding => {
-        return { kind: "VariableBinding", symbol: value[0], type: value[1] }
-    }
-));
-
-PREFIX_APPLY.setPattern(apply(
+PREFIX_APPLY.setPattern(handle(apply(
     seq(
         alt(
             kmid(str("("), tok(TokenKind.InfixSymbol), str(")")),
             tok(TokenKind.Symbol)
         ),
         opt(kmid(str("<"), list_sc(TYPE, str(",")), str(">"))),
-        kmid(str("("), list_sc(TERM, str(",")), str(")"))
+        kmid(str("("), empty_list_sc(TERM, str(",")), str(")"))
     ),    
     (value: [Token<TokenKind.InfixSymbol | TokenKind.Symbol>, AST.Type[] | undefined, AST.Term[]]): AST.PrefixApplication => {
+        if (ReservedWord(value[0].text)) throw new Error(`${value[0].text} is a reserved word`)
         return { 
             kind: "FunctionApplication",
             fn: value[0].text,
@@ -286,7 +396,7 @@ PREFIX_APPLY.setPattern(apply(
             appType: (value[0].kind === TokenKind.Symbol) ? "PrefixFunc" : "PrefixOp"
          }
     }
-));
+)));
 
 PAREN_TERM.setPattern(apply(
     alt(
@@ -300,11 +410,10 @@ PAREN_TERM.setPattern(apply(
 
 ATOMIC_TERM.setPattern(apply(
     seq(
-        if_else(PREFIX_APPLY,
-            alt(
-            VARIABLE,
-            ARRAY_LITERAL,
-            PAREN_TERM)),
+        if_else(
+            alt(TYPED_LITERAL, PREFIX_APPLY),
+            if_else(if_else(ARRAY_LITERAL, UNTYPED_LITERAL), PAREN_TERM)
+        ),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),
             kmid(str("["), seq(apply(nil(), (_) => { return false; }), TERM, kright(str(".."), opt_sc(TERM))), str(")")),
@@ -314,46 +423,65 @@ ATOMIC_TERM.setPattern(apply(
         let R : AtomicTerm = value[0];
         for (let i = 0; i < value[1].length; i++) {
             let prev : AST.Term = (R) ? R : value[0];
+            const arg0 = value[1][i][0];
             const arg1 = value[1][i][1];
             const arg2 = value[1][i][2]; // Have to put this in a variable for narrowing to work
             // hack, find a more elegant way to structure in general
-            if (arg1)
-                R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "select", params: [
+            if (arg0)
+                R = { kind: "FunctionApplication", appType: "ArrayElem", fn: "ArraySelect", params: [
                     // HACK - prev is returned in an error state, value should always be defined
                     prev, (value[1][i][1] ?? prev)
                 ] };
             else if (arg2)
-                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1, arg2] };
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "ArraySlice", params: [prev, arg1, arg2] };
             else 
-                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "???", params: [prev, arg1] };
+                R = { kind: "FunctionApplication", appType: "ArraySlice", fn: "ArraySlice", params: [prev, arg1] };
         }
         return R;
     }
 ));
+
+
 ARRAY_LITERAL.setPattern(apply(
-    kmid(str("{"), list_sc(TERM, str(",")), str("}")),
-    (v): AST.ArrayLiteral => ({ kind: "ArrayLiteral", elems: v })
+    alt(
+        seq(nil(), kmid(str("{"), kleft(list_sc(TERM, str(",")), opt(str(","))), str("}"))),
+        seq(nil(), kmid(str("["), dangling_list_sc(TERM, str(",")), str("]"))),
+        if_else(
+           seq( kmid(seq(str("List"), str("<")), TYPE, seq(str(">"), str("("))),
+                kleft(empty_list_sc(TERM, str(",")), str(")"))
+                ),
+            seq(nil(), kmid(
+                seq(str("List"), opt(str("<>")), str("(")),
+                kleft(list_sc(TERM, str(",")), opt(str(","))),
+                str(")")))
+        )
+    ),
+    (v: [AST.Type | undefined, AST.Term[]]): AST.ArrayLiteral => ({ kind: "ArrayLiteral", elems: v[1], type: v[0] })
 ));
 
-// PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC 
-const precedence_table: {[name: string]: [number, boolean, boolean]} = {
-    "~": [10, false, false],
-    "!": [10, false, false],
+// PRECEDENCE     IS_BINARY     IS_LEFT_ASSOC     HAS_UNARY_BACKUP
+const precedence_table: {[name: string]: [number, boolean, boolean, boolean]} = {
+    "~": [10, false, false, true],
+    "!": [10, false, false, true],
 
-    "*": [8, true, true],
-    "/": [8, true, true],
+    "*": [8, true, true, false],
+    "/": [8, true, true, false],
 
-    "+": [7, true, true],
-    "-": [7, true, true],
-    "++": [7, true, true],
-    "=": [7, true, true],
+    "+": [7, true, true, true],
+    "-": [7, true, true, true],
+    "++": [7, true, true, false],
+    ":": [7, true, true, false],
 
-    "&": [6, true, true],
-    "||": [6, true, true],
-    "^": [6, true, true],
+    "=": [6, true, true, false],
+    "in": [6, true, true, false],
 
-    "->": [4, true, true],
-    "<->": [4, true, true],
+    "&": [5, true, true, false],
+    "||": [5, true, true, false],
+    "^": [5, true, true, false],
+    
+
+    "->": [4, true, true, false],
+    "<->": [4, true, true, false],
 }
 
 TERM.setPattern(
@@ -384,8 +512,24 @@ TERM.setPattern(
             let op_stack: TermOperator[] = [];
 
             let prev_atom = false;
+            let pt: TermOperator | AST.Term | undefined = undefined;
             for (let token of queue) {
                 //console.log(token, out_stack, op_stack);
+                if (token.kind == "Operator" && token.appType == "Binary" && token.has_unary) {
+                    if (!pt || pt.kind == "Operator") {
+                        let cached_fn = token.apply
+                        token = { 
+                            kind: "Operator",
+                            appType: "Unary",
+                            left_assoc: token.left_assoc,
+                            precedence: 10,
+                            apply: (t: AST.Term): AST.Term => 
+                                cached_fn(t, undefined)
+                        }
+                    }
+                }
+                pt = token;
+
                 switch (token.kind) {
                     case "Operator": {
                         prev_atom = false;
@@ -407,9 +551,8 @@ TERM.setPattern(
                                 } case "Binary": {
                                     let y = out_stack.pop();
                                     let x = out_stack.pop();
-                                    if (!x || !y) 
+                                    if (!y || !x)
                                         throw new Error("Expected 2 arguments, got 1 or none")
-                                        
                                     out_stack.push(stack_top.apply(x, y));
                                     break;
                                 } case "End": { }
@@ -444,19 +587,31 @@ TERM.setPattern(
 OPERATOR.setPattern(alt(
     apply(
         alt(
+            tok(TokenKind.Colon),
             tok(TokenKind.InfixSymbol),
             kmid(str("`"), tok(TokenKind.Symbol), str("`"))
-        ), (value: Token<TokenKind.DirEqToken | TokenKind.InfixSymbol | TokenKind.Symbol>): UnaryOperator | InfixOperator => {
+        ), (value: Token<TokenKind.Colon | TokenKind.InfixSymbol | TokenKind.Symbol>): UnaryOperator | InfixOperator => {
             return ((!precedence_table[value.text]) || precedence_table[value.text][1]) 
             ? { 
                 kind: "Operator",
                 appType: "Binary",
-                left_assoc: (precedence_table[value.text]) ? precedence_table[value.text][2] : true,
                 precedence: (precedence_table[value.text]) ? precedence_table[value.text][0] : 8,
-                apply: (x: AST.Term, y: AST.Term): AST.Term => {
+                left_assoc: (precedence_table[value.text]) ? precedence_table[value.text][2] : true,
+                has_unary: (precedence_table[value.text]) ? precedence_table[value.text][3] : false,
+                apply: (x: AST.Term, y: AST.Term | undefined): AST.Term => {
+                    if (!y) {
+                        if (!precedence_table[value.text][3])
+                            throw new Error("Expected 2 arguments, got 1")
+                            return {
+                                kind: "FunctionApplication",
+                                appType: "UnaryOp",
+                                fn: value.text,
+                                params: [x]
+                            };
+                    }
                     return {
                         kind: "FunctionApplication",
-                        appType: (value.kind === TokenKind.InfixSymbol) ? "InfixOp" : "InfixFunc",
+                        appType: (value.kind === TokenKind.InfixSymbol || value.kind === TokenKind.Colon) ? "InfixOp" : "InfixFunc",
                         fn: value.text,
                         params: [x, y]
                     };
@@ -520,10 +675,14 @@ ASSUMPTION.setPattern(apply(
     (value: AST.Term): AST.Assumption => ({ kind: "Assumption", arg: value })
 ))
 
-SKOLEM.setPattern(apply(
-    kright(str("skolem"), VARIABLE),
-    (value: AST.Variable): AST.Skolemize => ({ kind: "Skolemize", arg: value.ident })
-))
+SKOLEM.setPattern(handle(apply(
+    kright(str("use"), TERM),
+    (value: AST.Term): AST.Skolemize => {
+        if (value.kind != "QuantifierApplication" || value.quantifier != "E")
+            throw new Error("`use` must be followed by an existential quantifier")
+        return { kind: "Skolemize", arg: value }
+    }
+)))
 
 BEGIN_SCOPE.setPattern(apply(
     str("begin"),
@@ -540,7 +699,7 @@ const CONS_PARAM = rule<TokenKind, AST.ConsParam>();
 CONS_PARAM.setPattern(apply(
     seq(
         PATTERN,
-        kright(tok(TokenKind.DoubleColon), PATTERN)
+        kright(tok(TokenKind.Colon), PATTERN)
     ),
     (value): AST.ConsParam => 
         ({ kind: "ConsParam", A: value[0], B: value[1] })
@@ -551,7 +710,7 @@ const TUPLE_PATTERN = rule<TokenKind, AST.TuplePattern>();
 // below
 const EMPTY_LIST = rule<TokenKind, AST.EmptyList>();
 EMPTY_LIST.setPattern(apply(
-    str("[]"),
+    alt(seq(str("{"), str("}")), str("[]")),
     (_): AST.EmptyList => 
         ({ kind: "EmptyList" })
 ));
@@ -629,26 +788,38 @@ TYPE_CONSTRUCTOR.setPattern(apply(
         rep_sc(TYPE)
     ),
     (value: [AST.Variable, AST.Type[]]): AST.TypeConstructor =>
-        { let sels = []; for (let i = 0; i < value[1].length; i++) { sels.push(getSelector(i)); }
-        return { kind: "TypeConstructor", ident: value[0].ident, params: value[1],
-            selectors: sels }}
+        { return { kind: "TypeConstructor", ident: value[0].ident, params: value[1],
+            selectors: [] }}
 ))
 
 const TYPE_DEF = rule<TokenKind, AST.TypeDef>();
 TYPE_DEF.setPattern(apply(
     seq(
-        kmid(tok(TokenKind.TypeKW), 
-        seq(VARIABLE, rep_sc(VARIABLE)), tok(TokenKind.DirEqToken)),
+        kmid(tok(TokenKind.DataKW), 
+        seq(VARIABLE, rep_sc(VARIABLE)), str("=")),
         list_sc(TYPE_CONSTRUCTOR, str("|"))
     ),
-    (value): AST.TypeDef =>
-        ({ kind: "TypeDef", ident: value[0][0].ident, params: value[0][1].map(x => x.ident), cases: value[1] })
+    (value): AST.TypeDef => {
+        console.log("WE ARE IN THE TYPEDEF PARSER")
+        return { kind: "TypeDef", ident: value[0][0].ident, params: value[0][1].map(x => x.ident),
+            cases: value[1].map((C) => {console.log(C.selectors, C.ident, C.params.map((_, j) => getSelector(j, C.ident))); C.selectors = C.params.map((_, j) => getSelector(j, C.ident)); console.log(C.selectors); return C}) }
+    }
 ))
+
+const TYPE_DEC = rule<TokenKind, AST.SortDeclaration>();
+TYPE_DEC.setPattern(apply(
+    seq(kright(tok(TokenKind.TypeKW), VARIABLE), opt(tok(TokenKind.NumberLiteral))),
+    (value): AST.SortDeclaration => {
+        return { kind: "SortDeclaration", symbol: value[0], arity: parseInt(value[1]?.text ?? "0") }
+    }
+))
+
 
 const LANG = rule<TokenKind, AST.Line>();
 LANG.setPattern(alt(
     FN_DEC,
     VAR_DEC,
+    TYPE_DEC,
     TYPE_DEF
 ))
 
@@ -675,6 +846,7 @@ PROOF_LINE.setPattern(handle(alt(
  * 
  */
 export function evaluate(line: string): AST.ASTNode | ParseError {
+    console.log(PROOF_LINE.parse(lexer.parse(line)))
     let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
     // console.log("FINAL", A)
     if (!A.successful) return A.error;

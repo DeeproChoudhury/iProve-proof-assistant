@@ -12,6 +12,20 @@ import { DeleteNodePopover } from "./GeneralNode";
 import { MoveableHandles } from "./MoveableHandle";
 import { useInductionNodeActions } from "../../store/hooks";
 import { useIProveStore } from "../../store/store";
+import * as AST from "../../types/AST";
+
+const NAT: AST.TypeDef = {
+	kind: "TypeDef",
+	ident: "Nat",
+	params: [],
+	cases: [
+		{ kind: "TypeConstructor", ident: "Zero", params: [], selectors: [] },
+		{ kind: "TypeConstructor", ident: "Succ", params: [{
+			kind: "PrimitiveType",
+			ident: "Nat"
+		}], selectors: ["fst"] },
+	]
+}
 
 function InductionNode({ id, data: nodeData }: NodeProps<InductionNodeData>): ReactElement {
 	const [target, setTarget] = useState<any>();
