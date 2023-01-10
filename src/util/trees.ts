@@ -26,7 +26,10 @@ function d(a: AST.ASTNode): string {
         case "VariableDeclaration": 
             return `${a.vis} ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
         case "SortDeclaration": return `data ${d(a.symbol)}`
-        case "Variable": return a.ident;
+        case "Variable": 
+            return (a.type)
+                ? `${a.ident}<${d(a.type)}>`
+                : a.ident;
         case "FunctionApplication": {
             const fn = fnDisplay(a.fn);
             switch (a.appType) {

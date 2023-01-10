@@ -133,7 +133,8 @@ export type AppType = FunctionApplication["appType"]
 
 export type Variable = { 
     kind: "Variable",
-    ident: string
+    ident: string,
+    type?: Type
 }
 
 export type ArrayLiteral = {

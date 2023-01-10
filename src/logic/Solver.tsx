@@ -4,6 +4,15 @@ declare global {
     interface Window { z3Promise: Promise<Z3HighLevel & Z3LowLevel> } // use any to escape typechecking
 }
 
+const headers = [
+   "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))",
+   "(declare-datatypes (T) ( (Maybe (Just (get T)) Nothing) ))"
+]
+
+const commands = [
+   "(check-sat)"
+]
+
 export namespace Z3Solver {
    export async function loadZ3() {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -37,8 +46,8 @@ export namespace Z3Solver {
       let error = '';
 
       try {
-         output = await Z3.eval_smtlib2_string(ctx, "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n"
-         + input + "\n(check-sat)") ?? '';
+         output = await Z3.eval_smtlib2_string(ctx, 
+            headers.join("\n") + `\n${input}\n` + commands.join("\n")) ?? '';
       } catch (e) {
          // error with running z3
          error = (e as Error).message ?? 'Error message is empty';
@@ -53,7 +62,7 @@ export namespace Z3Solver {
          }
       }
 
-      console.log("(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n" + input + "\n(check-sat)")
+      console.log(headers.join("\n") + `\n${input}\n` + commands.join("\n"))
       console.log(output)
       // we are guaranteed to have non-undefined output and error
       return output;

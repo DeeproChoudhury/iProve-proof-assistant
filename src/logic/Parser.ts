@@ -75,11 +75,12 @@ function prec<TKind, TResult>(P: Parser<TKind, TResult>): Parser<TKind, TResult>
  * @returns The parser corresponding to `A else B`
  * 
  */
-function if_else<TKind, TResult1, TResult2>(A: Parser<TKind, TResult1>, B: Parser<TKind, TResult2>)
+function if_else<TKind, TResult1, TResult2>(A: Parser<TKind, TResult1>, B: Parser<TKind, TResult2>, isTL: boolean = false)
     : Parser<TKind, TResult1 | TResult2> {
         return {
             parse(token: Token<TKind> | undefined): ParserOutput<TKind, TResult1 | TResult2> {
                 let RA = A.parse(token)
+                if (isTL) console.log("IFELSE", RA, A, B)
                 if (RA.successful) return A.parse(token)
                 return B.parse(token)
             }
@@ -129,7 +130,8 @@ enum TokenKind {
     Set,
     Predicate,
     Relation,
-    Operation
+    Operation,
+    Angles
 }
 
 const lexer = buildLexer([
@@ -145,6 +147,7 @@ const lexer = buildLexer([
     [true, /^(\]|\[)/g, TokenKind.SquareBrace],
     [true, /^(\}|\{)/g, TokenKind.CurlyBrace],
     [true, /^(\)|\()/g, TokenKind.Paren],
+    [true, /^(<|>)/g, TokenKind.Angles],
     [true, /^(var)/g, TokenKind.VarToken],
     [true, /^(fun)/g, TokenKind.FunToken],
     [true, /^(assume)/g, TokenKind.Assume],
@@ -185,13 +188,15 @@ const BEGIN_SCOPE = rule<TokenKind, AST.BeginScope>();
 const END_SCOPE = rule<TokenKind, AST.EndScope>();
 const TACTIC = rule<TokenKind, AST.Tactic>();
 const CORE = rule<TokenKind, AST.Line>();
+const TYPED_LITERAL = rule<TokenKind, AST.Variable>();
+
 
 const TERM = rule<TokenKind, AST.Term>();
 
 const ReservedWord = (x: string): boolean => {
    switch(x) {
         case "List": case "Relation": case "Predicate": case "in": case "data":
-        case "type": case "Set":
+        case "type": case "Set": case "Operation":
             return true
         default: return x.includes("IProve")
     }
@@ -259,6 +264,19 @@ TUPLE_TYPE.setPattern(apply(
     (value): AST.TupleType =>
         ({ kind: "TupleType", params: value })
 ));
+
+TYPED_LITERAL.setPattern(apply(
+    seq(tok(TokenKind.Symbol), kmid(str("<"), TYPE, str(">"))),
+    (v) => ({
+        kind: "Variable",
+        ident: v[0].text,
+        type: (v[0].text == "Nothing") ? {
+            kind: "ParamType",
+            params: [v[1]],
+            ident: "Maybe"
+        } : v[1]
+    })
+))
 
 TYPE.setPattern(alt(
     PRIMITIVE_TYPE,
@@ -383,7 +401,7 @@ ATOMIC_TERM.setPattern(apply(
     seq(
         if_else(
             if_else(PREFIX_APPLY, ARRAY_LITERAL),
-            if_else(VARIABLE, PAREN_TERM)
+            if_else(if_else(TYPED_LITERAL,VARIABLE, true), PAREN_TERM)
         ),
         rep_sc(alt(
             kmid(str("["), seq(apply(nil(), (_) => { return true; }), TERM, nil()), str("]")),

@@ -730,7 +730,10 @@ export function renderNode(a: AST.ASTNode | undefined): string {
         case "FunctionDeclaration": return `(declare-fun ${a.symbol} ${renderNode(a.type)})`;
         case "SortDeclaration": return `(declare-sort ${renderNode(a.symbol)} ${a.arity})`;
         case "VariableDeclaration": return `(declare-const ${renderNode(a.symbol)} ${a.type ? `${renderNode(a.type)}` : "Int"})`;
-        case "Variable": return (a.ident == "otherwise") ? "true" : a.ident;
+        case "Variable": return (a.ident == "otherwise") ? "true" : 
+            (a.type
+                ? `(as ${a.ident} ${renderNode(a.type)})`
+                : a.ident);
         case "FunctionApplication": {
             switch (a.fn) {
                 case "List":
