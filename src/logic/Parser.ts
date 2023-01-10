@@ -302,11 +302,11 @@ FN_TYPE.setPattern(
 
 FN_DEC.setPattern(handle(apply(
     seq(
-        kright(opt_sc(str("fun")), tok(TokenKind.Symbol)),
+        seq(opt_sc(str("partial")), tok(TokenKind.Symbol)),
         kright(str("::"), FN_TYPE)),
-    (value: [Token<TokenKind.Symbol>, AST.FunctionType]): AST.FunctionDeclaration => {
-        if (ReservedWord(value[0].text)) throw new Error(`${value[0].text} is a reserved word`)
-        return { kind: "FunctionDeclaration", symbol: value[0].text, type: value[1] }
+    (value: [[Token<TokenKind> | undefined, Token<TokenKind.Symbol>], AST.FunctionType]): AST.FunctionDeclaration => {
+        if (ReservedWord(value[0][1].text)) throw new Error(`${value[0][1].text} is a reserved word`)
+        return { kind: "FunctionDeclaration", symbol: value[0][1].text, type: value[1], partial: !(!value[0][0]) }
     }
 )));
 VAR_DEC.setPattern(apply(

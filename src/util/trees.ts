@@ -20,7 +20,7 @@ function d(a: AST.ASTNode): string {
         case "VariableBinding": return (a.bound != undefined)
             ? `${d(a.symbol)} ` + `${fnDisplay(a.boundType ?? "")} ${a.bound}`
             : d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
-        case "FunctionDeclaration": return `${a.symbol} :: ${d(a.type)}`;
+        case "FunctionDeclaration": return `${a.partial ? "partial " : ""}${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": return `var ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
         case "SortDeclaration": return `data ${d(a.symbol)}`
         case "Variable": return a.ident;
@@ -195,6 +195,10 @@ export function range_over_bindings(t: AST.Term, vars: AST.VariableBinding[]): A
     : t
 }
 
+export function isTrue(T : AST.Line): boolean { 
+    return T.kind == "Variable" && T.ident == "true"
+}
+
 export function PrimitiveType(s: string): AST.PrimitiveType {
     return { kind: "PrimitiveType", ident: s }
 }
@@ -205,6 +209,8 @@ export function ParamType(ident: string, params: AST.Type[]): AST.ParamType {
 
 export function imply(L: AST.Term | undefined, R: AST.Term): AST.Term {
     if (!L) return R;
+    if (isTrue(R)) return mk_var("true")
+
     return {
         kind: "FunctionApplication",
         appType: "InfixOp",
@@ -262,7 +268,7 @@ export function combineTerms(ts_: AST.Line[], conjunct: string = "||"): AST.Term
     }
 }
 export const disjunct = combineTerms
-export const conjunct = (ts: AST.Line[]): AST.Term | undefined => combineTerms(ts, "&")
+export const conjunct = (ts: AST.Line[]): AST.Term => combineTerms(ts.filter((t) => !isTrue(t)), "&") ?? mk_var("true")
 
 export const isBlockStart = (line: AST.Line): line is AST.BlockStart => {
     return line.kind === "BeginScope" || line.kind === "VariableDeclaration" || line.kind === "Assumption";

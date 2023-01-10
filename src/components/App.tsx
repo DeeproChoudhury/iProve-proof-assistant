@@ -10,8 +10,7 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Z3Solver.initZ3().then(() => setLoading(false));
-
+    Z3Solver.loadZ3().then(() => setLoading(false));
     return () => { };
   }, [])
 

@@ -126,7 +126,7 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
       ctx.setError(undefined)
       ctx.draft.data.internalsStatus = "invalid";
     }
-  }), true);
+  }), true, true);
 }
 
 export const checkEdges = (ctx: ActionContext<AnyNodeType>) => {

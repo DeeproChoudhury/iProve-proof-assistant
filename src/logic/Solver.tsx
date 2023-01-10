@@ -1,39 +1,65 @@
-import { init, Z3LowLevel, Z3_config } from 'z3-solver';
+import type { Z3HighLevel, Z3LowLevel } from 'z3-solver';
 
+declare global {
+    interface Window { z3Promise: Promise<Z3HighLevel & Z3LowLevel> } // use any to escape typechecking
+}
 
 export namespace Z3Solver {
-    
-    var Z3EvalLib! : Z3LowLevel["Z3"];
+   export async function loadZ3() {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const z3 = require('z3-solver');
 
-    export async function initZ3() {
-        const {
-            Z3 // Low-level C-like API
-        } = await init();
+      // init z3
+      const z3p: Promise<Z3HighLevel & Z3LowLevel> = window.z3Promise || (() => {
+         return window.z3Promise = z3.init();
+      })();
 
-        if (Z3EvalLib === undefined) {
-            Z3EvalLib = Z3;
-            console.log("Z3 INIT COMPLETE");
-        }
-                
-    } 
+      return z3p;
+   }
 
-    export class Z3Prover {
-        constructor(context: string) { }
+   export async function solve(input: string, timeout: number = 20000): Promise<string> {
 
-        public async solve(str : string, timeout: number = 1500) {
-            console.log(str)
-            const cfg: Z3_config = Z3EvalLib.mk_config();
-            await Z3EvalLib.set_param_value(cfg, "proof", "true")
-            const result = await Z3EvalLib.eval_smtlib2_string(
-                Z3EvalLib.mk_context(cfg),
-                `(set-option :timeout ${timeout})\n` + 
-                "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n"
-                + str + "\n(check-sat)"); 
-            console.log(result) ;
-            return result;
-        }
+      // init z3
+      const z3p = loadZ3();
 
-    }
+      const { Z3 } = await z3p;
+
+      // done on every snippet
+      const cfg = Z3.mk_config();
+      const ctx = Z3.mk_context(cfg);
+      Z3.del_config(cfg);
+
+      const timeStart = (new Date()).getTime();
+
+      Z3.global_param_set('timeout', String(timeout));
+
+      let output = '';
+      let error = '';
+
+      try {
+         output = await Z3.eval_smtlib2_string(ctx, "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n"
+         + input + "\n(check-sat)") ?? '';
+      } catch (e) {
+         // error with running z3
+         error = (e as Error).message ?? 'Error message is empty';
+      } finally {
+         Z3.del_context(ctx);
+      }
+
+      if ((/unknown/).test(output)) {
+         const timeEnd = (new Date()).getTime();
+         if (timeEnd - timeStart >= timeout) {
+            output = output + '\nZ3 timeout\n'
+         }
+      }
+
+      console.log("(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))\n" + input + "\n(check-sat)")
+      console.log(output)
+      // we are guaranteed to have non-undefined output and error
+      return output;
+      //return JSON.stringify({ output: String(output), error: error });
+
+   }
 }
 
 export default Z3Solver;

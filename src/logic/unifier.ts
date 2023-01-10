@@ -52,7 +52,8 @@ export function gen_decls(T: AST.TypeDef): [AST.SortDeclaration[], AST.FunctionD
                     ? ParamType(T.ident, T.params.map(PrimitiveType))
                     : PrimitiveType(T.ident),
                 argTypes: cons.params,
-            }
+            },
+            partial: false
         });
     }
     console.log(R1, R2)

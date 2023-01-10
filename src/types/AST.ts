@@ -108,7 +108,8 @@ export type Declaration = FunctionDeclaration | VariableDeclaration | SortDeclar
 export type FunctionDeclaration = {
     kind: "FunctionDeclaration",
     symbol: string,
-    type: FunctionType
+    type: FunctionType,
+    partial: boolean
 }
 
 export type VariableDeclaration = {

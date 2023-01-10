@@ -5,6 +5,7 @@ import { type } from "os";
 import * as AST from "../types/AST";
 import { FunctionData, PatternData, PatternElem } from "../types/LogicInterface";
 import { conjunct, disjunct, getSelector, imply, isDeclaration, isTerm, mk_var, PrimitiveType, underdetermine } from "../util/trees";
+import solve from "./Solver";
 import Z3Solver from "./Solver";
 import { gen_decls } from "./unifier";
 import { fnSMT } from "./util";
@@ -134,26 +135,31 @@ export class LogicInterface {
             return this.entails(reasons, goal)
         }
 
-    async entails(reasons: AST.Line[], goal: AST.Line, strip_types: boolean = false, reset: boolean = true): Promise<ProofOutcome> {
+    andWellDef(T: AST.Line, active: boolean = true): AST.Line {
+        return active && isTerm(T)
+            ? conjunct([T, LI.wellDef(T)]) as AST.Term
+            : T
+    }
+
+    async entails(reasons: AST.Line[], goal: AST.Line, strip_types: boolean = false, reset: boolean = true, noDefn: boolean = false): Promise<ProofOutcome> {
         if (reset) this.newProof()
 
         let E: string | undefined
         for (let r of reasons) {
             console.log(r);
-            this.pushGiven(r)
+            this.pushGiven(this.andWellDef(r, !noDefn))
             E = this.resolve_error();
             if (E) return { kind: "Error", emitter: "IProve", msg: E }
         }
 
-        this.setGoal(conjunct([goal, LI.wellDef(goal as AST.Term)]) as AST.Term)
+        this.setGoal(this.andWellDef(goal, !noDefn))
         E = this.resolve_error();
         if (E) return { kind: "Error", emitter: "IProve", msg: E }
-        const rendered = this.toString(strip_types);
+        const rendered = this.toString(strip_types, noDefn);
         E = this.resolve_error();
         if (E) return { kind: "Error", emitter: "IProve", msg: E }
 
-        const localZ3Solver = new Z3Solver.Z3Prover("");
-        const response = await localZ3Solver.solve(rendered);
+        const response = await Z3Solver.solve(rendered);
 
         if (response.startsWith("unsat")) {
             return { kind: "Valid" }
@@ -193,8 +199,6 @@ export class LogicInterface {
         let defs = M.get(A.ident)
         if (!defs) M.set(A.ident, [A])
         else defs.push(A)
-
-        this.partial_funs.add(A.ident);
     }
 
     setDeclarations(A: AST.Line[]): void {
@@ -209,6 +213,7 @@ export class LogicInterface {
                     this.function_declarations.set(t.symbol, t)
                 else
                     this.error(`Cannot redeclare function: ${t.symbol}`)
+                if (t.partial) this.partial_funs.add(t.symbol);
             } else if (t.kind == "FunctionDefinition")
                 this.pushFnDef(t, this.global_fn_defs)
             else if (t.kind == "TypeDef")
@@ -300,9 +305,12 @@ export class LogicInterface {
         if (G.next)
             t_alt = this.renderGuard(G.next, alt)
         return `(if ${renderNode(G.cond)} (IProveMkResult ${renderNode(LI.wellDef(G.res))} ${renderNode(G.res)}) ${t_alt})`;
+        //return `(if ${renderNode(G.cond)} (IProveMkResult true ${renderNode(G.res)}) ${t_alt})`;
     }
 
     wellDef(T: AST.Term | undefined): AST.Term {
+        //return mk_var("true")
+        ///*
         if (!T) return mk_var("false")
         switch(T.kind) {
             case "ArrayLiteral":
@@ -319,7 +327,7 @@ export class LogicInterface {
                 }
 
                 // Short-circuit semantics
-                let R: AST.Term = (T.fn == "||" || T.fn == "->")
+                let R: AST.Term = (T.fn == "||" || T.fn == "->" || T.fn == "=>")
                     ? {
                         kind: "FunctionApplication",
                         appType: "InfixOp",
@@ -348,12 +356,13 @@ export class LogicInterface {
             case "Variable":
                 return mk_var("true");
         }
+        //*/
     }
 
     
     
 
-    renderFunctionDeclaration(ident: string, consts: Set<string>): [string, string | undefined][] | undefined {
+    renderFunctionDeclaration(ident: string, consts: Set<string>, noDefn: boolean = false): [string, string | undefined][] | undefined {
         let A = this.global_fn_defs.get(ident);
         let defs: AST.FunctionDefinition[] 
             = (A ?? []).concat(this.local_fn_defs.get(ident) ?? []);
@@ -363,7 +372,7 @@ export class LogicInterface {
             this.error(`Function ${ident} must be declared before it is defined`)
             return;
         } 
-        if (!defs.length) return [[`${decl.symbol} ${renderNode(decl.type)}`, undefined]];
+        if (!defs.length || noDefn) return [[`${decl.symbol} ${renderNode(decl.type)}`, undefined]];
 
         let params: string[] = []
         let nparams = decl.type.argTypes.length;
@@ -537,7 +546,7 @@ export class LogicInterface {
 
 
 
-    toString(strip_types: boolean = false): string {
+    toString(strip_types: boolean = false, noDefn: boolean = false): string {
         let res = "";
         let types = this.renderDatatypes(strip_types);
 
@@ -551,7 +560,7 @@ export class LogicInterface {
         let consts: Set<string> = new Set;
 
         for (let [k, _] of this.function_declarations) {
-            let rendered = this.renderFunctionDeclaration(k, consts);
+            let rendered = this.renderFunctionDeclaration(k, consts, noDefn);
             if (this.error_state || !rendered)
                 return `ERROR: ${this.error_state}`
             for (let rr of rendered) {
