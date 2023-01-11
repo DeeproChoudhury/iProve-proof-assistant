@@ -4,6 +4,12 @@ import { useEffect, useState } from 'react';
 import Flow from './Flow';
 import { ChakraProvider, Spinner } from '@chakra-ui/react'
 
+import {
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom";
+import React from 'react';
+import { GuidebookContent } from './GuidebookContent';
 
 
 const App = () => {
@@ -14,8 +20,10 @@ const App = () => {
     return () => { };
   }, [])
 
-  return (
-    <ChakraProvider>
+  const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <ChakraProvider>
       <div className="graph_header_container">
         {loading ? (
             <div className="loading">
@@ -33,10 +41,23 @@ const App = () => {
                 <Flow />
               </div>
             </div>)
-
+  
         }
       </div>
-    </ChakraProvider>
+    </ChakraProvider>,
+    },
+    {
+      path: "/guidebook",
+      element: <div 
+        dangerouslySetInnerHTML={{__html: GuidebookContent  }}
+      />,
+    },
+  ]);
+
+  return (
+    <React.StrictMode>
+      <RouterProvider router={router} />
+    </React.StrictMode>
   );
 }
 

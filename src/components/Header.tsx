@@ -76,7 +76,7 @@ const Header = () => {
         {/* END: display table mapping symbol to iProve syntax */}
 
         <Button className="headButton" variant="outline" colorScheme='whatsapp' onClick={
-            () => { window!.open("guidebook.html", '_blank')!.focus() }
+            () => { window!.open("/guidebook", '_blank')!.focus() }
           }>
           View Guide
         </Button>

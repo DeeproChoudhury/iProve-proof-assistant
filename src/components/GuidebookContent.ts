@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+export const GuidebookContent = `
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -114,7 +115,7 @@
 <span class="token hvariable">a</span><span class="token operator">:</span><span class="token constant">List</span>            <span class="token comment">-- (T, List&lt;T&gt;) -&gt; List&lt;T&gt;</span>
 </code></pre>
 <p>The Haskell backtick syntax can also be used. For any binary prefix function <code>f</code>:</p>
-<pre class=" language-haskell"><code class="prism  language-haskell"><span class="token number">1</span> <span class="token operator">`f`</span> <span class="token number">2</span> <span class="token operator">=</span> <span class="token hvariable">f</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span>
+<pre class=" language-haskell"><code class="prism  language-haskell"><span class="token number">1</span> <span class="token operator">\`f\`</span> <span class="token number">2</span> <span class="token operator">=</span> <span class="token hvariable">f</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">)</span>
 </code></pre>
 <p>We also have the boolean literals</p>
 <pre class=" language-java"><code class="prism  language-java"><span class="token boolean">true</span>     <span class="token boolean">false</span>
@@ -365,4 +366,4 @@ goal        = &lt;motives&gt;
   </div>
 </body>
 
-</html>
+</html>`
