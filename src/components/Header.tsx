@@ -34,7 +34,7 @@ const Header = () => {
         <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.showUI("export")}>
           Export proof
         </Button>
-        <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.showUI("addReasons")}>
+        <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.verifyProofGlobal()}>
           Verify Entire Proof
         </Button>
         <Button className="headButton" variant="outline" colorScheme='purple' onClick={() => actions.global.toggleUI("sidebar")}>
