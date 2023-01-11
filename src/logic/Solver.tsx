@@ -26,7 +26,7 @@ export namespace Z3Solver {
       return z3p;
    }
 
-   export async function solve(input: string, timeout: number = 7500): Promise<string> {
+   export async function solve(input: string, timeout: number = 13500): Promise<string> {
 
       // init z3
       const z3p = loadZ3();
