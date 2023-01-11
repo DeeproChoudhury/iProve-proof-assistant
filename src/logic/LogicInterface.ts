@@ -306,7 +306,7 @@ export class LogicInterface {
     }
 
     renderTermOrGuard(G: AST.Guard | AST.Term, alt: string): string {
-        if (!(G.kind == "Guard")) return `(IProveMkResult ${renderNode(LI.wellDef(G))} ${renderNode(G)})`
+        if (!(G.kind == "Guard")) return `(Success ${renderNode(G)})`
         return this.renderGuard(G, alt)
     }
 
@@ -314,7 +314,7 @@ export class LogicInterface {
         let t_alt: string = alt;
         if (G.next)
             t_alt = this.renderGuard(G.next, alt)
-        return `(if ${renderNode(G.cond)} (IProveMkResult ${renderNode(LI.wellDef(G.res))} ${renderNode(G.res)}) ${t_alt})`;
+        return `(if ${renderNode(G.cond)} (Success ${renderNode(G.res)}) ${t_alt})`;
         //return `(if ${renderNode(G.cond)} (IProveMkResult true ${renderNode(G.res)}) ${t_alt})`;
     }
 
@@ -332,8 +332,8 @@ export class LogicInterface {
                 let definedPredicate: AST.PrefixApplication = {
                     kind: "FunctionApplication",
                     appType: "PrefixFunc",
-                    params: T.params,
-                    fn: `IProveWellDefined_${T.fn}`
+                    params: [T],
+                    fn: `is-Success`
                 }
 
                 // Short-circuit semantics
@@ -401,12 +401,11 @@ export class LogicInterface {
             this.error(`Function ${ident} must be declared before it is defined`)
             return;
         } 
+
+        let R: [string, string | undefined][] = []
+        R.push([`IProveUnderDetermined_${decl.symbol} ${renderNode(decl.type)}`, undefined])
         if (!defs.length || noDefn) {
             let R: [string, string | undefined][] = [[`${decl.symbol} ${renderNode(decl.type)}`, undefined]];
-            if (decl.partial) {
-                let rt: AST.FunctionType = Object.assign({ ... decl.type }, { retType: PrimitiveType("Bool") });
-                R.push([`IProveWellDefined_${decl.symbol} ${renderNode(rt)}`, undefined])
-            }
             return R;
         }
 
@@ -433,7 +432,7 @@ export class LogicInterface {
 
         let sections: string[] = [];
         console.log("PDATAS", pdatas)
-        const overall_alt = `(IProveMkResult false IProveUnderdetermined${this.displaySafeType(decl.type.retType)})`
+        const overall_alt = `(Failure (IProveUnderDetermined_${decl.symbol} ${params.join(" ")}))`
         for (let [i, [p, d]] of pdatas.entries()) {
             const alt: string = `(${ident}__${i + 1} ${params.join(" ")})`;
             let sec: string = this.renderTermOrGuard(d, alt);
@@ -457,17 +456,14 @@ export class LogicInterface {
         let type = `(${rendered_params.join(" ")}) ${renderNode(decl.type.retType)}`
 
         const rt: string = renderNode(decl.type.retType);
-        consts.add(`(declare-const IProveUnderdetermined${this.displaySafeType(decl.type.retType)} ${rt})`)
+        //consts.add(`(declare-const IProveUnderdetermined${this.displaySafeType(decl.type.retType)} ${rt})`)
 
-        let R: [string, string][] = []
-        R.push([`${ident} ${type}`, `(IProveResult (${ident}__0 ${params.join(" ")}))`])
-        R.push([
-            `IProveWellDefined_${ident} (${rendered_params.join(" ")}) Bool`,
-            `(IProveWellDefined (${ident}__0 ${params.join(" ")}))`])
+        
+        R.push([`${ident} ${type}`, `(get (${ident}__0 ${params.join(" ")}))`])
         for (let [i, s] of sections.entries()) {
             console.log("A SECTION", i, s)
             R.push([
-                `${ident}__${i} (${rendered_params.join(" ")}) (IProvePFResult ${renderNode(decl.type.retType)})`,
+                `${ident}__${i} (${rendered_params.join(" ")}) (FunctionStatus ${renderNode(decl.type.retType)})`,
                 s
             ])
         }
