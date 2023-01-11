@@ -25,7 +25,7 @@ function d(a: AST.ASTNode): string {
             : d(a.symbol) + (a.type ? `: ${d(a.type)}` : "");
         case "FunctionDeclaration": return `${a.partial ? "partial " : ""}${a.symbol} :: ${d(a.type)}`;
         case "VariableDeclaration": 
-            return `${a.vis} ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
+            return `${a.vis ?? "var"} ${d(a.symbol)}` + (a.type ? `: ${d(a.type)}` : "");
         case "SortDeclaration": return `type ${d(a.symbol)}${a.arity ? " " + a.arity.toString() : ""}`
         case "Variable": 
             return (a.type)
