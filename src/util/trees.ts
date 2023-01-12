@@ -60,7 +60,7 @@ function d(a: AST.ASTNode): string {
 
         case "FunctionDefinition":
             return `${a.ident} ${a.params.map(d).join(" ")} ::= ${d(a.def)}` 
-        case "Guard": return `\n  | ${d(a.cond)} := ${d(a.res)}`
+        case "Guard": return `\n  | ${d(a.cond)} := ${d(a.res)}${a.next ? d(a.next) : ""}`
         case "SimpleParam": return `${a.ident}`
         case "ConsParam": return `(${d(a.A)}:${d(a.B)})`
         case "EmptyList": return "{}"

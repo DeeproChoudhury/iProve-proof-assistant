@@ -342,7 +342,7 @@ export class LogicInterface {
                 let definedPredicate: AST.PrefixApplication = {
                     kind: "FunctionApplication",
                     appType: "PrefixFunc",
-                    params: [T],
+                    params: T.params,
                     fn: `IProveWellDefined_${T.fn}`
                 }
 
