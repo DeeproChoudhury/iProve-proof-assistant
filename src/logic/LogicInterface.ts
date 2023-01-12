@@ -12,6 +12,10 @@ import Z3Solver from "./Solver";
 import { gen_decls } from "./unifier";
 import { fnSMT } from "./util";
 
+type ListOps = [ListOp, AST.Type | undefined][];
+type TypeMap = Map<string, AST.Type | undefined>;
+type FNTMap = Map<string, AST.FunctionType>;
+
 export type ProofOutcome = ProofError | ProofVerdict
 type ProofVerdict = {
     kind: "Valid" | "False" | "Unknown",
@@ -305,15 +309,21 @@ export class LogicInterface {
         return true;
     }
 
-    renderTermOrGuard(G: AST.Guard | AST.Term, alt: string): string {
-        if (!(G.kind == "Guard")) return `(Success ${renderNode(G)})`
-        return this.renderGuard(G, alt)
+    renderTermOrGuard(G: AST.Guard | AST.Term, alt: string, list_ops: ListOps, V: TypeMap, F: FNTMap): string {
+        if (!(G.kind == "Guard")) {
+            this.extractListOps(G, list_ops, V, F);
+            return `(Success ${renderNode(G)})`
+        }
+        return this.renderGuard(G, alt, list_ops, V, F)
     }
 
-    renderGuard(G: AST.Guard, alt: string): string {
+    renderGuard(G: AST.Guard, alt: string, list_ops: ListOps, V: TypeMap, F: FNTMap): string {
+        this.extractListOps(G.res, list_ops, V, F);
+        this.extractListOps(G.cond, list_ops, V, F);
+
         let t_alt: string = alt;
         if (G.next)
-            t_alt = this.renderGuard(G.next, alt)
+            t_alt = this.renderGuard(G.next, alt, list_ops, V, F)
         return `(if ${renderNode(G.cond)} (Success ${renderNode(G.res)}) ${t_alt})`;
         //return `(if ${renderNode(G.cond)} (IProveMkResult true ${renderNode(G.res)}) ${t_alt})`;
     }
@@ -391,7 +401,7 @@ export class LogicInterface {
         return range_over_bindings(T, vbs)
     }
 
-    renderFunctionDeclaration(ident: string, consts: Set<string>, noDefn: boolean = false): [string, string | undefined][] | undefined {
+    renderFunctionDeclaration(ident: string, consts: Set<string>, noDefn: boolean = false, list_ops: ListOps, V: TypeMap, F: FNTMap): [string, string | undefined][] | undefined {
         let A = this.global_fn_defs.get(ident);
         let defs: AST.FunctionDefinition[] 
             = (A ?? []).concat(this.local_fn_defs.get(ident) ?? []);
@@ -435,7 +445,7 @@ export class LogicInterface {
         const overall_alt = `(Failure (IProveUnderDetermined_${decl.symbol} ${params.join(" ")}))`
         for (let [i, [p, d]] of pdatas.entries()) {
             const alt: string = `(${ident}__${i + 1} ${params.join(" ")})`;
-            let sec: string = this.renderTermOrGuard(d, alt);
+            let sec: string = this.renderTermOrGuard(d, alt, list_ops, V, F);
             for (let D of p.reverse()) {
                 console.log("HERE D")
                 if (D.kind == "Condition")
@@ -512,7 +522,7 @@ export class LogicInterface {
         }
     }
 
-    extractListOps(T: AST.Term | undefined, R: [ListOp, AST.Type | undefined][], V: Map<string, AST.Type | undefined>, F: Map<string, AST.FunctionType>): void  {
+    extractListOps(T: AST.Term | undefined, R: ListOps, V: TypeMap, F: FNTMap): void  {
         if (!T) return;
 
         switch(T.kind) {
@@ -592,7 +602,7 @@ export class LogicInterface {
         let consts: Set<string> = new Set;
 
         for (let [k, _] of this.function_declarations) {
-            let rendered = this.renderFunctionDeclaration(k, consts, noDefn);
+            let rendered = this.renderFunctionDeclaration(k, consts, noDefn, list_ops, V, F);
             if (this.error_state || !rendered)
                 return `ERROR: ${this.error_state}`
             for (let rr of rendered) {
