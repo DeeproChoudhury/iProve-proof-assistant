@@ -343,7 +343,7 @@ export class LogicInterface {
                     kind: "FunctionApplication",
                     appType: "PrefixFunc",
                     params: [T],
-                    fn: `is-Success`
+                    fn: `IProveWellDefined_${T.fn}`
                 }
 
                 // Short-circuit semantics
@@ -412,12 +412,14 @@ export class LogicInterface {
             return;
         } 
 
-        let R: [string, string | undefined][] = []
-        R.push([`IProveUnderDetermined_${decl.symbol} ${renderNode(decl.type)}`, undefined])
+        let WDT = Object.assign({ ... decl.type }, { retType: PrimitiveType("Bool") });
         if (!defs.length || noDefn) {
             let R: [string, string | undefined][] = [[`${decl.symbol} ${renderNode(decl.type)}`, undefined]];
+            R.push([`IProveWellDefined_${decl.symbol} ${renderNode(WDT)}`, undefined])
             return R;
         }
+        let R: [string, string | undefined][] = []
+        R.push([`IProveUnderDetermined_${decl.symbol} ${renderNode(decl.type)}`, undefined])
 
         let params: string[] = []
         let nparams = decl.type.argTypes.length;
@@ -477,6 +479,8 @@ export class LogicInterface {
                 s
             ])
         }
+        R.push([`IProveWellDefined_${decl.symbol} (${rendered_params.join(" ")}) Bool`,
+            `(is-Success (${ident}__0 ${params.join(" ")}))`])
         return R
     }
 
