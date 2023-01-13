@@ -5,7 +5,7 @@ declare global {
 }
 
 const headers = [
-   "(declare-datatypes (T) ((IProvePFResult (IProveMkResult (IProveWellDefined Bool) (IProveResult T)))))",
+   "(declare-datatypes (T) ((FunctionStatus (Success (get T)) (Failure (recover T)))))",
    "(declare-datatypes (T) ( (Maybe (Just (get T)) Nothing) ))"
 ]
 
@@ -26,8 +26,7 @@ export namespace Z3Solver {
       return z3p;
    }
 
-   export async function solve(input: string, timeout: number = 13500): Promise<string> {
-
+export async function solve(input: string, timeout: number = 13500): Promise<string> {
       // init z3
       const z3p = loadZ3();
 

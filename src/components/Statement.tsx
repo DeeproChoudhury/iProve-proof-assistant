@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button, IconButton, useDisclosure, Input } from '@chakra-ui/react';
+import { Button, IconButton, useDisclosure, Input, Textarea } from '@chakra-ui/react';
 import {
   Popover,
   PopoverTrigger,
@@ -15,6 +15,7 @@ import './Statement.css';
 import { display } from "../util/trees";
 import { StatementType } from '../types/Statement';
 import ReasonIndicator from './ReasonIndicator';
+import TextareaAutosize from 'react-textarea-autosize';
 
 export type StatementPropsType = {
   statement: StatementType;
@@ -30,7 +31,7 @@ export type StatementPropsType = {
 }
 
 const Statement = (props: StatementPropsType) => {
-  const input = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLTextAreaElement>(null);
   const {
     statement,
     index = 0,
@@ -93,7 +94,19 @@ const Statement = (props: StatementPropsType) => {
   return (
     <div className="nodrag" style={{display: 'flex', marginLeft: `${indentSize}px` }} key={`statement-${index}`}>
       <Text fontSize="sm" style={{margin: 'auto 5px', width: '30px'}}>({index + 1})</Text>
-      <Input size="sm" ref={input} onFocus={onFocus} onBlur={onBlur} onChange={e => onChange(e)} className={inputStyle} style={{ marginTop: '5px', flex: '1', backgroundColor: "rgb(252, 248, 242)" }} key={index} value={value} />
+      <TextareaAutosize
+        //size="lg"
+        ref={input}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onChange={e => onChange(e)}
+        className={inputStyle}
+        style={{ marginTop: '5px', flex: '1', backgroundColor: "rgb(252, 248, 242)" }}
+        key={index}
+        rows={1}
+        //variant="unstyled"
+        //resize="vertical"
+        value={value} />
       {statement.reason && <ReasonIndicator reason={statement.reason} />}
       {addable ? <MoreOptions /> : <></>}
     </div>

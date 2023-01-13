@@ -1,6 +1,8 @@
 .statement-input {
   font-family: "Inconsolata", monospace !important;
-  padding: 0 10px 0 10px !important;
+  padding: 5px 10px 5px 10px !important;
+  min-height: 1em;
+  resize: none;
 }
 
 .syntax-error {
