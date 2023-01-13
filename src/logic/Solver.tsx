@@ -41,15 +41,16 @@ export async function solve(input: string, timeout: number = 13500): Promise<str
 
       Z3.global_param_set('timeout', String(timeout));
 
+      console.log(headers.join("\n") + `\n${input}\n` + commands.join("\n"))
+
       let output = '';
-      let error = '';
 
       try {
          output = await Z3.eval_smtlib2_string(ctx, 
             headers.join("\n") + `\n${input}\n` + commands.join("\n")) ?? '';
       } catch (e) {
          // error with running z3
-         error = (e as Error).message ?? 'Error message is empty';
+         output = (e as Error).message ?? 'Error message is empty';
       } finally {
          Z3.del_context(ctx);
       }
@@ -61,7 +62,7 @@ export async function solve(input: string, timeout: number = 13500): Promise<str
          }
       }
 
-      console.log(headers.join("\n") + `\n${input}\n` + commands.join("\n"))
+      
       console.log(output)
       // we are guaranteed to have non-undefined output and error
       return output;

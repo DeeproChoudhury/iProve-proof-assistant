@@ -27,7 +27,6 @@ export const onConnect = ({ draft }: ActionContext<StoreType>, params: Connectio
     const sourceGoals: StatementType[] = source && source.type !== "inductionNode" ? 
       source.data.goals.filter(s => !node.data.givens.map(g => g.value).includes(s.value)).map(s => {return {...s, reason: undefined}}) : [];
     node.data.givens = [...sourceGoals, ...node.data.givens];
-    console.log(node.data.givens);
   }
 
   draft.edges = addEdge({...params, 

@@ -16,7 +16,6 @@ function gen_unify_poss(
     bitmap: number,
     scope: UnifyScope): Unification 
 {
-    console.log("ANAB", A, B)
     if (i >= A.length) return scope
 
     let b_i: number | undefined = -1
@@ -34,7 +33,6 @@ function gen_unify_poss(
 }
 
 export function gen_decls(T: AST.TypeDef): [AST.SortDeclaration[], AST.FunctionDeclaration[]] {
-    console.log("HERE IS GEN_DECLS")
     let R1: AST.SortDeclaration[] = [{
          kind: "SortDeclaration", symbol: mk_var(T.ident), arity: T.params.length }
         ];
@@ -56,7 +54,6 @@ export function gen_decls(T: AST.TypeDef): [AST.SortDeclaration[], AST.FunctionD
             partial: false
         });
     }
-    console.log(R1, R2)
     return [R1, R2];
 }
 
@@ -108,7 +105,6 @@ function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: Unif
         }
         case "Variable": {
             if (B.kind != "Variable") return UNIFY_FAIL
-            console.log("[at variable]", A.ident, B.ident)
 
             if (!scope.sort_ctx_a.has(A.ident) || 
                 !scope.sort_ctx_b.has(B.ident) )
@@ -146,7 +142,6 @@ function gen_unify(A: AST.Term | undefined, B: AST.Term | undefined, scope: Unif
                 type_cnts.set(d_(B.vars[i].type), tcb - 1)
             }
 
-            //console.log(type_cnts)
             for (let [_,v] of type_cnts)
                 if (v != 0) return UNIFY_FAIL
 
@@ -207,9 +202,6 @@ export function unifies(A_: AST.Term, B_: AST.Term): AlphaAssignment | undefined
     let A: AST.Term = unify_preprocess(A_)
     let B: AST.Term = unify_preprocess(B_)
 
-    console.log("HERE AB")
-    console.log(display(A))
-    console.log(display(B))
 
     let verdict: Unification = gen_unify(B, A, {
         kind: "UnifyScope",

@@ -81,7 +81,6 @@ function if_else<TKind, TResult1, TResult2>(A: Parser<TKind, TResult1>, B: Parse
         return {
             parse(token: Token<TKind> | undefined): ParserOutput<TKind, TResult1 | TResult2> {
                 let RA = A.parse(token)
-                if (isTL) console.log("IFELSE", RA, A, B)
                 if (RA.successful) return A.parse(token)
                 return B.parse(token)
             }
@@ -497,7 +496,6 @@ TERM.setPattern(
             )
         ),
         (value: [TermOperator[], AtomicTerm, [[TermOperator, TermOperator[]], AtomicTerm][]]): AST.Term => {
-            //console.log(value)
             let head: AST.Term = value[1]
             let queue: (TermOperator | AST.Term)[] = value[0]
             queue = queue.concat([head]).concat(value[2].map(
@@ -506,7 +504,6 @@ TERM.setPattern(
                     return R.concat(ops).concat(term)
                 }
             ).flat())
-            //console.log("ENTERING TERM")
             queue.push({ kind: "Operator", appType: "End", left_assoc: false, precedence: 0 });
             let out_stack: AST.Term[] = [];
             let op_stack: TermOperator[] = [];
@@ -514,7 +511,6 @@ TERM.setPattern(
             let prev_atom = false;
             let pt: TermOperator | AST.Term | undefined = undefined;
             for (let token of queue) {
-                //console.log(token, out_stack, op_stack);
                 if (token.kind == "Operator" && token.appType == "Binary" && token.has_unary) {
                     if (!pt || pt.kind == "Operator") {
                         let cached_fn = token.apply
@@ -800,9 +796,8 @@ TYPE_DEF.setPattern(apply(
         list_sc(TYPE_CONSTRUCTOR, str("|"))
     ),
     (value): AST.TypeDef => {
-        console.log("WE ARE IN THE TYPEDEF PARSER")
         return { kind: "TypeDef", ident: value[0][0].ident, params: value[0][1].map(x => x.ident),
-            cases: value[1].map((C) => {console.log(C.selectors, C.ident, C.params.map((_, j) => getSelector(j, C.ident))); C.selectors = C.params.map((_, j) => getSelector(j, C.ident)); console.log(C.selectors); return C}) }
+            cases: value[1].map((C) => { C.selectors = C.params.map((_, j) => getSelector(j, C.ident)); return C}) }
     }
 ))
 
@@ -846,20 +841,9 @@ PROOF_LINE.setPattern(handle(alt(
  * 
  */
 export function evaluate(line: string): AST.ASTNode | ParseError {
-    console.log(PROOF_LINE.parse(lexer.parse(line)))
     let A = expectEOF(PROOF_LINE.parse(lexer.parse(line)));
-    // console.log("FINAL", A)
     if (!A.successful) return A.error;
     return expectSingleResult(A);
 }
 
 export default evaluate;
-
-/*
-const util = require("util")
-const D = (x: Object) => {
-  console.log(util.inspect(x, false, null, true))
-}
-
-D(evaluate("f x ::= | x := 2 | y := 4"))
-*/

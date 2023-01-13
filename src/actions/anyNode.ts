@@ -75,7 +75,6 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
   if (tidents_.some(t => !t)) return;
   let tidents: Type[] = tidents_ as Type[]
 
-  console.log("PREM", motives)
   let final_motives = motives.map((m): Term =>
     (m.vars.length < 2)
       ? m.term
@@ -87,10 +86,8 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
       }
   )
 
-  console.log("RAW CASES", node.data.baseCases, node.data.inductiveCases)
   let cases: Line[] = unwrap_statements(node.data.baseCases.concat(node.data.inductiveCases))
   for (let c of cases) {
-    console.log("HERE C", c)
     if (!isTerm(c)) {
       ctx.setError(mk_error({
         kind: "Semantic",
@@ -103,7 +100,6 @@ export const checkInternal = (ctx_: ActionContext<AnyNodeType>) => {
 
   let precond: Term | undefined = conjunct(cases as Term[])
   let cum_motives = conjunct(final_motives)
-  console.log("CMOTIVE", cum_motives, final_motives)
   if (!cum_motives) {
     ctx.setError(mk_error({
       kind: "Semantic",

@@ -153,7 +153,6 @@ export class LogicInterface {
 
         let E: string | undefined
         for (let r of reasons) {
-            console.log(r);
             this.pushGiven(this.andWellDef(r, !noDefn))
             E = this.resolve_error();
             if (E) return { kind: "Error", emitter: "IProve", msg: E }
@@ -305,7 +304,6 @@ export class LogicInterface {
         this.rendered_tuples.set(n,
             `(declare-datatypes (${params.join(" ")}) ((${thisID} (mk-tuple ${elems.join(" ")}))))`
         )
-        console.log("RTUP", this.rendered_tuples)
         return true;
     }
 
@@ -443,13 +441,11 @@ export class LogicInterface {
         }
 
         let sections: string[] = [];
-        console.log("PDATAS", pdatas)
         const overall_alt = `(Failure (IProveUnderDetermined_${decl.symbol} ${params.join(" ")}))`
         for (let [i, [p, d]] of pdatas.entries()) {
             const alt: string = `(${ident}__${i + 1} ${params.join(" ")})`;
             let sec: string = this.renderTermOrGuard(d, alt, list_ops, V, F);
             for (let D of p.reverse()) {
-                console.log("HERE D")
                 if (D.kind == "Condition")
                     sec = `(if ${D.value} ${sec} ${alt})`
                 else
@@ -473,7 +469,6 @@ export class LogicInterface {
         
         R.push([`${ident} ${type}`, `(get (${ident}__0 ${params.join(" ")}))`])
         for (let [i, s] of sections.entries()) {
-            console.log("A SECTION", i, s)
             R.push([
                 `${ident}__${i} (${rendered_params.join(" ")}) (FunctionStatus ${renderNode(decl.type.retType)})`,
                 s
@@ -622,8 +617,6 @@ export class LogicInterface {
         let tDecl = decls.map(x => `(${x})`).join(" ")
         let tDefn = defns.map(x => `${x}`).join(" ")
         res += `\n\n(define-funs-rec\n    (${tDecl}) \n    (${tDefn})\n)\n\n`
-
-        console.log(res)
 
         // GLOBALS
         for (let v of this.declarations) {

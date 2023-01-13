@@ -47,7 +47,6 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
     type_defs.push(IPROVE_LIST)
     let TMap = new Map(type_defs.map((x) => [x.ident, x]))
     return (bindings: AST.VariableBinding[], motives: AST.Term[]): AST.Term => {
-        console.log("HERE WE GO", motives, type_defs)
         // :/
         for (let x of bindings) { if (!x.type) return { kind: "Variable", ident: "ERRORVAR"}; }
         let fts = bindings.map((x) => LI.displaySafeType(x.type as AST.Type))
@@ -115,17 +114,13 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
             if (!type_def) { 
                 cum_precons.push(motive); continue;
             }
-            console.log("AB", BIT.kind, type_def)
             if (BIT.kind == "ParamType")
                 type_def = substitute_types(type_def, BIT.params);
-            console.log("CD", BIT.kind, type_def)
             
             let cases: AST.Term[] = type_def.cases.map(con => {
                 let vars: [AST.Variable, AST.Type][] = con.params.map(
-                    (v, j) => { console.log(v.kind); return [mk_var(`InductiveParameter${j}`), v] }
+                    (v, j) => { return [mk_var(`InductiveParameter${j}`), v] }
                 );
-
-                console.log("VARS", `${type_def}`, vars.map((v) => display(v[1])))
                 
                 let subbed = strict_rw(motive, ident, construct_type(
                     con,
@@ -148,7 +143,6 @@ export function mutual_rec_on(type_defs: AST.TypeDef[]):
             cum_precons = cum_precons.concat(cases)
         }
 
-        console.log(cum_precons.map(display))
         let full_motive = conjunct(motives)
         if (!full_motive) return { kind: "Variable", ident: "ERRORVAR"};
 
